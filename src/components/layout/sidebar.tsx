@@ -6,7 +6,10 @@ import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
+import { useUnreadNotifications } from "@/hooks/use-unread-notifications";
 import {
+  Bell,
+  Bot,
   Crown,
   GitBranch,
   LayoutDashboard,
@@ -89,11 +92,13 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/pipelines", label: "Pipelines", icon: GitBranch },
   { href: "/broadcasts", label: "Broadcasts", icon: Radio },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/flows", label: "Flows", icon: Workflow, beta: true },
+  { href: "/agents", label: "AI Agents", icon: Bot },
 ];
 
 const bottomNavItems = [
@@ -110,6 +115,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { profile, profileLoading, account, accountRole, signOut } = useAuth();
   const totalUnread = useTotalUnread();
+  const unreadNotifications = useUnreadNotifications();
   // Only surface the account-name strip when it actually carries
   // information. A solo user's personal account is named after them
   // (the 017 signup trigger seeds it from `full_name`), so showing it
@@ -207,6 +213,13 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
               const showUnreadDot =
                 item.href === "/inbox" && totalUnread > 0 && !isActive;
 
+              // Unlike the inbox dot, the notifications count stays visible
+              // even while the page is active — it reflects unread state
+              // (cleared by marking notifications read), not "currently
+              // viewing this section".
+              const showNotificationBadge =
+                item.href === "/notifications" && unreadNotifications > 0;
+
               return (
                 <li key={item.href}>
                   <Link
@@ -236,6 +249,14 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                       >
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                      </span>
+                    )}
+                    {showNotificationBadge && (
+                      <span
+                        aria-label={`${unreadNotifications} unread notification${unreadNotifications === 1 ? "" : "s"}`}
+                        className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
+                      >
+                        {unreadNotifications > 9 ? "9+" : unreadNotifications}
                       </span>
                     )}
                   </Link>

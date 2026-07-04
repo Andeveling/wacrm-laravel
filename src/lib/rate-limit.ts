@@ -148,6 +148,17 @@ export const RATE_LIMITS = {
    *  instance deploy needs the Redis swap described at the top of
    *  this file (the per-key call sites don't change). */
   publicApi: { limit: 120, windowMs: 60_000 },
+  /** AI draft-reply generation, per user. 20/min is generous for an
+   *  agent clicking "Draft with AI" while working a thread, and bounds
+   *  spend on the account's own LLM key against an accidental
+   *  hold-down / script. */
+  aiDraft: { limit: 20, windowMs: 60_000 },
+  /** AI draft-reply generation, per account. Caps the WHOLE team's
+   *  draws on the one shared BYO provider key — without this, N agents
+   *  each under their per-user limit could still stampede the account's
+   *  key past the provider's own rate limit. 60/min ≈ three busy agents
+   *  drafting flat-out. */
+  aiDraftAccount: { limit: 60, windowMs: 60_000 },
 } as const;
 
 /** Test-only helper. Clears the in-memory state so unit tests don't

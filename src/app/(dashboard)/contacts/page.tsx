@@ -570,7 +570,9 @@ export default function ContactsPage() {
                         : 'No contacts yet.'}
                     </p>
                     {!hasActiveFilters && (
-                      <Button
+                      <GatedButton
+                        canAct={canEdit}
+                        gateReason="add or import contacts"
                         variant="outline"
                         size="sm"
                         onClick={openAddForm}
@@ -578,7 +580,7 @@ export default function ContactsPage() {
                       >
                         <Plus className="size-3.5" />
                         Add your first contact
-                      </Button>
+                      </GatedButton>
                     )}
                   </div>
                 </TableCell>

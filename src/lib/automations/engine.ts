@@ -5,7 +5,10 @@ import type {
   AutomationTriggerType,
   ConditionStepConfig,
   KeywordMatchTriggerConfig,
+  InteractiveReplyTriggerConfig,
   SendMessageStepConfig,
+  SendButtonsStepConfig,
+  SendListStepConfig,
   SendTemplateStepConfig,
   SendWebhookStepConfig,
   TagStepConfig,
@@ -15,7 +18,9 @@ import type {
   AssignConversationStepConfig,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
-import { engineSendText, engineSendTemplate } from './meta-send'
+import { engineSendText, engineSendTemplate, engineSendInteractive } from './meta-send'
+import { validateInteractivePayload } from '@/lib/whatsapp/interactive'
+import { isDeliverableUrl } from '@/lib/webhooks/ssrf'
 
 // ------------------------------------------------------------
 // Public API
@@ -32,6 +37,8 @@ export interface AutomationContext {
   tag_id?: string
   /** Agent the conversation was assigned to, for conversation_assigned. */
   agent_id?: string
+  /** Button / list-row id the customer tapped, for interactive_reply. */
+  interactive_reply_id?: string
 }
 
 export interface DispatchInput {
@@ -357,6 +364,26 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       return `sent via Meta (${whatsapp_message_id})`
     }
 
+    case 'send_buttons':
+    case 'send_list': {
+      const payload = step.step_config as SendButtonsStepConfig | SendListStepConfig
+      if (!args.contactId) throw new Error(`${step.step_type} needs a contact`)
+      // Validate against Meta's limits before the network call so a bad
+      // payload surfaces as a clear failed-step detail rather than a raw
+      // Meta 400 mid-conversation.
+      const check = validateInteractivePayload(payload)
+      if (!check.ok) throw new Error(check.error)
+      const conversationId = await resolveConversationId(args)
+      const { whatsapp_message_id } = await engineSendInteractive({
+        accountId: args.automation.account_id,
+        userId: args.automation.user_id,
+        conversationId,
+        contactId: args.contactId,
+        payload,
+      })
+      return `interactive sent via Meta (${whatsapp_message_id})`
+    }
+
     case 'send_template': {
       const cfg = step.step_config as SendTemplateStepConfig
       if (!args.contactId) throw new Error('send_template needs a contact')
@@ -527,11 +554,23 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
     case 'send_webhook': {
       const cfg = step.step_config as SendWebhookStepConfig
       if (!cfg.url) throw new Error('send_webhook needs url')
+      // SSRF guard: the URL and headers are account-controlled and the
+      // server makes the request, so refuse any destination that resolves
+      // to a private / loopback / link-local / reserved address. Mirrors
+      // the webhook_endpoints delivery path (see lib/webhooks/deliver.ts).
+      if (!(await isDeliverableUrl(cfg.url))) {
+        throw new Error('send_webhook: destination not allowed')
+      }
       const body = cfg.body_template ? interpolate(cfg.body_template, args) : JSON.stringify(args.context)
       const res = await fetch(cfg.url, {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(cfg.headers ?? {}) },
         body,
+        // Do NOT follow redirects — a public URL could 3xx-bounce to an
+        // internal address, defeating the guard above. Bound the request
+        // so a hung/slow internal host can't tie up the runner.
+        redirect: 'manual',
+        signal: AbortSignal.timeout(10_000),
       })
       if (!res.ok) throw new Error(`webhook returned ${res.status}`)
       return `webhook ${res.status}`
@@ -578,17 +617,32 @@ async function resolveConversationId(args: ExecuteArgs): Promise<string> {
   return data.id as string
 }
 
-function triggerMatches(automation: Automation, ctx: AutomationContext | undefined): boolean {
-  if (automation.trigger_type !== 'keyword_match') return true
-  const cfg = automation.trigger_config as KeywordMatchTriggerConfig
-  if (!cfg?.keywords || cfg.keywords.length === 0) return false
-  const text = (ctx?.message_text ?? '').toString()
-  if (!text) return false
-  const haystack = cfg.case_sensitive ? text : text.toLowerCase()
-  return cfg.keywords.some((raw) => {
-    const k = cfg.case_sensitive ? raw : raw.toLowerCase()
-    return cfg.match_type === 'exact' ? haystack === k : haystack.includes(k)
-  })
+export function triggerMatches(automation: Automation, ctx: AutomationContext | undefined): boolean {
+  if (automation.trigger_type === 'keyword_match') {
+    const cfg = automation.trigger_config as KeywordMatchTriggerConfig
+    if (!cfg?.keywords || cfg.keywords.length === 0) return false
+    const text = (ctx?.message_text ?? '').toString()
+    if (!text) return false
+    const haystack = cfg.case_sensitive ? text : text.toLowerCase()
+    return cfg.keywords.some((raw) => {
+      const k = cfg.case_sensitive ? raw : raw.toLowerCase()
+      return cfg.match_type === 'exact' ? haystack === k : haystack.includes(k)
+    })
+  }
+
+  // Match on the tapped button / list-row id (exact). Lets multi-step
+  // menus be chained: automation A sends buttons, automation B fires on
+  // the reply id and sends the next step.
+  if (automation.trigger_type === 'interactive_reply') {
+    const cfg = automation.trigger_config as InteractiveReplyTriggerConfig
+    const replyId = ctx?.interactive_reply_id
+    if (!replyId || !Array.isArray(cfg?.reply_ids) || cfg.reply_ids.length === 0) {
+      return false
+    }
+    return cfg.reply_ids.includes(replyId)
+  }
+
+  return true
 }
 
 async function evaluateCondition(cfg: ConditionStepConfig, args: ExecuteArgs): Promise<boolean> {

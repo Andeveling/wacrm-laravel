@@ -93,9 +93,11 @@ vi.mock("./admin-client", () => {
 vi.mock("./meta-send", () => ({
   engineSendText: vi.fn(async () => ({ whatsapp_message_id: "m1" })),
   engineSendTemplate: vi.fn(async () => ({ whatsapp_message_id: "m1" })),
+  engineSendInteractive: vi.fn(async () => ({ whatsapp_message_id: "m1" })),
 }));
 
-import { runAutomationsForTrigger } from "./engine";
+import { runAutomationsForTrigger, triggerMatches } from "./engine";
+import type { Automation } from "@/types";
 
 const ACCOUNT = "acct-1";
 
@@ -224,6 +226,44 @@ describe("update_contact_field — custom fields", () => {
   });
 });
 
+describe("send_webhook — SSRF guard (GHSA-8jqh-598v-rfxc)", () => {
+  it("refuses a private / link-local destination and never calls fetch", async () => {
+    const fetchSpy = vi.fn(async () => ({ ok: true, status: 200 }));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    h.state.owned = { id: "c1" };
+    h.state.automations = [automationWithUpdateStep()];
+    // Aimed at the cloud metadata endpoint — the classic SSRF target.
+    h.state.steps = [webhookStep("http://169.254.169.254/latest/meta-data/")];
+
+    await runAutomationsForTrigger({
+      accountId: ACCOUNT,
+      triggerType: "new_message_received",
+      contactId: "c1",
+      context: {},
+    });
+
+    // The automation matched and its steps were loaded (so we genuinely
+    // reached the send_webhook case)...
+    expect(h.state.fromCalls).toContain("automation_steps");
+    // ...yet the guard blocked it before any outbound request left the box.
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+});
+
+function webhookStep(url: string) {
+  return {
+    id: "s1",
+    automation_id: "a1",
+    step_type: "send_webhook",
+    position: 0,
+    parent_step_id: null,
+    step_config: { url, headers: { "Metadata-Flavor": "Google" }, body_template: "{}" },
+  };
+}
+
 function automationWithUpdateStep() {
   return {
     id: "a1",
@@ -256,3 +296,43 @@ function customStep(field: string, value: string) {
     step_config: { field, value },
   };
 }
+
+describe("triggerMatches — interactive_reply", () => {
+  function automation(reply_ids: string[]): Automation {
+    return {
+      id: "a1",
+      account_id: ACCOUNT,
+      user_id: "u1",
+      name: "menu step",
+      trigger_type: "interactive_reply",
+      trigger_config: { reply_ids },
+      is_active: true,
+      execution_count: 0,
+      created_at: "",
+      updated_at: "",
+    };
+  }
+
+  it("matches when the tapped id is in reply_ids (exact)", () => {
+    expect(
+      triggerMatches(automation(["yes", "no"]), { interactive_reply_id: "yes" }),
+    ).toBe(true);
+  });
+
+  it("does not match a different id", () => {
+    expect(
+      triggerMatches(automation(["yes"]), { interactive_reply_id: "maybe" }),
+    ).toBe(false);
+  });
+
+  it("does not match on a substring (exact only)", () => {
+    expect(
+      triggerMatches(automation(["yes"]), { interactive_reply_id: "yes_please" }),
+    ).toBe(false);
+  });
+
+  it("does not match when no reply id is present or config is empty", () => {
+    expect(triggerMatches(automation(["yes"]), {})).toBe(false);
+    expect(triggerMatches(automation([]), { interactive_reply_id: "yes" })).toBe(false);
+  });
+});

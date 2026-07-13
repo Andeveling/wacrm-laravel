@@ -50,6 +50,10 @@ clone or fork it to run your own CRM.
 - **Public REST API** (`/api/v1`) with scoped, revocable API keys —
   build your own automations on top of your CRM. See
   [docs/public-api.md](./docs/public-api.md).
+- **MCP server** — drive your CRM from Claude, Cursor, and other AI
+  assistants over the [Model Context Protocol](https://modelcontextprotocol.io).
+  Read-only by default, opt-in writes. See [docs/mcp.md](./docs/mcp.md)
+  (server in [`mcp-server/`](./mcp-server)).
 
 ## Why fork this?
 

@@ -64,6 +64,11 @@ const SECURITY_HEADERS = [
 ] as const;
 
 const nextConfig: NextConfig = {
+  // Silences the "multiple lockfiles" warning: /home/andres/bun.lock is
+  // unrelated to this project, this repo's root is the pnpm workspace here.
+  turbopack: {
+    root: __dirname,
+  },
   /**
    * Cache-Control policy.
    *

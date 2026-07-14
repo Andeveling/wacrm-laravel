@@ -104,8 +104,16 @@ export default async function RootLayout({
         <Script
           id="theme-boot"
           strategy="beforeInteractive"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: inline boot script from a trusted local constant; intentionally injected to run before hydration.
           dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
         />
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
       </head>
       <body className="min-h-full bg-background text-foreground font-sans">
         <NextIntlClientProvider messages={messages} locale={locale}>

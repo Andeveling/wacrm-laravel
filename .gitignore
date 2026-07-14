@@ -42,3 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local agent tool state (sockets/db files break Tailwind's content scan)
+.codegraph/
+.agents/

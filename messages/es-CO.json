@@ -1491,6 +1491,7 @@
       "appearance": "Apariencia",
       "whatsapp": "WhatsApp",
       "templates": "Plantillas",
+      "quick-replies": "Respuestas rápidas",
       "fields": "Campos y etiquetas",
       "deals": "Negocios y moneda",
       "members": "Miembros del equipo",
@@ -1681,5 +1682,11 @@
       "reindexTooltip": "Volver a vectorizar todos los documentos (por ejemplo, después de agregar una clave de embeddings)",
       "loading": "Cargando…"
     }
+  },
+  "roles": {
+    "owner": "Propietario",
+    "admin": "Administrador",
+    "agent": "Agente",
+    "viewer": "Observador"
   }
 }

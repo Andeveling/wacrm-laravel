@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# ponytail: run artisan from host against the Sail postgres (host=127.0.0.1, port=5433).
+# Remove if you stop using Sail / switch DB ports.
+DB_HOST=127.0.0.1 DB_PORT=5433 exec php artisan "$@"

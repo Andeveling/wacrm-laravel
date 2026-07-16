@@ -1,0 +1,21 @@
+{
+    "agents": [
+        "claude_code",
+        "opencode",
+        "zed",
+        "pi"
+    ],
+    "cloud": false,
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch": false,
+    "sail": true,
+    "skills": [
+        "fortify-development",
+        "laravel-best-practices",
+        "wayfinder-development",
+        "inertia-react-development",
+        "echo-development",
+        "tailwindcss-development"
+    ]
+}

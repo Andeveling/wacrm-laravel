@@ -31,11 +31,11 @@ app/Domain/
 
 ### Responsabilidades
 
-| Capa | Hace | NO hace |
-|------|------|---------|
-| **Action** (`__invoke`) | Recibe request, resuelve FormRequest si aplica, llama al Domain, pasa el resultado al Responder | Reglas de negocio, armar responses, hablar con varios modelos |
-| **Domain** (`App\Domain\<X>\Actions\<Y>`) | Ejecuta las reglas del negocio, devuelve un Result con un enum de estado | Conocer HTTP, decidir redirects o renders |
-| **Responder** (`App\Domain\<X>\Responders\<Y>`) | Mapea Result → `Inertia::render(...)`, `redirect()->route(...)` o `response()->json(...)` | Re-evaluar reglas, hablar con el modelo |
+| Capa                                            | Hace                                                                                            | NO hace                                                       |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Action** (`__invoke`)                         | Recibe request, resuelve FormRequest si aplica, llama al Domain, pasa el resultado al Responder | Reglas de negocio, armar responses, hablar con varios modelos |
+| **Domain** (`App\Domain\<X>\Actions\<Y>`)       | Ejecuta las reglas del negocio, devuelve un Result con un enum de estado                        | Conocer HTTP, decidir redirects o renders                     |
+| **Responder** (`App\Domain\<X>\Responders\<Y>`) | Mapea Result → `Inertia::render(...)`, `redirect()->route(...)` o `response()->json(...)`       | Re-evaluar reglas, hablar con el modelo                       |
 
 ### Convenciones
 
@@ -83,6 +83,6 @@ Hereda las cuatro reglas de Wendell:
 
 ## Referencias
 
-- Wendell Adriel, *Using the ADR (Action/Domain/Responder) Pattern in Laravel* — <https://wendelladriel.com/blog/using-the-adr-action-domain-responder-pattern-in-laravel>
+- Wendell Adriel, _Using the ADR (Action/Domain/Responder) Pattern in Laravel_ — <https://wendelladriel.com/blog/using-the-adr-action-domain-responder-pattern-in-laravel>
 - Laravel Fortify Actions — <https://laravel.com/docs/fortify#defining-actions> (referencia para distinguir de ADR Actions)
 - ADR template — Michael Nygard (formato estándar de este documento)

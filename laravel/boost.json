@@ -11,6 +11,7 @@
     "nightwatch": false,
     "sail": true,
     "skills": [
+        "ai-sdk-development",
         "fortify-development",
         "laravel-best-practices",
         "wayfinder-development",

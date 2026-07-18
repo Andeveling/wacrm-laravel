@@ -11,9 +11,10 @@ import { store } from '@/routes/register';
 
 type Props = {
     passwordRules: string;
+    invite: string | null;
 };
 
-export default function Register({ passwordRules }: Props) {
+export default function Register({ passwordRules, invite }: Props) {
     return (
         <>
             <Head title="Register" />
@@ -26,6 +27,12 @@ export default function Register({ passwordRules }: Props) {
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">
+                            {invite !== null && (
+                                <>
+                                    <input type="hidden" name="invite" value={invite} />
+                                    <InputError message={errors.invite} />
+                                </>
+                            )}
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
                                 <Input

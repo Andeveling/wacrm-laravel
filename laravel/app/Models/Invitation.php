@@ -106,6 +106,17 @@ class Invitation extends Model
     }
 
     /**
+     * Whether this invitation can still be redeemed: not revoked, not
+     * already accepted, and not past its expiration.
+     */
+    public function isRedeemable(): bool
+    {
+        return $this->revoked_at === null
+            && $this->accepted_at === null
+            && ! $this->expires_at->isPast();
+    }
+
+    /**
      * The account this invitation is for.
      *
      * @return BelongsTo<Account, $this>

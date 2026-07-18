@@ -65,7 +65,6 @@ class RegistrationWithInviteTest extends TestCase
         $user = User::where('email', 'ada@example.com')->firstOrFail();
         $this->assertDatabaseCount('accounts', 2);
         $this->assertDatabaseHas('accounts', ['type' => AccountType::Personal->value]);
-        dump($user->accounts()->get()->toArray());
         $personal = $user->accounts()->where('type', AccountType::Personal->value)->firstOrFail();
         $teamMembership = $user->accounts()->whereKey($team->id)->firstOrFail();
 
@@ -75,7 +74,7 @@ class RegistrationWithInviteTest extends TestCase
         $this->assertTrue($user->accounts()->count() === 2);
         $this->assertNotNull($invitation->fresh()->accepted_at);
         $this->assertSame($user->id, $invitation->fresh()->accepted_by);
-        $response->assertSessionHas('success', 'Te uniste a Acme Team — Ir');
+        $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Te uniste a Acme Team — Ir']);
     }
 
     public function test_registration_with_invalid_invite_rolls_back_user_and_personal_account(): void

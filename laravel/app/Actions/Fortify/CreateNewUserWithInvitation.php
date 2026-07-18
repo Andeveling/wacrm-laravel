@@ -3,8 +3,11 @@
 namespace App\Actions\Fortify;
 
 use App\Models\Account;
+use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUserWithInvitation implements CreatesNewUsers
@@ -22,12 +25,50 @@ class CreateNewUserWithInvitation implements CreatesNewUsers
         return DB::transaction(function () use ($input): User {
             $user = $this->createNewUser->create($input);
 
-            $account = Account::createPersonal();
-            $account->users()->attach($user->id, ['role' => 'owner', 'joined_at' => now()]);
+            $personal = Account::createPersonal();
+            $personal->users()->attach($user->id, ['role' => 'owner', 'joined_at' => now()]);
 
-            session(['current_account_id' => $account->id]);
+            $this->redeemInviteFor($user, $input['invite'] ?? null);
+
+            session(['current_account_id' => $personal->id]);
 
             return $user;
         });
+    }
+
+    /**
+     * Redeems an invitation token during registration.
+     *
+     * Looks up the invitation by its token hash, validates it hasn't been
+     * revoked, accepted, or expired, then joins the user to the team with the
+     * role specified in the invitation. Throws ValidationException on any
+     * failure so the DB::transaction rolls back the user + personal account.
+     */
+    private function redeemInviteFor(User $user, ?string $token): void
+    {
+        if ($token === null || $token === '') {
+            return;
+        }
+
+        $invitation = Invitation::withoutGlobalScopes()
+            ->with('account')
+            ->where('token_hash', hash('sha256', $token))
+            ->first();
+
+        if ($invitation === null || ! $invitation->isRedeemable()) {
+            throw ValidationException::withMessages([
+                'invite' => [__('This invitation is invalid or has expired.')],
+            ]);
+        }
+
+        $team = $invitation->account;
+        $team->users()->attach($user->id, ['role' => $invitation->role, 'joined_at' => now()]);
+
+        $invitation->update([
+            'accepted_at' => now(),
+            'accepted_by' => $user->id,
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Te uniste a {$team->name} — Ir"]);
     }
 }

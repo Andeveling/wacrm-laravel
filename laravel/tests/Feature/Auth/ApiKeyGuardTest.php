@@ -9,11 +9,12 @@ use App\Support\ApiKeyToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Concerns\InteractsWithApiKeys;
 use Tests\TestCase;
 
 class ApiKeyGuardTest extends TestCase
 {
-    use RefreshDatabase;
+    use InteractsWithApiKeys, RefreshDatabase;
 
     #[Test]
     public function it_resolves_the_authenticated_api_key_from_a_valid_bearer(): void
@@ -120,18 +121,5 @@ class ApiKeyGuardTest extends TestCase
         $this->withHeader('Authorization', 'Bearer '.$plaintext)
             ->getJson('/api/v1/me')
             ->assertOk();
-    }
-
-    /**
-     * Issue a fresh plaintext that hashes to the same digest as the factory row,
-     * so tests can drive the guard without persisting the plaintext anywhere.
-     */
-    private function reissuePlaintext(ApiKey $apiKey): string
-    {
-        $plaintext = 'wacrm_live_'.bin2hex(random_bytes(32));
-
-        $apiKey->forceFill(['key_hash' => ApiKeyToken::hash($plaintext)])->save();
-
-        return $plaintext;
     }
 }

@@ -6,15 +6,15 @@ use App\Models\Account;
 use App\Models\ApiKey;
 use App\Models\Enums\ApiScope;
 use App\Models\User;
-use App\Support\ApiKeyToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Concerns\InteractsWithApiKeys;
 use Tests\TestCase;
 
 class AuthenticateApiKeyMiddlewareTest extends TestCase
 {
-    use RefreshDatabase;
+    use InteractsWithApiKeys, RefreshDatabase;
 
     #[Test]
     public function it_rejects_requests_without_an_authorization_header(): void
@@ -76,14 +76,5 @@ class AuthenticateApiKeyMiddlewareTest extends TestCase
         // request see only this account's rows.
         $this->assertTrue(App::bound(\App\Models\Scopes\AccountScope::CONTAINER_KEY));
         $this->assertSame($account->id, App::make(\App\Models\Scopes\AccountScope::CONTAINER_KEY));
-    }
-
-    private function reissuePlaintext(ApiKey $apiKey): string
-    {
-        $plaintext = 'wacrm_live_'.bin2hex(random_bytes(32));
-
-        $apiKey->forceFill(['key_hash' => ApiKeyToken::hash($plaintext)])->save();
-
-        return $plaintext;
     }
 }

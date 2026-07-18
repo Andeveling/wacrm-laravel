@@ -12,6 +12,7 @@ use App\Support\ApiKeyToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Concerns\InteractsWithApiKeys;
 use Tests\TestCase;
@@ -122,12 +123,38 @@ class AuditLogTest extends TestCase
         ApiKeyRequest::factory()->create(['account_id' => $accountB->id, 'created_at' => now()->subDays(1)]);
 
         $rows = ApiKeyRequest::withoutGlobalScope(AccountScope::class)
-            ->where('account_id', $accountA->id)
-            ->whereBetween('created_at', [now()->subDays(2), now()])
+            ->forAccountBetween($accountA->id, now()->subDays(2), now())
             ->get();
 
         $this->assertCount(1, $rows);
         $this->assertSame($accountA->id, $rows->first()->account_id);
+    }
+
+    #[Test]
+    public function the_audit_command_lists_rows_for_an_account_in_a_date_range(): void
+    {
+        $accountA = Account::factory()->create();
+        $accountB = Account::factory()->create();
+
+        ApiKeyRequest::factory()->create(['account_id' => $accountA->id, 'path' => 'api/v1/inside', 'created_at' => now()->subDays(1)]);
+        ApiKeyRequest::factory()->create(['account_id' => $accountA->id, 'path' => 'api/v1/outside', 'created_at' => now()->subDays(10)]);
+        ApiKeyRequest::factory()->create(['account_id' => $accountB->id, 'path' => 'api/v1/other', 'created_at' => now()->subDays(1)]);
+
+        $this->artisan('api-keys:audit', [
+            '--account' => $accountA->id,
+            '--from' => now()->subDays(2)->toDateTimeString(),
+            '--to' => now()->toDateTimeString(),
+        ])
+            ->expectsOutputToContain('api/v1/inside')
+            ->doesntExpectOutputToContain('api/v1/outside')
+            ->doesntExpectOutputToContain('api/v1/other')
+            ->assertSuccessful();
+    }
+
+    #[Test]
+    public function the_audit_command_fails_without_an_account(): void
+    {
+        $this->artisan('api-keys:audit')->assertFailed();
     }
 
     #[Test]
@@ -142,5 +169,13 @@ class AuditLogTest extends TestCase
 
         $this->assertFalse($remaining->contains($stale->id));
         $this->assertTrue($remaining->contains($fresh->id));
+    }
+
+    #[Test]
+    public function the_prune_command_rejects_a_malformed_retention_window(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        Artisan::call('api-keys:prune-audit', ['--older-than' => 'ninety']);
     }
 }

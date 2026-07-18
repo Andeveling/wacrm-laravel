@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use Carbon\CarbonInterface;
 use Database\Factories\ApiKeyRequestFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,6 +49,19 @@ class ApiKeyRequest extends Model
     public function apiKey(): BelongsTo
     {
         return $this->belongsTo(ApiKey::class);
+    }
+
+    /**
+     * Audit rows for one account inside a date range — story 39's support
+     * query ("what happened on Tuesday"). Shared by `api-keys:audit` and any
+     * future admin UI.
+     *
+     * @param  Builder<static>  $query
+     */
+    #[Scope]
+    protected function forAccountBetween(Builder $query, string $accountId, CarbonInterface $from, CarbonInterface $to): void
+    {
+        $query->where('account_id', $accountId)->whereBetween('created_at', [$from, $to]);
     }
 
     /**

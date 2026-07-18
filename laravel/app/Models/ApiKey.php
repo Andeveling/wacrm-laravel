@@ -135,7 +135,7 @@ class ApiKey extends Model implements AuthenticatableContract
      */
     private function environment(): string
     {
-        return str_starts_with($this->key_prefix, 'wacrm_test_') ? 'test' : 'live';
+        return ApiKeyToken::environmentFromPrefix($this->key_prefix);
     }
 
     /**

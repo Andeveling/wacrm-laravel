@@ -58,6 +58,15 @@ final class ApiKeyToken
     }
 
     /**
+     * The `live`/`test` environment a stored `key_prefix` was issued for,
+     * so callers never sniff the prefix layout themselves.
+     */
+    public static function environmentFromPrefix(string $keyPrefix): string
+    {
+        return str_starts_with($keyPrefix, self::PREFIX.'test_') ? 'test' : 'live';
+    }
+
+    /**
      * SHA-256 hash the given plaintext token. Use to compare against the
      * `key_hash` stored in the DB during the auth lookup.
      */

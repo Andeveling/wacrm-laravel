@@ -7,7 +7,7 @@ use App\Models\Scopes\AccountScope;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Runs the six tenant-isolation assertions `TenantScopeTest` (#12) hand-rolled
+ * Runs the five tenant-isolation assertions `TenantScopeTest` (#12) hand-rolled
  * against `TenantScopedFixture`, parametrized so any `BelongsToAccount` model
  * can reuse them: `$this->assertTenantIsolation(Contact::class, ContactFactory::new())`.
  */

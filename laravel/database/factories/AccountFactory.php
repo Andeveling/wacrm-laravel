@@ -30,7 +30,7 @@ class AccountFactory extends Factory
     public function personal(): static
     {
         return $this->state(fn (array $attributes) => [
-            'name' => 'Personal',
+            'name' => Account::PERSONAL_NAME,
             'type' => AccountType::Personal,
         ]);
     }

@@ -25,6 +25,11 @@ class Account extends Model
     use HasFactory, HasUuids;
 
     /**
+     * Display name every user's auto-created Personal account gets.
+     */
+    public const PERSONAL_NAME = 'Personal';
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -46,5 +51,15 @@ class Account extends Model
         return $this->belongsToMany(User::class, 'account_user')
             ->using(AccountUser::class)
             ->withPivot('role', 'joined_at');
+    }
+
+    /**
+     * Create a new Personal account. Every user gets exactly one, auto-created
+     * at registration; the name/type pair is canonical here so the factory's
+     * `personal()` state and registration don't drift out of sync.
+     */
+    public static function createPersonal(): self
+    {
+        return static::create(['name' => self::PERSONAL_NAME, 'type' => AccountType::Personal]);
     }
 }

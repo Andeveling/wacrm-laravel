@@ -4,7 +4,7 @@ namespace App\Providers;
 
 /* @chisel-registration */
 
-use App\Actions\Fortify\CreateNewUser;
+use App\Actions\Fortify\CreateNewUserWithInvitation;
 /* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -44,7 +44,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         /* @chisel-registration */
-        Fortify::createUsersUsing(CreateNewUser::class);
+        Fortify::createUsersUsing(CreateNewUserWithInvitation::class);
         /* @end-chisel-registration */
     }
 

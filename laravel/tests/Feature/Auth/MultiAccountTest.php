@@ -3,14 +3,38 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Account;
+use App\Models\Enums\AccountType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
+use Laravel\Fortify\Features;
 use Tests\TestCase;
 
 class MultiAccountTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_registration_creates_a_personal_account_owned_by_the_user(): void
+    {
+        $this->skipUnlessFortifyHas(Features::registration());
+
+        $this->post(route('register.store'), [
+            'name' => 'Ada Lovelace',
+            'email' => 'ada@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+
+        $user = User::where('email', 'ada@example.com')->firstOrFail();
+        $account = $user->accounts()->sole();
+
+        $this->assertSame('Personal', $account->name);
+        $this->assertTrue($account->type === AccountType::Personal);
+        $this->assertSame('owner', $account->pivot->role);
+        $this->assertSame($account->id, session('current_account_id'));
+    }
 
     public function test_switch_page_lists_only_the_users_accounts(): void
     {

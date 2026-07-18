@@ -42,6 +42,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'api_key' => [
+            'driver' => 'custom-apikey',
+            'provider' => 'api_keys',
+        ],
     ],
 
     /*
@@ -65,6 +69,14 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        // Driver registered via Auth::provider('api-key', ...) in
+        // App\Providers\AuthServiceProvider — looks up an `ApiKey` row by
+        // its SHA-256 `key_hash` so the `api_key` guard can resolve the
+        // principal in a single query.
+        'api_keys' => [
+            'driver' => 'api-key',
         ],
 
         // 'users' => [

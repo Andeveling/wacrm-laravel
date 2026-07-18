@@ -11,7 +11,7 @@ stack de servicios en docker-compose: Postgres 17 + pgvector, Redis, Reverb
 cp .env.example .env          # solo la primera vez
 composer install              # vendor/ vive en el host (PHP 8.4 local)
 pnpm install
-docker compose up -d          # postgres, redis, nginx, php-fpm, reverb, queue, scheduler
+docker compose up -d          # pgsql, redis, nginx, php-fpm, reverb, queue, scheduler
 docker compose exec app php artisan key:generate   # solo la primera vez
 docker compose exec app php artisan migrate
 pnpm dev                      # Vite en el host (HMR)
@@ -19,11 +19,11 @@ pnpm dev                      # Vite en el host (HMR)
 
 - App: <http://localhost:8000>
 - Reverb (WebSockets): `localhost:8080`
-- Postgres: `localhost:5432` (user/db/pass: `wacrm`/`wacrm`/`secret`)
+- Postgres: `localhost:5433` (user/db/pass: `wacrm`/`wacrm`/`secret`)
 
 ## Comandos artisan
 
-Siempre dentro del contenedor (el `.env` apunta a los hosts de docker: `postgres`, `redis`):
+Siempre dentro del contenedor (el `.env` apunta a los hosts de docker: `pgsql`, `redis`):
 
 ```bash
 docker compose exec app php artisan <comando>

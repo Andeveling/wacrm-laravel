@@ -12,7 +12,7 @@ x-app: &app
   environment:
     APP_ENV: local
   depends_on:
-    postgres:
+    pgsql:
       condition: service_healthy
     redis:
       condition: service_healthy
@@ -31,7 +31,8 @@ services:
     depends_on:
       - app
 
-  postgres:
+  # Named "pgsql" (not "postgres") to match Sail's hardcoded `sail psql` command.
+  pgsql:
     image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: wacrm

@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\Account;
 use App\Models\AccountUser;
+use App\Models\Enums\AccountRole;
 use App\Models\Enums\AccountType;
 use App\Models\Scopes\AccountScope;
 use App\Models\User;
@@ -112,7 +113,7 @@ class TenantScopeTest extends TestCase
         $pivot = $account->users()->first()->pivot;
 
         $this->assertInstanceOf(AccountUser::class, $pivot);
-        $this->assertSame('owner', $pivot->role);
+        $this->assertSame(AccountRole::Owner, $pivot->role);
         $this->assertSame($joinedAt->toDateTimeString(), $pivot->joined_at->toDateTimeString());
     }
 }

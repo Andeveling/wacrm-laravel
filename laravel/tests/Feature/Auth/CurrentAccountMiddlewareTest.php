@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Account;
+use App\Models\Enums\AccountRole;
 use App\Models\User;
 use App\Support\CurrentAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +26,7 @@ class CurrentAccountMiddlewareTest extends TestCase
 
         $this->assertTrue(app()->bound(CurrentAccount::class));
         $this->assertSame($account->id, app(CurrentAccount::class)->id());
-        $this->assertSame('owner', app(CurrentAccount::class)->role());
+        $this->assertSame(AccountRole::Owner, app(CurrentAccount::class)->role());
     }
 
     public function test_it_returns_403_when_session_account_no_longer_belongs_to_user(): void

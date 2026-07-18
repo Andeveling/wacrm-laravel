@@ -2,11 +2,13 @@
 
 namespace App\Support;
 
+use App\Models\Enums\AccountRole;
+
 final readonly class CurrentAccount
 {
     public function __construct(
         private string $id,
-        private string $role,
+        private AccountRole $role,
     ) {}
 
     public function id(): string
@@ -14,18 +16,18 @@ final readonly class CurrentAccount
         return $this->id;
     }
 
-    public function role(): string
+    public function role(): AccountRole
     {
         return $this->role;
     }
 
     public function isOwner(): bool
     {
-        return $this->role === 'owner';
+        return $this->role === AccountRole::Owner;
     }
 
     public function isAdmin(): bool
     {
-        return in_array($this->role, ['owner', 'admin'], true);
+        return $this->role->atLeast(AccountRole::Admin);
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Account;
+use App\Models\Enums\AccountRole;
 use App\Models\Enums\AccountType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,7 +33,7 @@ class MultiAccountTest extends TestCase
 
         $this->assertSame('Personal', $account->name);
         $this->assertTrue($account->type === AccountType::Personal);
-        $this->assertSame('owner', $account->pivot->role);
+        $this->assertSame(AccountRole::Owner, $account->pivot->role);
         $this->assertSame($account->id, session('current_account_id'));
     }
 

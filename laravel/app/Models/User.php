@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Enums\AccountRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -61,5 +62,14 @@ class User extends Authenticatable implements PasskeyUser
         return $this->belongsToMany(Account::class, 'account_user')
             ->using(AccountUser::class)
             ->withPivot('role', 'joined_at');
+    }
+
+    /**
+     * The role this user holds in the given account, or null when they
+     * are not a member. The single lookup every AccountPolicy check uses.
+     */
+    public function roleIn(Account $account): ?AccountRole
+    {
+        return $this->accounts()->whereKey($account->id)->first()?->pivot->role;
     }
 }

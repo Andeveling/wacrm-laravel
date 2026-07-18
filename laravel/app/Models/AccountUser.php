@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Enums\AccountRole;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
 
 /**
  * @property string $account_id
  * @property int $user_id
- * @property string $role
+ * @property AccountRole $role
  * @property Carbon|null $joined_at
  */
 class AccountUser extends Pivot
@@ -23,6 +24,7 @@ class AccountUser extends Pivot
     protected function casts(): array
     {
         return [
+            'role' => AccountRole::class,
             'joined_at' => 'datetime',
         ];
     }

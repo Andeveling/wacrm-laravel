@@ -7,7 +7,8 @@ namespace App\Models\Enums;
  * hierarchy is a flat ordinal (owner=4 … viewer=1), mirroring the
  * legacy account_role_enum so role comparisons stay one number check.
  * What each role may do lives in AccountPolicy — the single source of
- * truth for capabilities; compare roles with atLeast(), never inline.
+ * truth for capabilities. Threshold checks ("at least admin") go through
+ * atLeast(); owner-only checks may compare with === directly.
  */
 enum AccountRole: string
 {

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
 use App\Models\Enums\ApiScope;
+use App\Support\ApiKeyToken;
 use Database\Factories\ApiKeyFactory;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property string $id
@@ -37,6 +39,13 @@ class ApiKey extends Model implements AuthenticatableContract
      * @var string|null The "creator" column is set at creation only — never edited afterwards.
      */
     public const UPDATED_AT = null;
+
+    /**
+     * The new key's plaintext token, set only on the instance `rotate()`
+     * returns. Never persisted — a real object property, not an Eloquent
+     * attribute, so it's absent from `toArray()`/`toJson()`.
+     */
+    public ?string $plaintextToken = null;
 
     /**
      * The account this key belongs to. A key is always exactly one account.
@@ -80,6 +89,53 @@ class ApiKey extends Model implements AuthenticatableContract
     public function isExpired(): bool
     {
         return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    /**
+     * Revoke immediately — for leaked keys. Unlike `rotate()`, there is no
+     * grace window: the key stops authenticating as soon as this commits.
+     */
+    public function revoke(): void
+    {
+        $this->forceFill(['revoked_at' => now()])->save();
+    }
+
+    /**
+     * Mint a replacement key with the same scopes, and give this key a 24h
+     * grace window instead of dying immediately, so a client's config can be
+     * updated without a hard cutover. Atomic — both writes commit together.
+     * The new key's plaintext is available exactly once, on the returned
+     * instance's `plaintextToken`.
+     */
+    public function rotate(): self
+    {
+        return DB::transaction(function (): self {
+            $issued = ApiKeyToken::issue($this->environment());
+
+            $newKey = static::create([
+                'account_id' => $this->account_id,
+                'created_by' => $this->created_by,
+                'name' => $this->name,
+                'key_prefix' => $issued['key_prefix'],
+                'key_hash' => $issued['key_hash'],
+                'scopes' => $this->scopes,
+            ]);
+
+            $newKey->plaintextToken = $issued['plaintext'];
+
+            $this->forceFill(['expires_at' => now()->addHours(24)])->save();
+
+            return $newKey;
+        });
+    }
+
+    /**
+     * The `live`/`test` environment this key was issued for, read back off
+     * its `key_prefix` so `rotate()` mints the replacement in the same one.
+     */
+    private function environment(): string
+    {
+        return str_starts_with($this->key_prefix, 'wacrm_test_') ? 'test' : 'live';
     }
 
     /**

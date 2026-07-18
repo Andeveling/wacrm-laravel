@@ -40,6 +40,11 @@ class RequireApiKeyScope
             ], 401)->withHeaders(['WWW-Authenticate' => 'Bearer error="invalid_token"']);
         }
 
+        // Recorded before the pass/fail check so the audit trail (written in
+        // AuthenticateApiKey::terminate()) knows which scope a request
+        // needed even when it was denied for lacking it.
+        $request->attributes->set('scope_used', $scope);
+
         $required = ApiScope::tryFrom($scope);
 
         if ($required === null || ! $apiKey->hasScope($required)) {

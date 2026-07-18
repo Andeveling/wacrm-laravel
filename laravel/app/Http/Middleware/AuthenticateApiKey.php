@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Auth\ApiKeyGuard;
 use App\Models\ApiKey;
+use App\Models\ApiKeyRequest;
 use App\Models\Scopes\AccountScope;
 use App\Support\ApiKeyToken;
 use Closure;
@@ -26,6 +27,12 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Routes under this middleware never reach the web session guard; the
  * `ensure.current-account` middleware is intentionally NOT applied.
+ *
+ * `terminate()` writes the audit trail (`last_used_at` + an `api_key_requests`
+ * row) after the response is generated, so `duration_ms` is accurate and a
+ * request that throws mid-flight is still logged. It only runs for requests
+ * that got past `handle()` with a resolved key — a 401 from an unknown/bad
+ * token isn't a key's request to log.
  */
 class AuthenticateApiKey
 {
@@ -46,9 +53,40 @@ class AuthenticateApiKey
         }
 
         $request->attributes->set('api_key', $apiKey);
+        $request->attributes->set('api_key_request_started_at', microtime(true));
         app()->instance(AccountScope::CONTAINER_KEY, $apiKey->account_id);
 
         return $next($request);
+    }
+
+    /**
+     * Persist the audit trail for this request. Runs after the response is
+     * sent to the client, outside the request's perceived latency.
+     */
+    public function terminate(Request $request, Response $response): void
+    {
+        $apiKey = $request->attributes->get('api_key');
+
+        if (! $apiKey instanceof ApiKey) {
+            return;
+        }
+
+        $startedAt = $request->attributes->get('api_key_request_started_at', microtime(true));
+
+        $apiKey->forceFill(['last_used_at' => now()])->saveQuietly();
+
+        ApiKeyRequest::create([
+            'api_key_id' => $apiKey->id,
+            'account_id' => $apiKey->account_id,
+            'method' => $request->method(),
+            'path' => '/'.ltrim($request->path(), '/'),
+            'status' => $response->getStatusCode(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'request_id' => $request->headers->get('X-Request-Id'),
+            'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'scope_used' => $request->attributes->get('scope_used'),
+        ]);
     }
 
     /**

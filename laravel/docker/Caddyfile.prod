@@ -1,7 +1,8 @@
-# Placeholder — activar en el cutover a producción.
-# Cuando haya dominio y se reemplace el setup actual:
+# Placeholder — activar en el cutover a producción. Ver issue #6 para el plan
+# completo de cutover (decisiones, dependencias, diferidos).
 #
-#   1. Copiar este archivo a `laravel/Caddyfile` (raíz del docker-compose.yml).
+# Pasos al activar:
+#   1. Copiar a `laravel/Caddyfile` (raíz del docker-compose.yml).
 #   2. Agregar el servicio `caddy` al docker-compose.yml:
 #        caddy:
 #          image: caddy:2-alpine
@@ -14,20 +15,17 @@
 #            - caddy_data:/data
 #            - caddy_config:/config
 #   3. Reemplazar `<app-dominio>` y `<reverb-dominio>` con los vhosts reales.
-#   4. `docker compose up -d caddy` — TLS automático vía Let's Encrypt
-#      (requiere 80 abierto al exterior; si hay Cloudflare delante, usar DNS-01).
-#   5. En el mismo cutover, borrar el servicio `nginx` del compose y
-#      `docker/nginx/default.conf` (ya no se usan).
+#   4. `docker compose up -d caddy`.
+#   5. En el mismo cutover: borrar el servicio `nginx` del compose y
+#      `docker/nginx/default.conf` (se reemplazan por Caddy).
+#
+# TLS: Let's Encrypt automático vía ACME. Por default usa HTTP-01 (requiere 80
+# abierto al exterior). Si el VPS queda detrás de Cloudflare u otro proxy, pasar
+# a DNS-01 con el plugin del provider correspondiente.
 #
 # Routing esperado:
-#   <app-dominio>     → app:9000   (php-fpm directo, sin nginx intermedio)
+#   <app-dominio>     → app:9000   (php-fpm directo)
 #   <reverb-dominio>  → reverb:8080 (websocket)
-#
-# Notas:
-#   - HTTP/2 + HTTP/3 out-of-the-box.
-#   - Caddy maneja cert renewal solo (cada 60 días, ACME HTTP-01).
-#   - Si en el cutover se decide conservar nginx por alguna razón,
-#     cambiar `app:9000` por `app:80` en el reverse_proxy.
 
 # <app-dominio> {
 #     reverse_proxy app:9000

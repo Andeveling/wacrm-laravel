@@ -63,15 +63,23 @@ class ApiKey extends Model implements AuthenticatableContract
      */
     public function isActive(): bool
     {
-        if ($this->revoked_at !== null) {
-            return false;
-        }
+        return ! $this->isRevoked() && ! $this->isExpired();
+    }
 
-        if ($this->expires_at !== null && $this->expires_at->isPast()) {
-            return false;
-        }
+    /**
+     * Whether an admin has explicitly revoked this key.
+     */
+    public function isRevoked(): bool
+    {
+        return $this->revoked_at !== null;
+    }
 
-        return true;
+    /**
+     * Whether this key's TTL has passed.
+     */
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
     /**

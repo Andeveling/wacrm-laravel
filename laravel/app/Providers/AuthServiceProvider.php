@@ -4,9 +4,12 @@ namespace App\Providers;
 
 use App\Auth\ApiKeyGuard;
 use App\Auth\ApiKeyUserProvider;
+use App\Models\ApiKey;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -42,6 +45,18 @@ class AuthServiceProvider extends ServiceProvider
                 $app->make('auth')->createUserProvider($config['provider']),
                 $app->make(Request::class),
             );
+        });
+
+        /**
+         * 60 req/min per key (issue #11). Keyed by the API key's own id (set
+         * by AuthenticateApiKey) rather than IP, so one account's callers
+         * never share or steal each other's budget.
+         */
+        RateLimiter::for('api_key', function (Request $request) {
+            /** @var ApiKey|null $apiKey */
+            $apiKey = $request->attributes->get('api_key');
+
+            return Limit::perMinute(60)->by($apiKey?->id ?? $request->ip());
         });
     }
 }

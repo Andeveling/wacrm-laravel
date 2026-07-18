@@ -6,13 +6,14 @@ use Illuminate\Support\Facades\Route;
 /*
  * Public REST API surface (`/api/v1/*`).
  *
- * Every route in this file lives behind the `api_key` bearer-token guard.
- * The full endpoint catalog (messages, contacts, conversations, broadcasts,
- * ...) lives in downstream tickets — this file ships the bearer-token
- * mounting seam so later tickets slot in without re-plumbing auth.
+ * Every route in this file lives behind the `api_key` bearer-token guard and
+ * a 60 req/min-per-key throttle. The full endpoint catalog (messages,
+ * contacts, conversations, broadcasts, ...) lives in downstream tickets —
+ * this file ships the bearer-token mounting seam so later tickets slot in
+ * without re-plumbing auth.
  */
 
-Route::middleware([AuthenticateApiKey::class])->prefix('v1')->group(function () {
+Route::middleware([AuthenticateApiKey::class, 'throttle:api_key'])->prefix('v1')->group(function () {
     Route::get('me', function () {
         /** @var \App\Models\ApiKey $apiKey */
         $apiKey = auth('api_key')->user();

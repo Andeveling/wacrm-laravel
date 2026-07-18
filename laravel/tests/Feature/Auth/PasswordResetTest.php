@@ -92,4 +92,11 @@ class PasswordResetTest extends TestCase
 
         $response->assertSessionHasErrors('email');
     }
+
+    public function test_reset_password_link_validation_errors_are_returned_in_spanish(): void
+    {
+        $response = $this->post(route('password.email'), ['email' => 'not-an-email']);
+
+        $response->assertSessionHasErrors(['email' => 'El campo email no es un correo válido.']);
+    }
 }

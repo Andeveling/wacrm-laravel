@@ -79,6 +79,37 @@ class InvitationManagementTest extends TestCase
         $this->assertTrue($invitation->expires_at->isSameDay(now()->addDays(7)));
     }
 
+    public function test_invitation_accepts_a_custom_expiry_within_bounds(): void
+    {
+        [$admin, $account] = $this->memberWithRole('admin');
+
+        $this->actingAs($admin)
+            ->withSession(['current_account_id' => $account->id])
+            ->post(route('invitations.store'), ['role' => 'member', 'expires_in_days' => 365]);
+
+        $invitation = Invitation::withoutGlobalScopes()->firstOrFail();
+        $this->assertTrue($invitation->expires_at->isSameDay(now()->addDays(365)));
+
+        $this->actingAs($admin)
+            ->withSession(['current_account_id' => $account->id])
+            ->post(route('invitations.store'), ['role' => 'member', 'expires_in_days' => 366])
+            ->assertSessionHasErrors('expires_in_days');
+    }
+
+    public function test_already_revoked_invitation_cannot_be_revoked_again(): void
+    {
+        [$admin, $account] = $this->memberWithRole('admin');
+        $invitation = Invitation::factory()->for($account)->revoked()->create();
+        $originalRevokedAt = $invitation->revoked_at;
+
+        $this->actingAs($admin)
+            ->withSession(['current_account_id' => $account->id])
+            ->delete(route('invitations.revoke', $invitation))
+            ->assertNotFound();
+
+        $this->assertTrue($invitation->fresh()->revoked_at->equalTo($originalRevokedAt));
+    }
+
     public function test_owner_role_cannot_be_invited(): void
     {
         [$admin, $account] = $this->memberWithRole('admin');

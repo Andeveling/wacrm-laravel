@@ -24,6 +24,7 @@ class RevokeInvitationController extends Controller
         $pending = Invitation::query()
             ->whereKey($invitation)
             ->whereNull('accepted_at')
+            ->whereNull('revoked_at')
             ->firstOrFail();
 
         $pending->update(['revoked_at' => now()]);

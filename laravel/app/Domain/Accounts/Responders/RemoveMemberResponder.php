@@ -15,14 +15,14 @@ use Symfony\Component\HttpFoundation\Response;
  * Maps the four {@see MemberActionResult} cases produced by
  * {@see RemoveMember} to HTTP responses:
  *  - Success → 302 back with a `member_removed` flash so the UI can toast.
- *  - LastOwnerBlocked → 302 back with a validation error keyed by the
- *    status label, matching the ADR 0002 contract.
+ *  - LastOwnerBlocked → 302 back with a validation error keyed
+ *    `last_owner_blocked`, matching the ADR 0002 contract.
  *  - Forbidden → 403.
  *  - NotMember → 404.
  *
  * Responder is pure transport — it never re-evaluates the rules that
- * produced the status. Translation key for the success flash lives in
- * lang/ (issue #24).
+ * produced the status. Strings are hardcoded in Spanish per project
+ * decision (no i18n layer); revisit if issue #24 lands.
  */
 final readonly class RemoveMemberResponder
 {
@@ -40,7 +40,7 @@ final readonly class RemoveMemberResponder
     {
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => __('accounts.members.status.success'),
+            'message' => 'Miembro eliminado.',
         ]);
 
         return back()->with('member_removed', true);
@@ -49,7 +49,7 @@ final readonly class RemoveMemberResponder
     private function lastOwnerBlocked(MemberActionResult $result): RedirectResponse
     {
         return back()->withErrors([
-            $result->status->label() => $result->message ?? __('accounts.members.status.last_owner_blocked'),
+            'last_owner_blocked' => $result->message ?? 'Promovés a otro Owner antes de degradar tu rol.',
         ]);
     }
 

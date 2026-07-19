@@ -21,8 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
  *  - NotMember → 404.
  *
  * Responder is pure transport — it never re-evaluates the rules that
- * produced the status. Translation key for the success flash lives
- * in lang/ (issue #24).
+ * produced the status. Strings are hardcoded in Spanish per project
+ * decision (no i18n layer); revisit if issue #24 lands.
  */
 final readonly class ChangeMemberRoleResponder
 {
@@ -40,7 +40,7 @@ final readonly class ChangeMemberRoleResponder
     {
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => __('accounts.members.status.success'),
+            'message' => 'Rol actualizado.',
         ]);
 
         return redirect()
@@ -53,7 +53,7 @@ final readonly class ChangeMemberRoleResponder
         return redirect()
             ->route('accounts.members.index', $result->account)
             ->withErrors([
-                'last_owner_blocked' => $result->message ?? __('accounts.members.status.last_owner_blocked'),
+                'last_owner_blocked' => $result->message ?? 'Promovés a otro Owner antes de degradar tu rol.',
             ]);
     }
 

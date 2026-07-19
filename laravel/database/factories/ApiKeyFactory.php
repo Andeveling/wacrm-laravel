@@ -25,7 +25,7 @@ class ApiKeyFactory extends Factory
         return [
             'account_id' => Account::factory(),
             'created_by' => User::factory(),
-            'name' => fake()->words(2, true).' integration',
+            'name' => fake()->word().' '.fake()->word().' integration',
             'key_prefix' => $issued['key_prefix'],
             'key_hash' => $issued['key_hash'],
             'scopes' => [],

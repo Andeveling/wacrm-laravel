@@ -23,8 +23,8 @@ trait BelongsToAccount
         static::addGlobalScope(new AccountScope);
 
         static::creating(function (Model $model): void {
-            if (empty($model->account_id) && app()->bound(AccountScope::CONTAINER_KEY)) {
-                $model->account_id = app(AccountScope::CONTAINER_KEY);
+            if (empty($model->getAttribute('account_id')) && app()->bound(AccountScope::CONTAINER_KEY)) {
+                $model->setAttribute('account_id', app(AccountScope::CONTAINER_KEY));
             }
         });
     }

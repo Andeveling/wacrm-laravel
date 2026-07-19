@@ -8,7 +8,31 @@ use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
-    Route::redirect('settings', '/settings/profile');
+    Route::get('settings', function () {
+        $panels = [
+            ['slug' => 'profile', 'title' => 'Perfil', 'description' => 'Datos personales y verificación de email.', 'status' => 'Disponible', 'href' => route('profile.edit')],
+            ['slug' => 'security', 'title' => 'Seguridad', 'description' => 'Contraseña, 2FA y passkeys.', 'status' => 'Disponible', 'href' => route('security.edit')],
+            ['slug' => 'appearance', 'title' => 'Apariencia', 'description' => 'Tema claro/oscuro del sistema.', 'status' => 'Disponible', 'href' => route('appearance.edit')],
+            ['slug' => 'members', 'title' => 'Miembros', 'description' => 'Gestión de miembros del equipo.', 'status' => 'Disponible', 'href' => null],
+            ['slug' => 'api-keys', 'title' => 'API Keys', 'description' => 'Tokens de acceso programático.', 'status' => 'Disponible con módulo', 'href' => null],
+            ['slug' => 'whatsapp', 'title' => 'WhatsApp', 'description' => 'Conexión con WhatsApp Business.', 'status' => 'Próximamente', 'href' => route('settings.whatsapp')],
+            ['slug' => 'templates', 'title' => 'Plantillas', 'description' => 'Plantillas de mensajes aprobadas por Meta.', 'status' => 'Próximamente', 'href' => route('settings.templates')],
+            ['slug' => 'quick-replies', 'title' => 'Respuestas rápidas', 'description' => 'Atajos reutilizables para conversaciones.', 'status' => 'Próximamente', 'href' => route('settings.quick-replies')],
+            ['slug' => 'fields', 'title' => 'Campos personalizados', 'description' => 'Campos extra para contactos y negocios.', 'status' => 'Próximamente', 'href' => route('settings.fields')],
+            ['slug' => 'deals', 'title' => 'Pipelines', 'description' => 'Etapas y automatización del pipeline.', 'status' => 'Próximamente', 'href' => route('settings.deals')],
+            ['slug' => 'overview', 'title' => 'Overview', 'description' => 'Listado de paneles de configuración.', 'status' => 'Disponible', 'href' => route('settings.overview')],
+        ];
+
+        return inertia('settings/overview', [
+            'panels' => $panels,
+        ]);
+    })->name('settings.overview');
+
+    Route::inertia('settings/whatsapp', 'settings/whatsapp')->name('settings.whatsapp');
+    Route::inertia('settings/templates', 'settings/templates')->name('settings.templates');
+    Route::inertia('settings/quick-replies', 'settings/quick-replies')->name('settings.quick-replies');
+    Route::inertia('settings/fields', 'settings/fields')->name('settings.fields');
+    Route::inertia('settings/deals', 'settings/deals')->name('settings.deals');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');

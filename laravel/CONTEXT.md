@@ -4,9 +4,6 @@ Glosario de lenguaje ubicuo del dominio. Mantenido por `/grill-with-docs` y refe
 
 ## Entidades
 
-### User
-La persona autenticada. Cada humano que hace login es un **User**. Tiene email único, contraseña hasheada y soporta passkeys (WebAuthn) y 2FA vía Fortify. Pertenece a uno o varios **Account** a través del pivot `account_user`.
-
 ### Account
 El **tenant**. Todo dato operativo (contactos, negocios, conversaciones, API keys) pertenece a un Account. Dos tipos:
 - **Personal** — auto-creado al registrarse, uno por User, nombre "Personal".
@@ -66,3 +63,14 @@ ADR 0001: **Action / Domain / Responder** para features nuevos. Las Actions vive
 - **Current Account** — el account en el que el User está "actuando" en este request.
 - **BelongsToAccount** — marcador de que un modelo está escopeado por tenant.
 - **Datos operativos** — contactos, negocios, conversaciones (CRM).
+
+## Reglas de membresía
+
+**Owner Protection**:
+Un Account debe tener **al menos un Owner** en todo momento. La última membresía con rol Owner no puede degradarse ni ser removida. Para soltar el rol de Owner, hay que promover a otro miembro a Owner primero. Regla enforced en la capa de aplicación (Actions de Accounts), no en SQL — ver ADR 0002.
+
+**Member Removal scope**:
+Remover a un miembro de un Team Account elimina **solo esa membresía**. El Personal Account del User removido queda intacto. Coherente con el modelo multi-account.
+
+**MemberActionStatus** (enum de resultado de las Actions de Accounts):
+`Success` | `LastOwnerBlocked` | `NotMember` | `Forbidden`.

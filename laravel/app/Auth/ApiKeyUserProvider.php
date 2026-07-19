@@ -26,7 +26,9 @@ class ApiKeyUserProvider implements UserProvider
 {
     public function retrieveById($identifier): ?Authenticatable
     {
-        return ApiKey::query()->withoutGlobalScopes()->find($identifier);
+        $key = ApiKey::query()->withoutGlobalScopes()->find($identifier);
+
+        return $key instanceof ApiKey ? $key : null;
     }
 
     public function retrieveByToken($identifier, #[\SensitiveParameter] $token): ?Authenticatable
@@ -39,6 +41,9 @@ class ApiKeyUserProvider implements UserProvider
         // Not applicable — API keys never ride remember-me cookies.
     }
 
+    /**
+     * @param  array<string, mixed>  $credentials
+     */
     public function retrieveByCredentials(array $credentials): ?Authenticatable
     {
         $hash = $credentials['key_hash'] ?? null;
@@ -52,6 +57,9 @@ class ApiKeyUserProvider implements UserProvider
         return ($key !== null && $key->isActive()) ? $key : null;
     }
 
+    /**
+     * @param  array<string, mixed>  $credentials
+     */
     public function validateCredentials(Authenticatable $user, array $credentials): bool
     {
         // Reused by TokenGuard during credential login. Bearer-token auth
@@ -61,6 +69,9 @@ class ApiKeyUserProvider implements UserProvider
         throw new LogicException('ApiKeyUserProvider does not support validateCredentials; bearer auth uses retrieveByCredentials.');
     }
 
+    /**
+     * @param  array<string, mixed>  $credentials
+     */
     public function rehashPasswordIfRequired(Authenticatable $user, array $credentials, bool $force = false): void
     {
         // ApiKey has no password — sha256 is fixed-length, never needs rehashing.

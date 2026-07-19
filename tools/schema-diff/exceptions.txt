@@ -19,6 +19,22 @@
 # --- uuid-ossp: Laravel usa gen_random_uuid()/HasUuids, no la extensión ---
 ^extension\|uuid-ossp$
 
+# --- FKs a usuarios en dominio core (#39): uuid (auth.users/profiles) ->
+# bigint (users). Patrones anclados por tabla+columna+nullabilidad para no
+# tapar otras diferencias. Ver docs/schema-deviations.md. ---
+^column\|(contacts|tags|custom_fields|contact_notes|conversations|whatsapp_config|message_templates|pipelines|deals|quick_replies|notifications|member_presence)\|user_id\|(uuid|bigint)\|not null\|-\|-$
+^column\|conversations\|assigned_agent_id\|(uuid|bigint)\|null\|-\|-$
+^column\|deals\|assigned_to\|(uuid|bigint)\|null\|-\|-$
+^column\|messages\|sender_id\|(uuid|bigint)\|null\|-\|-$
+^column\|message_reactions\|actor_id\|(uuid|bigint)\|null\|-\|-$
+^column\|notifications\|actor_user_id\|(uuid|bigint)\|null\|-\|-$
+^constraint\|(contacts|tags|custom_fields|contact_notes|conversations|whatsapp_config|message_templates|pipelines|deals|quick_replies|notifications|member_presence)\|FOREIGN KEY \((user_id|actor_user_id)\) REFERENCES (auth\.)?users\(id\) ON DELETE (CASCADE|SET NULL)$
+^constraint\|deals\|FOREIGN KEY \(assigned_to\) REFERENCES (profiles|users)\(id\) ON DELETE SET NULL$
+
+# --- notifications/quick_replies.id: Supabase usaba uuid_generate_v4()
+# (uuid-ossp, 027/035); Laravel usa gen_random_uuid() nativo (#39) ---
+^column\|(notifications|quick_replies)\|id\|uuid\|not null\|(uuid_generate_v4|gen_random_uuid)\(\)\|-$
+
 # --- Funciones/triggers clasificados (b)->PHP o (c)->eliminar en el
 # inventario (#2). Solo el trio de contadores de broadcasts + recompute
 # queda exigido en SQL (por eso NO aparece aquí). ---

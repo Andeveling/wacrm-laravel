@@ -30,10 +30,33 @@ passkeys de Fortify, el audit log de API keys (#21) y las tablas del ai-sdk
 No se migran datos reales (lo de Supabase es dummy — decisión en #25), así
 que el cambio de tipos no requiere mapeo de datos.
 
-Nota para #39/#40: las FKs a usuarios en tablas de dominio (`assigned_to`,
-`created_by`, `user_id`…) heredan uuid→bigint; al portar cada tabla, sus
-líneas de columna/constraint diferirán del lado Supabase y habrá que agregar
-la excepción puntual aquí y en `exceptions.txt`.
+## FKs a usuarios en el dominio core (#39)
+
+Las tablas de dominio portadas en #39 (contacts, tags, custom_fields,
+contact_notes, conversations, whatsapp_config, message_templates, pipelines,
+deals, quick_replies, notifications, member_presence, messages,
+message_reactions, contact_tags, contact_custom_values, pipeline_stages)
+conservan tipos, defaults, CHECKs e índices idénticos a Supabase, con una
+sola familia de desviaciones: toda columna que apuntaba a usuarios pasa de
+`uuid` a `bigint`:
+
+- `user_id` (todas), `notifications.actor_user_id`, `messages.sender_id`,
+  `message_reactions.actor_id`, `conversations.assigned_agent_id` (sin FK,
+  igual que en Supabase).
+- `deals.assigned_to`: referenciaba `profiles(id)`; ahora `users(id)`
+  (mismo `ON DELETE SET NULL`).
+
+Las excepciones en `exceptions.txt` están ancladas por tabla + columna +
+nullabilidad, de modo que solo la diferencia de tipo/destino de FK queda
+filtrada; cualquier otra divergencia en esas tablas sigue apareciendo en el
+diff.
+
+Además, `notifications.id` y `quick_replies.id` usaban
+`uuid_generate_v4()` (uuid-ossp, migraciones 027/035); en Laravel el default
+es `gen_random_uuid()` nativo — mismo efecto, sin la extensión.
+
+Nota para #40: aplicar el mismo criterio (excepción puntual aquí y en
+`exceptions.txt`) a las FKs de usuario de broadcasts/automations/flows/ai_*.
 
 ## Extensión `uuid-ossp`
 

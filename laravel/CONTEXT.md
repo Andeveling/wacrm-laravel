@@ -41,6 +41,17 @@ Jerarquía ordinal plana de lo que un User puede hacer dentro de un Account:
 
 Un `null` scope otorga solo autenticación (permite `GET /api/v1/me`).
 
+## MCP (Model Context Protocol)
+
+### WacrmServer
+Servidor MCP único que expone la capa de servicio del CRM a agentes AI. Registrado como ruta web (`/mcp/wacrm`) y como servidor local (`wacrm`). Contiene 18 tools organizadas en 9 dominios: Inbox, Contacts, Pipelines, Broadcasts, Automations, Flows, AI Assistant, Members, Settings.
+
+### AuthenticateMcp (middleware `auth.mcp`)
+Middleware que autentica peticiones MCP reutilizando el guard `api_key` existente. Resuelve el `ApiKey` desde el header `Authorization: Bearer`, bindea el `account_id` en `AccountScope` para tenant scoping, y stash el `ApiKey` resuelto en `$request->attributes['api_key']`. A diferencia de `AuthenticateApiKey`, no escribe audit trail — los tools MCP son solo lectura.
+
+### MCP Tool
+Cada tool es una clase que extiende `Laravel\Mcp\Server\Tool` y declara un schema de entrada JSON y un método `handle(Request): Response`. Las tools heredan el tenant scoping vía `BelongsToAccount` — no necesitan filtrar por `account_id` manualmente porque el middleware ya bindeó el scope.
+
 ## Infraestructura de tenant
 
 - **CurrentAccount** — value object readonly con `id` (UUID) y `role`, bindeado por request.

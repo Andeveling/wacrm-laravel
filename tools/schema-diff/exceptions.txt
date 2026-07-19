@@ -1,0 +1,31 @@
+# Desviaciones aceptadas del diff de esquema (issue #38, spec #25).
+# Una regex extendida (grep -E) por línea; las líneas del listado canónico
+# que matcheen se filtran ANTES del diff, en ambos lados. Cada patrón debe
+# estar explicado en docs/schema-deviations.md.
+
+# --- Tablas propias del framework Laravel (no existen en Supabase) ---
+^[a-z]+\|(migrations|password_reset_tokens|sessions|cache|cache_locks|jobs|job_batches|failed_jobs)(\||$)
+^[a-z]+\|(users|passkeys|api_key_requests)(\||$)
+
+# --- Tablas del ai-sdk de Laravel (laravel/ai) ---
+^[a-z]+\|(agent_conversations|agent_conversation_messages)(\||$)
+
+# --- Familia auth/tenancy: rediseñada Laravel-style en #12-#21 ---
+# profiles -> users (bigint); account_members -> account_user; accounts,
+# account_invitations y api_keys se reconstruyeron con tipos Laravel
+# (varchar, timestamp sin tz, FKs bigint a users). Ver docs/schema-deviations.md.
+^[a-z]+\|(profiles|account_members|accounts|account_user|account_invitations|api_keys)(\||$)
+
+# --- uuid-ossp: Laravel usa gen_random_uuid()/HasUuids, no la extensión ---
+^extension\|uuid-ossp$
+
+# --- Funciones/triggers clasificados (b)->PHP o (c)->eliminar en el
+# inventario (#2). Solo el trio de contadores de broadcasts + recompute
+# queda exigido en SQL (por eso NO aparece aquí). ---
+^trigger\|[a-z_]+\|CREATE TRIGGER (set_updated_at|ai_configs_updated_at|ai_knowledge_documents_updated_at) BEFORE
+^trigger\|conversations\|CREATE TRIGGER on_conversation_assigned AFTER
+^function\|(update_updated_at_column|update_ai_configs_updated_at|update_ai_knowledge_documents_updated_at)\(
+^function\|(handle_new_user|is_account_member|set_member_role|remove_account_member|transfer_account_ownership|peek_invitation|redeem_invitation)\(
+^function\|(enforce_profile_privilege_columns|touch_presence|merge_duplicate_contacts|merge_duplicate_conversations)\(
+^function\|(filter_contacts_by_tags|notify_conversation_assigned|record_webhook_failure|claim_ai_reply_slot)\(
+^function\|(match_ai_knowledge_fts|match_ai_knowledge_semantic|increment_automation_execution_count|increment_flow_execution_count)\(

@@ -31,10 +31,11 @@ enum MemberActionStatus: string
     case Forbidden = 'forbidden';
 
     /**
-     * Translation key consumed by the Responder (and any future view).
-     * Resolves under the `accounts.members.status.*` namespace of the
-     * `lang/{locale}/accounts.php` file, keeping i18n keys out of the
-     * Domain layer.
+     * Legacy helper: used to resolve translation keys for the
+     * Responder layer. Strings are currently hardcoded in Spanish
+     * per project decision (no i18n layer); the responder uses
+     * literal error keys. Kept for symmetry with future consumers
+     * (telemetry, audit log, API responses).
      */
     public function label(): string
     {

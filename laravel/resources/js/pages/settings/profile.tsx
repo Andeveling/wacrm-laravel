@@ -1,6 +1,5 @@
-import { Form, Head, usePage } from '@inertiajs/react';
 /* @chisel-email-verification */
-import { Link } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 /* @end-chisel-email-verification */
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
@@ -10,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
-import type { Auth } from '@/types';
 /* @chisel-email-verification */
 import { send } from '@/routes/verification';
+import type { Auth } from '@/types';
+
 /* @end-chisel-email-verification */
 
 type PageProps = {
@@ -21,13 +21,7 @@ type PageProps = {
 
 export default function Profile(
     /* @chisel-email-verification */
-    {
-        mustVerifyEmail,
-        status,
-    }: {
-        mustVerifyEmail: boolean;
-        status?: string;
-    },
+    { mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string },
     /* @end-chisel-email-verification */
 ) {
     const { auth } = usePage<PageProps>().props;

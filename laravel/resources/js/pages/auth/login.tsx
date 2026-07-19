@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
+/* @chisel-passkeys */
+import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -12,8 +14,7 @@ import { register } from '@/routes';
 /* @end-chisel-registration */
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-/* @chisel-passkeys */
-import PasskeyVerify from '@/components/passkey-verify';
+
 /* @end-chisel-passkeys */
 
 type Props = {
@@ -46,7 +47,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     name="email"
                                     required
                                     autoFocus
-                                    tabIndex={1}
+                                    tabIndex="0"
                                     autoComplete="email"
                                     placeholder="email@example.com"
                                 />
@@ -60,7 +61,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                         <TextLink
                                             href={request()}
                                             className="ml-auto text-sm"
-                                            tabIndex={5}
+                                            tabIndex="0"
                                         >
                                             Forgot your password?
                                         </TextLink>
@@ -70,7 +71,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     id="password"
                                     name="password"
                                     required
-                                    tabIndex={2}
+                                    tabIndex="0"
                                     autoComplete="current-password"
                                     placeholder="Password"
                                 />
@@ -81,7 +82,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                 <Checkbox
                                     id="remember"
                                     name="remember"
-                                    tabIndex={3}
+                                    tabIndex="0"
                                 />
                                 <Label htmlFor="remember">Remember me</Label>
                             </div>
@@ -89,7 +90,7 @@ export default function Login({ status, canResetPassword }: Props) {
                             <Button
                                 type="submit"
                                 className="mt-4 w-full"
-                                tabIndex={4}
+                                tabIndex="0"
                                 disabled={processing}
                                 data-test="login-button"
                             >
@@ -101,7 +102,7 @@ export default function Login({ status, canResetPassword }: Props) {
                         {/* @chisel-registration */}
                         <div className="text-center text-sm text-muted-foreground">
                             Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
+                            <TextLink href={register()} tabIndex="0">
                                 Sign up
                             </TextLink>
                         </div>

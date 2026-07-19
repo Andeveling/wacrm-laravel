@@ -1,7 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { dashboard, login } from '@/routes';
 /* @chisel-registration */
-import { register } from '@/routes';
+import { dashboard, login, register } from '@/routes';
 /* @end-chisel-registration */
 
 export default function Welcome() {
@@ -73,6 +72,7 @@ export default function Welcome() {
                                                 fill="none"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 className="h-2.5 w-2.5"
+                                                aria-hidden="true"
                                             >
                                                 <path
                                                     d="M7.70833 6.95834V2.79167H3.54167M2.5 8L7.5 3.00001"
@@ -104,6 +104,7 @@ export default function Welcome() {
                                                 fill="none"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 className="h-2.5 w-2.5"
+                                                aria-hidden="true"
                                             >
                                                 <path
                                                     d="M7.70833 6.95834V2.79167H3.54167M2.5 8L7.5 3.00001"
@@ -131,6 +132,7 @@ export default function Welcome() {
                             {/* Laravel Logo */}
                             <svg
                                 className="w-full max-w-none translate-y-0 text-[#F53003] opacity-100 transition-all duration-750 dark:text-[#F61500] starting:opacity-0 motion-safe:starting:translate-y-6"
+                                aria-hidden="true"
                                 viewBox="0 0 438 104"
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
@@ -168,6 +170,7 @@ export default function Welcome() {
                             {/* 13 */}
                             <svg
                                 className="relative -mt-[6.6rem] -ml-8 w-[438px] max-w-none [--stroke-color:#1B1B18] lg:ml-0 dark:[--stroke-color:#FF750F]"
+                                aria-hidden="true"
                                 viewBox="0 0 440 392"
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"

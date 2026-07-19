@@ -12,7 +12,10 @@ type PreviewProps = {
     token: string;
 };
 
-const COPY: Record<PreviewProps['status'], { title: string; description: string }> = {
+const COPY: Record<
+    PreviewProps['status'],
+    { title: string; description: string }
+> = {
     valid: {
         title: 'You have been invited',
         description: 'Review the details below, then register to join.',
@@ -27,12 +30,21 @@ const COPY: Record<PreviewProps['status'], { title: string; description: string 
     },
     invalid: {
         title: 'This invitation is not valid',
-        description: 'The link may have been revoked. Ask the person who sent it to issue a new one.',
+        description:
+            'The link may have been revoked. Ask the person who sent it to issue a new one.',
     },
 };
 
 export default function PreviewInvitation(props: PreviewProps) {
-    const { status, account_name, role, inviter_name, label, expires_at, token } = props;
+    const {
+        status,
+        account_name,
+        role,
+        inviter_name,
+        label,
+        expires_at,
+        token,
+    } = props;
     const copy = COPY[status];
 
     return (
@@ -46,26 +58,36 @@ export default function PreviewInvitation(props: PreviewProps) {
                     <div className="space-y-4 rounded-lg border border-sidebar-border p-6">
                         <dl className="space-y-3 text-sm">
                             <div className="flex justify-between gap-4">
-                                <dt className="text-muted-foreground">Account</dt>
+                                <dt className="text-muted-foreground">
+                                    Account
+                                </dt>
                                 <dd className="font-medium">{account_name}</dd>
                             </div>
                             {label !== null && (
                                 <div className="flex justify-between gap-4">
-                                    <dt className="text-muted-foreground">Note</dt>
+                                    <dt className="text-muted-foreground">
+                                        Note
+                                    </dt>
                                     <dd className="font-medium">{label}</dd>
                                 </div>
                             )}
                             <div className="flex justify-between gap-4">
-                                <dt className="text-muted-foreground">Invited by</dt>
+                                <dt className="text-muted-foreground">
+                                    Invited by
+                                </dt>
                                 <dd className="font-medium">{inviter_name}</dd>
                             </div>
                             <div className="flex justify-between gap-4">
                                 <dt className="text-muted-foreground">Role</dt>
-                                <dd className="font-medium capitalize">{role}</dd>
+                                <dd className="font-medium capitalize">
+                                    {role}
+                                </dd>
                             </div>
                             {expires_at !== null && (
                                 <div className="flex justify-between gap-4">
-                                    <dt className="text-muted-foreground">Expires</dt>
+                                    <dt className="text-muted-foreground">
+                                        Expires
+                                    </dt>
                                     <dd className="font-medium">
                                         {new Date(expires_at).toLocaleString()}
                                     </dd>
@@ -74,7 +96,9 @@ export default function PreviewInvitation(props: PreviewProps) {
                         </dl>
 
                         <Button asChild className="w-full">
-                            <Link href={`/register?invite=${encodeURIComponent(token)}`}>
+                            <Link
+                                href={`/register?invite=${encodeURIComponent(token)}`}
+                            >
                                 Accept and register
                             </Link>
                         </Button>

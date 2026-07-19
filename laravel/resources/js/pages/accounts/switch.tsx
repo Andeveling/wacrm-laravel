@@ -29,7 +29,11 @@ export default function SwitchAccount({ accounts }: { accounts: Account[] }) {
                             </div>
 
                             <Button asChild>
-                                <Link href={update(account.id)} method="post" as="button">
+                                <Link
+                                    href={update(account.id)}
+                                    method="post"
+                                    as="button"
+                                >
                                     Switch
                                 </Link>
                             </Button>

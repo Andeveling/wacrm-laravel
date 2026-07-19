@@ -78,14 +78,14 @@ function TwoFactorSetupStep({
                                 {qrCodeSvg ? (
                                     <div
                                         className="aspect-square w-full rounded-lg bg-white p-2 [&_svg]:size-full"
-                                        dangerouslySetInnerHTML={{
-                                            __html: qrCodeSvg,
-                                        }}
                                         style={{
                                             filter:
                                                 resolvedAppearance === 'dark'
                                                     ? 'invert(1) brightness(1.5)'
                                                     : undefined,
+                                        }}
+                                        dangerouslySetInnerHTML={{
+                                            __html: qrCodeSvg,
                                         }}
                                     />
                                 ) : (
@@ -123,8 +123,8 @@ function TwoFactorSetupStep({
                                         className="h-full w-full bg-background p-3 text-foreground outline-none"
                                     />
                                     <button
+                                        type="button"
                                         onClick={() => copy(manualSetupKey)}
-                                        className="border-l border-border px-3 hover:bg-muted"
                                     >
                                         <IconComponent className="w-4" />
                                     </button>

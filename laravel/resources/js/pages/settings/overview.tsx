@@ -3,7 +3,6 @@ import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
-    CardContent,
     CardDescription,
     CardHeader,
     CardTitle,

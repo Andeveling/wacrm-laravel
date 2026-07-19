@@ -2,15 +2,14 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { AlertCircle, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-
+import type {
+    AccountMember,
+    MemberRole,
+} from '@/components/Accounts/member-management';
 import {
     ConfirmRemoveMemberDialog,
     InviteMemberForm,
     MemberActionsCell,
-} from '@/components/Accounts/member-management';
-import type {
-    AccountMember,
-    MemberRole,
 } from '@/components/Accounts/member-management';
 import Heading from '@/components/heading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

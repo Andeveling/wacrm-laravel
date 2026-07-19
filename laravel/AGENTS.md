@@ -55,3 +55,8 @@ Required order for structural/codebase questions:
 6. Only fall back to normal filesystem tools after CodeGraph init or CodeGraph use fails, and briefly explain the fallback.
 
 Broad Read/Glob/Grep exploration before this CodeGraph check is explicitly discouraged for structural/codebase questions.
+
+## Rules
+
+- Never use imports inline \App\Http\Controllers\Invitations\StoreInvitationController::class.
+- Allway use import using use

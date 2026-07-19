@@ -40,7 +40,7 @@ export default function Register({ passwordRules, invite }: Props) {
                   type="text"
                   required
                   autoFocus
-                  tabIndex="0"
+                  tabIndex={0}
                   autoComplete="name"
                   name="name"
                   placeholder="Nombre completo"
@@ -54,7 +54,7 @@ export default function Register({ passwordRules, invite }: Props) {
                   id="email"
                   type="email"
                   required
-                  tabIndex="0"
+                  tabIndex={0}
                   autoComplete="email"
                   name="email"
                   placeholder="email@example.com"
@@ -67,7 +67,7 @@ export default function Register({ passwordRules, invite }: Props) {
                 <PasswordInput
                   id="password"
                   required
-                  tabIndex="0"
+                  tabIndex={0}
                   autoComplete="new-password"
                   name="password"
                   placeholder="Contraseña"
@@ -83,7 +83,7 @@ export default function Register({ passwordRules, invite }: Props) {
                 <PasswordInput
                   id="password_confirmation"
                   required
-                  tabIndex="0"
+                  tabIndex={0}
                   autoComplete="new-password"
                   name="password_confirmation"
                   placeholder="Confirmar contraseña"
@@ -95,7 +95,7 @@ export default function Register({ passwordRules, invite }: Props) {
               <Button
                 type="submit"
                 className="mt-2 w-full"
-                tabIndex="0"
+                tabIndex={0}
                 data-test="register-user-button"
               >
                 {processing && <Spinner />}
@@ -105,7 +105,7 @@ export default function Register({ passwordRules, invite }: Props) {
 
             <div className="text-center text-sm text-muted-foreground">
               ¿Ya tienes una cuenta?{' '}
-              <TextLink href={login()} tabIndex="0">
+              <TextLink href={login()} tabIndex={0}>
                 Iniciar sesión
               </TextLink>
             </div>

@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\Account;
 use App\Models\ApiKey;
 use App\Models\Enums\ApiScope;
+use App\Models\Scopes\AccountScope;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
@@ -74,7 +75,7 @@ class AuthenticateApiKeyMiddlewareTest extends TestCase
         // The middleware writes the account_id into the container before the
         // route closure runs, so any tenant-scoped model queries in this
         // request see only this account's rows.
-        $this->assertTrue(App::bound(\App\Models\Scopes\AccountScope::CONTAINER_KEY));
-        $this->assertSame($account->id, App::make(\App\Models\Scopes\AccountScope::CONTAINER_KEY));
+        $this->assertTrue(App::bound(AccountScope::CONTAINER_KEY));
+        $this->assertSame($account->id, App::make(AccountScope::CONTAINER_KEY));
     }
 }

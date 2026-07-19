@@ -11,7 +11,7 @@ class StubPagesTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_overview_page_renders_with_eleven_panels(): void
+    public function test_overview_page_renders_with_ten_panels(): void
     {
         $user = User::factory()->create();
 
@@ -20,7 +20,7 @@ class StubPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/overview')
-                ->has('panels', 11),
+                ->has('panels', 10),
             );
     }
 
@@ -42,7 +42,7 @@ class StubPagesTest extends TestCase
             );
     }
 
-    public function test_overview_page_marks_api_keys_as_module_gated(): void
+    public function test_overview_page_marks_api_keys_as_disponible(): void
     {
         $user = User::factory()->create();
 
@@ -50,7 +50,7 @@ class StubPagesTest extends TestCase
             ->get(route('settings.overview'))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('panels.4.slug', 'api-keys')
-                ->where('panels.4.status', 'Disponible con módulo'),
+                ->where('panels.4.status', 'Disponible'),
             );
     }
 

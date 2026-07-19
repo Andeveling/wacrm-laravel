@@ -51,7 +51,7 @@ export default function Login({ status, canResetPassword }: Props) {
                   name="email"
                   required
                   autoFocus
-                  tabIndex="0"
+                  tabIndex={0}
                   autoComplete="email"
                   placeholder="email@example.com"
                 />
@@ -65,7 +65,7 @@ export default function Login({ status, canResetPassword }: Props) {
                     <TextLink
                       href={request()}
                       className="ml-auto text-sm"
-                      tabIndex="0"
+                      tabIndex={0}
                     >
                       ¿Olvidaste tu contraseña?
                     </TextLink>
@@ -75,7 +75,7 @@ export default function Login({ status, canResetPassword }: Props) {
                   id="password"
                   name="password"
                   required
-                  tabIndex="0"
+                  tabIndex={0}
                   autoComplete="current-password"
                   placeholder="Contraseña"
                 />
@@ -83,14 +83,14 @@ export default function Login({ status, canResetPassword }: Props) {
               </div>
 
               <div className="flex items-center space-x-3">
-                <Checkbox id="remember" name="remember" tabIndex="0" />
+                <Checkbox id="remember" name="remember" tabIndex={0} />
                 <Label htmlFor="remember">Recuérdame</Label>
               </div>
 
               <Button
                 type="submit"
                 className="mt-4 w-full"
-                tabIndex="0"
+                tabIndex={0}
                 disabled={processing}
                 data-test="login-button"
               >
@@ -102,7 +102,7 @@ export default function Login({ status, canResetPassword }: Props) {
             {/* @chisel-registration */}
             <div className="text-center text-sm text-muted-foreground">
               ¿No tienes una cuenta?{' '}
-              <TextLink href={register()} tabIndex="0">
+              <TextLink href={register()} tabIndex={0}>
                 Regístrate
               </TextLink>
             </div>

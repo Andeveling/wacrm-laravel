@@ -1,65 +1,117 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import {
+  Bell,
+  BookOpen,
+  Bot,
+  FolderGit2,
+  GitBranch,
+  Inbox,
+  LayoutGrid,
+  Radio,
+  Users,
+  Workflow,
+  Zap,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
+  {
+    title: 'Dashboard',
+    href: dashboard(),
+    icon: LayoutGrid,
+  },
+  {
+    title: 'Inbox',
+    href: '/inbox',
+    icon: Inbox,
+  },
+  {
+    title: 'Contactos',
+    href: '/contacts',
+    icon: Users,
+  },
+  {
+    title: 'Pipelines',
+    href: '/pipelines',
+    icon: GitBranch,
+  },
+  {
+    title: 'Difusiones',
+    href: '/broadcasts',
+    icon: Radio,
+  },
+  {
+    title: 'Automatizaciones',
+    href: '/automations',
+    icon: Zap,
+  },
+  {
+    title: 'Flujos',
+    href: '/flows',
+    icon: Workflow,
+  },
+  {
+    title: 'Agentes de IA',
+    href: '/agents',
+    icon: Bot,
+  },
+  {
+    title: 'Notificaciones',
+    href: '/notifications',
+    icon: Bell,
+  },
 ];
 
 const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
+  {
+    title: 'Repository',
+    href: 'https://github.com/laravel/react-starter-kit',
+    icon: FolderGit2,
+  },
+  {
+    title: 'Documentation',
+    href: 'https://laravel.com/docs/starter-kits#react',
+    icon: BookOpen,
+  },
 ];
 
 export function AppSidebar() {
-    return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
+  return (
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href={dashboard()} prefetch>
+                <AppLogo />
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
-            <SidebarContent>
-                <NavMain items={mainNavItems} />
-            </SidebarContent>
+      <SidebarContent>
+        <NavMain items={mainNavItems} />
+      </SidebarContent>
 
-            <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                <NavUser />
-            </SidebarFooter>
-        </Sidebar>
-    );
+      <SidebarFooter>
+        <NavFooter items={footerNavItems} className="mt-auto" />
+        <NavUser />
+      </SidebarFooter>
+    </Sidebar>
+  );
 }

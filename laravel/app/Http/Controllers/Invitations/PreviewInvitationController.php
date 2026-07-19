@@ -15,6 +15,11 @@ class PreviewInvitationController extends Controller
      * invalid) all render the same page with distinct copy so the
      * invitee always knows why they can't proceed (story 10). No 404:
      * the page returns 200 in every case so the UX stays consistent.
+     *
+     * When the visitor is already authenticated, we expose their user id
+     * so the preview page can swap from "Sign up / Sign in" CTAs into the
+     * "Accept invitation" flow. The redeem itself happens client-side
+     * via POST /join/{token}/redeem.
      */
     public function __invoke(string $token): Response
     {
@@ -28,6 +33,8 @@ class PreviewInvitationController extends Controller
             'label' => $preview['label'],
             'expires_at' => $preview['expires_at']?->toIso8601String(),
             'token' => $token,
+            'authed_user_id' => auth()->id(),
+            'locale' => app()->getLocale(),
         ]);
     }
 }

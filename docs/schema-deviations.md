@@ -55,8 +55,17 @@ Además, `notifications.id` y `quick_replies.id` usaban
 `uuid_generate_v4()` (uuid-ossp, migraciones 027/035); en Laravel el default
 es `gen_random_uuid()` nativo — mismo efecto, sin la extensión.
 
-Nota para #40: aplicar el mismo criterio (excepción puntual aquí y en
-`exceptions.txt`) a las FKs de usuario de broadcasts/automations/flows/ai_*.
+## FKs a usuarios en motores + IA (#40)
+
+Mismo criterio que #39 para las tablas de broadcasts, automations, flows,
+webhooks e IA — única familia de desviaciones, todo lo demás idéntico
+(CHECKs, índices parciales, trigger de contadores, tsvector/pgvector):
+
+- `user_id` NOT NULL → CASCADE en `broadcasts`, `automations`,
+  `automation_logs`, `automation_pending_executions`, `flows`, `flow_runs`.
+- `created_by` nullable → SET NULL en `webhook_endpoints`, `ai_configs`,
+  `ai_knowledge_documents`.
+- `ai_configs.handoff_agent_id` nullable → SET NULL (Supabase 033).
 
 ## Extensión `uuid-ossp`
 

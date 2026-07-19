@@ -17,3 +17,17 @@ parameters:
     # without this, ApiKeyGuard's `instanceof ApiKey` check is flagged as
     # always-false because larastan maps Authenticatable to User.
     treatPhpDocTypesAsCertain: false
+
+    ignoreErrors:
+        -
+            message: '#return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types#'
+            paths:
+                - app/Mcp/
+        -
+            message: '#has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder#'
+            paths:
+                - app/Mcp/
+        -
+            message: '#has parameter \$paginator with generic interface#'
+            paths:
+                - app/Mcp/

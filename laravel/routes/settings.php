@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\ApiKeysController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 /* @chisel-password-confirmation */
@@ -14,13 +15,12 @@ Route::middleware(['auth'])->group(function () {
             ['slug' => 'security', 'title' => 'Seguridad', 'description' => 'Contraseña, 2FA y passkeys.', 'status' => 'Disponible', 'href' => route('security.edit')],
             ['slug' => 'appearance', 'title' => 'Apariencia', 'description' => 'Tema claro/oscuro del sistema.', 'status' => 'Disponible', 'href' => route('appearance.edit')],
             ['slug' => 'members', 'title' => 'Miembros', 'description' => 'Gestión de miembros del equipo.', 'status' => 'Disponible', 'href' => null],
-            ['slug' => 'api-keys', 'title' => 'API Keys', 'description' => 'Tokens de acceso programático.', 'status' => 'Disponible con módulo', 'href' => null],
-            ['slug' => 'whatsapp', 'title' => 'WhatsApp', 'description' => 'Conexión con WhatsApp Business.', 'status' => 'Próximamente', 'href' => route('settings.whatsapp')],
-            ['slug' => 'templates', 'title' => 'Plantillas', 'description' => 'Plantillas de mensajes aprobadas por Meta.', 'status' => 'Próximamente', 'href' => route('settings.templates')],
-            ['slug' => 'quick-replies', 'title' => 'Respuestas rápidas', 'description' => 'Atajos reutilizables para conversaciones.', 'status' => 'Próximamente', 'href' => route('settings.quick-replies')],
-            ['slug' => 'fields', 'title' => 'Campos personalizados', 'description' => 'Campos extra para contactos y negocios.', 'status' => 'Próximamente', 'href' => route('settings.fields')],
-            ['slug' => 'deals', 'title' => 'Pipelines', 'description' => 'Etapas y automatización del pipeline.', 'status' => 'Próximamente', 'href' => route('settings.deals')],
-            ['slug' => 'overview', 'title' => 'Overview', 'description' => 'Listado de paneles de configuración.', 'status' => 'Disponible', 'href' => route('settings.overview')],
+            ['slug' => 'api-keys', 'title' => 'API Keys', 'description' => 'Tokens de acceso programático.', 'status' => 'Disponible', 'href' => route('settings.api-keys')],
+            ['slug' => 'whatsapp', 'title' => 'WhatsApp', 'description' => 'Conexión con WhatsApp Business.', 'status' => 'Disponible', 'href' => route('settings.whatsapp')],
+            ['slug' => 'templates', 'title' => 'Plantillas', 'description' => 'Plantillas de mensajes aprobadas por Meta.', 'status' => 'Disponible', 'href' => route('settings.templates')],
+            ['slug' => 'quick-replies', 'title' => 'Respuestas rápidas', 'description' => 'Atajos reutilizables para conversaciones.', 'status' => 'Disponible', 'href' => route('settings.quick-replies')],
+            ['slug' => 'fields', 'title' => 'Campos personalizados', 'description' => 'Campos extra para contactos y negocios.', 'status' => 'Disponible', 'href' => route('settings.fields')],
+            ['slug' => 'deals', 'title' => 'Pipelines', 'description' => 'Etapas y automatización del pipeline.', 'status' => 'Disponible', 'href' => route('settings.deals')],
         ];
 
         return inertia('settings/overview', [
@@ -36,6 +36,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::middleware('ensure.current-account')->group(function () {
+        Route::get('settings/api-keys', [ApiKeysController::class, 'index'])->name('settings.api-keys');
+        Route::post('settings/api-keys', [ApiKeysController::class, 'store'])->name('settings.api-keys.store');
+        Route::delete('settings/api-keys/{apiKey}', [ApiKeysController::class, 'destroy'])->name('settings.api-keys.destroy');
+    });
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

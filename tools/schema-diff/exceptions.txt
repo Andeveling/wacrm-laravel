@@ -31,6 +31,14 @@
 ^constraint\|(contacts|tags|custom_fields|contact_notes|conversations|whatsapp_config|message_templates|pipelines|deals|quick_replies|notifications|member_presence)\|FOREIGN KEY \((user_id|actor_user_id)\) REFERENCES (auth\.)?users\(id\) ON DELETE (CASCADE|SET NULL)$
 ^constraint\|deals\|FOREIGN KEY \(assigned_to\) REFERENCES (profiles|users)\(id\) ON DELETE SET NULL$
 
+# --- FKs a usuarios en motores + IA (#40): misma familia uuid -> bigint ---
+^column\|(broadcasts|automations|automation_logs|automation_pending_executions|flows|flow_runs)\|user_id\|(uuid|bigint)\|not null\|-\|-$
+^column\|(webhook_endpoints|ai_configs|ai_knowledge_documents)\|created_by\|(uuid|bigint)\|null\|-\|-$
+^column\|ai_configs\|handoff_agent_id\|(uuid|bigint)\|null\|-\|-$
+^constraint\|(broadcasts|automations|automation_logs|automation_pending_executions|flows|flow_runs)\|FOREIGN KEY \(user_id\) REFERENCES (auth\.)?users\(id\) ON DELETE CASCADE$
+^constraint\|(webhook_endpoints|ai_configs|ai_knowledge_documents)\|FOREIGN KEY \(created_by\) REFERENCES (auth\.)?users\(id\) ON DELETE SET NULL$
+^constraint\|ai_configs\|FOREIGN KEY \(handoff_agent_id\) REFERENCES (auth\.)?users\(id\) ON DELETE SET NULL$
+
 # --- notifications/quick_replies.id: Supabase usaba uuid_generate_v4()
 # (uuid-ossp, 027/035); Laravel usa gen_random_uuid() nativo (#39) ---
 ^column\|(notifications|quick_replies)\|id\|uuid\|not null\|(uuid_generate_v4|gen_random_uuid)\(\)\|-$

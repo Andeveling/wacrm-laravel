@@ -51,7 +51,7 @@
             "!public/favicon.svg",
             "!bootstrap/ssr",
             "!tailwind.config.js",
-            "!vite.config.ts",
+            "!vite.config.mts",
             "!resources/js/actions/**",
             "!resources/js/components/ui/*",
             "!resources/js/routes/**",

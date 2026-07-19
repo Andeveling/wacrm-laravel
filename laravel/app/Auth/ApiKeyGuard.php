@@ -63,6 +63,9 @@ class ApiKeyGuard implements Guard
         return $this->user = $user;
     }
 
+    /**
+     * @param  array<string, mixed>  $credentials
+     */
     public function validate(array $credentials = []): bool
     {
         if (! isset($credentials['token'])) {
@@ -92,8 +95,6 @@ class ApiKeyGuard implements Guard
      * Touch `last_used_at` on the resolved key. Currently a no-op here —
      * the middleware does the touch in its `terminate()` step so a request
      * that crashes mid-flight still records an attempt.
-     *
-     * @param  Authenticatable&\App\Models\ApiKey|null  $user
      */
     public function setUser(Authenticatable $user): static
     {

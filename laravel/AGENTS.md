@@ -14,6 +14,27 @@ Laravel 13 + Inertia v3 + React 19 + Tailwind v4, running under Sail. Package ve
 | `echo-development` | Broadcasting, WebSockets, Reverb, presence channels, `ShouldBroadcast` | Channel auth and Echo config are easy to get subtly wrong |
 | `ai-sdk-development` | `Laravel\Ai\` namespace or any AI feature of this app | First-party SDK, v0 — API not in training data |
 
+## JS/TS tooling
+
+Linter + formatter: **Biome 2.5** (`@biomejs/biome`). Single config at `biome.json`. ESLint and Prettier are gone — do not reintroduce them.
+
+Scripts (run via `pnpm`):
+
+- `pnpm lint:check` — `biome check` (lint + format check). CI gate. Exits non-zero on errors, warnings are informational.
+- `pnpm lint` — `biome check --write` (apply safe autofixes).
+- `pnpm format:check` — `biome format` (no writes).
+- `pnpm format` — `biome format --write` (apply formatting).
+- `pnpm types:check` — `tsc --noEmit` (type check, separate tool).
+
+Ignored paths (consistent with the old ESLint config):
+`vendor`, `node_modules`, `public`, `bootstrap/ssr`, `public/favicon.svg`, `tailwind.config.js`, `vite.config.ts`, `resources/js/actions/**`, `resources/js/components/ui/*`, `resources/js/routes/**`, `resources/js/wayfinder/**`.
+
+Excluded from formatter but linted: `resources/js/components/ui/*` (shadcn-style scaffold) and `resources/views/mail/*` (blade templates).
+
+Rules disabled in `biome.json` match the baseline the previous ESLint config enforced (no false positives on the Laravel starter scaffold): `noExplicitAny`, `noArrayIndexKey`, `noSvgWithoutTitle`, `useSemanticElements`, `useButtonType`, `useAriaPropsSupportedByRole`, `noDangerouslySetInnerHtml`, `noBlankTarget`. Re-enable per-file when the underlying pattern is fixed.
+
+Tailwind v4 `@source` / `@theme` / `@apply` directives in `resources/css/app.css` are recognized via `css.parser.tailwindDirectives`.
+
 ## Workflow references
 
 - **Issues**: GitHub Issues on `github.com/Andeveling/wacrm` — see `docs/agents/issue-tracker.md`.

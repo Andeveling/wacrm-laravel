@@ -1,5 +1,9 @@
 <?php
 
+use App\Mcp\Servers\WacrmServer;
 use Laravel\Mcp\Facades\Mcp;
 
-// Mcp::web('/mcp/demo', \App\Mcp\Servers\PublicServer::class);
+Mcp::web('/mcp/wacrm', WacrmServer::class)
+    ->middleware(['auth.mcp', 'throttle:mcp']);
+
+Mcp::local('wacrm', WacrmServer::class);

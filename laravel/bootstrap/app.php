@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiKey;
+use App\Http\Middleware\AuthenticateMcp;
 use App\Http\Middleware\EnsureCurrentAccount;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'auth.mcp' => AuthenticateMcp::class,
             'ensure.current-account' => EnsureCurrentAccount::class,
             'scope' => RequireApiKeyScope::class,
         ]);

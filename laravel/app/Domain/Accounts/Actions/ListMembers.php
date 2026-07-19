@@ -3,7 +3,9 @@
 namespace App\Domain\Accounts\Actions;
 
 use App\Models\Account;
+use App\Models\AccountUser;
 use App\Models\Enums\AccountRole;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,19 +32,11 @@ final readonly class ListMembers
 
         abort_if($viewerRole === null, 403);
 
+        $viewerId = (int) $user->id;
         $members = $account->users()
             ->orderBy('users.name')
             ->get()
-            ->map(fn ($member) => [
-                'id' => (int) $member->id,
-                'name' => $member->name,
-                'email' => $member->email,
-                'role' => $member->pivot->role instanceof AccountRole
-                    ? $member->pivot->role->value
-                    : (string) $member->pivot->role,
-                'joined_at' => optional($member->pivot->joined_at)->toIso8601String(),
-                'is_you' => (int) $member->id === (int) $user->id,
-            ])
+            ->map(fn (User $member): array => $this->row($member, $viewerId))
             ->all();
 
         return Inertia::render('Accounts/Members', [
@@ -55,5 +49,30 @@ final readonly class ListMembers
             'is_owner' => $viewerRole === AccountRole::Owner,
             'is_admin' => $viewerRole->atLeast(AccountRole::Admin),
         ]);
+    }
+
+    /**
+     * Project a BelongsToMany User row into the Inertia payload shape.
+     * The pivot is resolved via {@see User::getRelationValue()} so PHPStan
+     * sees it as a typed {@see AccountUser} (the dynamic pivot attribute
+     * is invisible to static analysis otherwise).
+     *
+     * @return array{id: int, name: string, email: string, role: string, joined_at: ?string, is_you: bool}
+     */
+    private function row(User $member, int $viewerId): array
+    {
+        /** @var AccountUser $pivot */
+        $pivot = $member->getRelationValue('pivot');
+
+        return [
+            'id' => (int) $member->id,
+            'name' => $member->name,
+            'email' => $member->email,
+            'role' => $pivot->role instanceof AccountRole
+                ? $pivot->role->value
+                : (string) $pivot->role,
+            'joined_at' => optional($pivot->joined_at)->toIso8601String(),
+            'is_you' => (int) $member->id === $viewerId,
+        ];
     }
 }

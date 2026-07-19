@@ -9,5 +9,11 @@ parameters:
         - config/
         - database/
         - routes/
+        - tests/Fixtures/
 
     level: 7
+
+    # PHPDoc types (e.g. GuardHelpers' $user) are hints, not certainties —
+    # without this, ApiKeyGuard's `instanceof ApiKey` check is flagged as
+    # always-false because larastan maps Authenticatable to User.
+    treatPhpDocTypesAsCertain: false

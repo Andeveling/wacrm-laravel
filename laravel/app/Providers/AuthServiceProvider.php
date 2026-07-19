@@ -56,7 +56,7 @@ class AuthServiceProvider extends ServiceProvider
             /** @var ApiKey|null $apiKey */
             $apiKey = $request->attributes->get('api_key');
 
-            return Limit::perMinute(60)->by($apiKey?->id ?? $request->ip());
+            return Limit::perMinute(60)->by($apiKey->id ?? $request->ip());
         });
     }
 }

@@ -73,19 +73,19 @@ describe('isSoleOwner (ADR 0002 — Owner Protection invariant)', () => {
 describe('errorMessageFor', () => {
   it('returns the forbidden message for a 403 on change-role', () => {
     expect(errorMessageFor('change-role', 403)).toBe(
-      'No tenés permiso para cambiar roles.',
+      'No tienes permiso para cambiar roles.',
     );
   });
 
   it('returns the forbidden message for a 403 on remove-member', () => {
     expect(errorMessageFor('remove-member', 403)).toBe(
-      'No tenés permiso para remover miembros.',
+      'No tienes permiso para remover miembros.',
     );
   });
 
   it('returns the forbidden message for a 403 on invite-member', () => {
     expect(errorMessageFor('invite-member', 403)).toBe(
-      'No tenés permiso para invitar miembros.',
+      'No tienes permiso para invitar miembros.',
     );
   });
 

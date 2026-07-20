@@ -1,6 +1,6 @@
 import type { InertiaFormProps } from '@inertiajs/react';
 import { Trash2, UserPlus } from 'lucide-react';
-import type { FormEvent } from 'react';
+import type { SubmitEvent } from 'react';
 
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -60,7 +60,7 @@ export function InviteMemberForm({
   isOwner,
   roleOptions,
 }: InviteMemberFormProps) {
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  function onSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     inviteMember();
   }
@@ -75,7 +75,7 @@ export function InviteMemberForm({
           Invitar miembro
         </CardTitle>
         <CardDescription>
-          Enviá una invitación por email y elegí el rol inicial.
+          Envía una invitación por email y elige el rol inicial.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -204,7 +204,7 @@ export function MemberActionsCell({
         </Select>
         {soleOwnerSelf && (
           <p className="max-w-56 text-xs text-amber-700 dark:text-amber-300">
-            Sos el único Owner — no podés degradarte
+            Eres el único Owner — no puedes degradarte
           </p>
         )}
       </div>

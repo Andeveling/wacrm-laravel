@@ -19,6 +19,10 @@ test('dashboard loads without JS errors', function () {
         ->type('input#password', $this->password)
         ->press('button[type="submit"]');
 
+    $this->visit('/accounts/switch')
+        ->click('[data-testid="accounts-switcher"] button')
+        ->assertPathIs('/dashboard');
+
     $this->visit('/dashboard')->assertNoSmoke();
 });
 
@@ -28,6 +32,10 @@ test('settings profile loads without JS errors', function () {
         ->type('input#password', $this->password)
         ->press('button[type="submit"]');
 
+    $this->visit('/accounts/switch')
+        ->click('[data-testid="accounts-switcher"] button')
+        ->assertPathIs('/dashboard');
+
     $this->visit('/settings/profile')->assertNoSmoke();
 });
 
@@ -36,6 +44,10 @@ test('settings security loads without JS errors', function () {
         ->type('input#email', $this->owner->email)
         ->type('input#password', $this->password)
         ->press('button[type="submit"]');
+
+    $this->visit('/accounts/switch')
+        ->click('[data-testid="accounts-switcher"] button')
+        ->assertPathIs('/dashboard');
 
     $this->visit('/settings/security')->assertNoSmoke();
 });

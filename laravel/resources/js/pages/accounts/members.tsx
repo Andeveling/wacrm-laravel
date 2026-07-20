@@ -93,7 +93,7 @@ export default function Members({
         {lastOwnerError && (
           <Alert variant="destructive" data-testid="last-owner-error">
             <AlertCircle />
-            <AlertTitle>No podés dejar la cuenta sin Owner</AlertTitle>
+            <AlertTitle>No puedes dejar la cuenta sin Owner</AlertTitle>
             <AlertDescription>{lastOwnerError}</AlertDescription>
           </Alert>
         )}
@@ -145,7 +145,7 @@ export default function Members({
                               variant="outline"
                               className="text-[10px] tracking-wide uppercase"
                             >
-                              Vos
+                              Tú
                             </Badge>
                           )}
                         </div>

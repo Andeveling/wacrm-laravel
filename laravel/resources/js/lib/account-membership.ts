@@ -11,9 +11,9 @@ export type MembershipMutation =
   | 'invite-member';
 
 const FORBIDDEN_MESSAGE: Record<MembershipMutation, string> = {
-  'change-role': 'No tenés permiso para cambiar roles.',
-  'remove-member': 'No tenés permiso para remover miembros.',
-  'invite-member': 'No tenés permiso para invitar miembros.',
+  'change-role': 'No tienes permiso para cambiar roles.',
+  'remove-member': 'No tienes permiso para remover miembros.',
+  'invite-member': 'No tienes permiso para invitar miembros.',
 };
 
 const GENERIC_MESSAGE: Record<MembershipMutation, string> = {

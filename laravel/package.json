@@ -4,11 +4,12 @@
   "scripts": {
     "build": "vite build",
     "build:ssr": "vite build && vite build --ssr",
+    "check:ui-language": "node scripts/check-ui-language.mjs",
     "dev": "vite",
     "format": "biome format --write",
     "format:check": "biome format",
-    "lint": "biome check --write",
-    "lint:check": "biome check",
+    "lint": "biome check --write && pnpm check:ui-language",
+    "lint:check": "biome check && pnpm check:ui-language",
     "types:check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

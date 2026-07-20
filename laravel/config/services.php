@@ -35,4 +35,30 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Meta WhatsApp Business Platform
+    |--------------------------------------------------------------------------
+    |
+    | `app_secret` firma el X-Hub-Signature-256 que Meta adjunta a cada
+    | entrega del webhook. Su ausencia hace fallar cerrado el endpoint
+    | (`VerifyMetaWebhookSignature` rechaza todo el tráfico), por lo
+    | que el operador nunca termina aceptando entregas no firmadas sin
+    | notarlo.
+    |
+    | `webhook_verify_token` es el token de desafío que Meta compara
+    | contra `hub.verify_token` en el `GET` inicial de registro del
+    | callback. Compartido por la Meta App — cada cuenta sigue trayendo
+    | su propio `phone_number_id` y access_token.
+    |
+    | `graph_api_*` se usará en #65 (cliente Graph para envío y
+    | multimedia); la URL por defecto apunta al cluster público.
+    */
+    'meta' => [
+        'app_secret' => env('META_APP_SECRET'),
+        'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'),
+        'graph_api_url' => env('META_GRAPH_API_URL', 'https://graph.facebook.com'),
+        'graph_api_version' => env('META_GRAPH_API_VERSION', 'v21.0'),
+    ],
+
 ];

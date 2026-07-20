@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
+import { getInvitationStatus } from '@/lib/invitation-status';
 
 type PreviewProps = {
     status: 'valid' | 'used' | 'expired' | 'invalid';
@@ -12,40 +13,10 @@ type PreviewProps = {
     token: string;
 };
 
-const COPY: Record<
-    PreviewProps['status'],
-    { title: string; description: string }
-> = {
-    valid: {
-        title: 'You have been invited',
-        description: 'Review the details below, then register to join.',
-    },
-    used: {
-        title: 'This invitation has already been used',
-        description: 'Ask the person who sent it to issue a new one.',
-    },
-    expired: {
-        title: 'This invitation has expired',
-        description: 'Ask the person who sent it to issue a new one.',
-    },
-    invalid: {
-        title: 'This invitation is not valid',
-        description:
-            'The link may have been revoked. Ask the person who sent it to issue a new one.',
-    },
-};
-
 export default function PreviewInvitation(props: PreviewProps) {
-    const {
-        status,
-        account_name,
-        role,
-        inviter_name,
-        label,
-        expires_at,
-        token,
-    } = props;
-    const copy = COPY[status];
+    const { status, account_name, role, inviter_name, label, expires_at, token } =
+        props;
+    const copy = getInvitationStatus(status);
 
     return (
         <>
@@ -65,9 +36,7 @@ export default function PreviewInvitation(props: PreviewProps) {
                             </div>
                             {label !== null && (
                                 <div className="flex justify-between gap-4">
-                                    <dt className="text-muted-foreground">
-                                        Note
-                                    </dt>
+                                    <dt className="text-muted-foreground">Note</dt>
                                     <dd className="font-medium">{label}</dd>
                                 </div>
                             )}
@@ -79,9 +48,7 @@ export default function PreviewInvitation(props: PreviewProps) {
                             </div>
                             <div className="flex justify-between gap-4">
                                 <dt className="text-muted-foreground">Role</dt>
-                                <dd className="font-medium capitalize">
-                                    {role}
-                                </dd>
+                                <dd className="font-medium capitalize">{role}</dd>
                             </div>
                             {expires_at !== null && (
                                 <div className="flex justify-between gap-4">

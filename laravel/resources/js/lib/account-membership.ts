@@ -1,4 +1,5 @@
 import type { MemberRole } from '@/components/accounts/member-management';
+import { ROLE_LABEL } from '@/lib/account-role';
 
 /** Shared toast for connection failures across every membership mutation. */
 export const NETWORK_ERROR_MESSAGE = 'No se pudo conectar con el servidor.';
@@ -68,25 +69,6 @@ export function isSoleOwner<T extends { id: number; role: MemberRole }>(
 
 /** Selectable option shape for the role picker. */
 export type RoleOption = { value: MemberRole; label: string };
-
-/** Role label per role (kept here until #60 moves it to lib/account-role). */
-export const ROLE_LABEL: Record<MemberRole, string> = {
-    owner: 'Owner',
-    admin: 'Admin',
-    member: 'Member',
-    viewer: 'Viewer',
-};
-
-/** Badge variant per role — matches the `variant` prop on `@/components/ui/badge`. */
-export const ROLE_BADGE: Record<
-    MemberRole,
-    'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-    owner: 'default',
-    admin: 'secondary',
-    member: 'outline',
-    viewer: 'outline',
-};
 
 /** Role options for the picker — Owner is gated behind `isOwner` (Owner can promote to Owner). */
 export function roleOptions(isOwner: boolean): RoleOption[] {

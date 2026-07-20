@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useClipboard } from '@/hooks/use-clipboard';
+import { computeApiKeyStatus, getApiKeyStatus } from '@/lib/api-key-status';
 import { API_SCOPES, SCOPE_DESCRIPTIONS } from '@/lib/api-keys/scopes';
 import type { ApiKey, ApiScope } from '@/types';
 
@@ -31,13 +32,6 @@ function fmtDate(iso: string): string {
     month: 'short',
     day: 'numeric',
   });
-}
-
-function keyStatus(k: ApiKey): 'active' | 'revoked' | 'expired' {
-  if (k.revoked_at) return 'revoked';
-  if (k.expires_at && new Date(k.expires_at).getTime() <= Date.now())
-    return 'expired';
-  return 'active';
 }
 
 interface PageProps {
@@ -147,8 +141,9 @@ export default function ApiKeysPage({
             <CardContent className="p-0">
               <ul className="divide-y">
                 {keys.map((k) => {
-                  const status = keyStatus(k);
+                  const status = computeApiKeyStatus(k);
                   const inactive = status !== 'active';
+                  const statusDisplay = getApiKeyStatus(status);
                   return (
                     <li
                       key={k.id}
@@ -163,10 +158,10 @@ export default function ApiKeysPage({
                           </span>
                           {status !== 'active' && (
                             <Badge
-                              variant="outline"
-                              className="text-[10px] tracking-wide uppercase"
+                              variant={statusDisplay.variant}
+                              className={statusDisplay.classes}
                             >
-                              {status === 'revoked' ? 'Revocada' : 'Expirada'}
+                              {statusDisplay.label}
                             </Badge>
                           )}
                         </div>

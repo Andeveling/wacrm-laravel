@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAccountMembership } from '@/hooks/use-account-membership';
-import { ROLE_BADGE, ROLE_LABEL } from '@/lib/account-membership';
+import { ROLE_BADGE, ROLE_LABEL } from '@/lib/account-role';
 
 type AccountSummary = {
     id: string;

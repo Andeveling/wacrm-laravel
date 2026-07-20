@@ -4,9 +4,17 @@ use App\Http\Controllers\Invitations\PreviewInvitationController;
 use App\Http\Controllers\Invitations\RedeemInvitationController;
 use App\Http\Controllers\Invitations\RevokeInvitationController;
 use App\Http\Controllers\Invitations\StoreInvitationController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+// Root redirects based on auth state: authenticated users land on the
+// dashboard, guests land on the login page. Named `home` so the four
+// auth layouts (which link the logo back to "home") keep working.
+Route::get('/', function () {
+    return Auth::check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+})->name('home');
 
 // Public preview + redeem-after-signup flow.
 // Preview is throttled per IP; redeem requires an authenticated user

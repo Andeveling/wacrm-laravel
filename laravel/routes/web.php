@@ -7,9 +7,6 @@ use App\Http\Controllers\Invitations\StoreInvitationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-// Root redirects based on auth state: authenticated users land on the
-// dashboard, guests land on the login page. Named `home` so the four
-// auth layouts (which link the logo back to "home") keep working.
 Route::get('/', function () {
     return Auth::check()
         ? redirect()->route('dashboard')

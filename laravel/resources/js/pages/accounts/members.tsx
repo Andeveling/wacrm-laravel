@@ -1,22 +1,21 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { AlertCircle, Users } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
-import type {
-    AccountMember,
-    MemberRole,
-} from '@/components/accounts/member-management';
+
 import {
     ConfirmRemoveMemberDialog,
     InviteMemberForm,
     MemberActionsCell,
+    type AccountMember,
+    type MemberRole,
 } from '@/components/accounts/member-management';
 import Heading from '@/components/heading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { destroy, update } from '@/routes/accounts/members';
+import { useAccountMembership } from '@/hooks/use-account-membership';
+import { ROLE_BADGE, ROLE_LABEL } from '@/lib/account-role';
 
 type AccountSummary = {
     id: string;
@@ -29,23 +28,6 @@ type PageProps = {
     members: AccountMember[];
     is_owner: boolean;
     is_admin: boolean;
-};
-
-const ROLE_LABEL: Record<MemberRole, string> = {
-    owner: 'Owner',
-    admin: 'Admin',
-    member: 'Member',
-    viewer: 'Viewer',
-};
-
-const ROLE_BADGE: Record<
-    MemberRole,
-    'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-    owner: 'default',
-    admin: 'secondary',
-    member: 'outline',
-    viewer: 'outline',
 };
 
 function initials(name: string, email: string): string {
@@ -75,75 +57,27 @@ export default function Members({
     is_admin,
 }: PageProps) {
     const { errors } = usePage<PageProps>().props;
-    const [busyMemberId, setBusyMemberId] = useState<number | null>(null);
+    const {
+        members: enrichedMembers,
+        busyMemberId,
+        inviteState,
+        inviteMember,
+        changeRole,
+        removeMember,
+        roleOptions,
+    } = useAccountMembership(account.id, members);
+
     const [memberToRemove, setMemberToRemove] = useState<AccountMember | null>(
         null,
     );
-    const ownerCount = members.filter(
-        (member) => member.role === 'owner',
-    ).length;
+
     const lastOwnerError = errors.last_owner_blocked;
 
-    function changeRole(member: AccountMember, role: MemberRole) {
-        if (role === member.role) {
-            return;
-        }
-
-        setBusyMemberId(member.id);
-        router.patch(
-            update({ account: account.id, member: member.id }),
-            { role },
-            {
-                preserveScroll: true,
-                onSuccess: () => setBusyMemberId(null),
-                onHttpException: (response) => {
-                    toast.error(
-                        response.status === 403
-                            ? 'No tenés permiso para cambiar roles.'
-                            : 'No se pudo cambiar el rol.',
-                    );
-
-                    return false;
-                },
-                onNetworkError: () => {
-                    toast.error('No se pudo conectar con el servidor.');
-
-                    return false;
-                },
-                onFinish: () => setBusyMemberId(null),
-            },
-        );
-    }
-
-    function removeMember() {
+    function confirmRemove() {
         if (!memberToRemove) {
             return;
         }
-
-        const memberId = memberToRemove.id;
-        setBusyMemberId(memberId);
-        router.delete(destroy({ account: account.id, member: memberId }), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setMemberToRemove(null);
-                setBusyMemberId(null);
-            },
-            onHttpException: (response) => {
-                toast.error(
-                    response.status === 403
-                        ? 'No tenés permiso para remover miembros.'
-                        : 'No se pudo remover el miembro.',
-                );
-
-                return false;
-            },
-            onNetworkError: () => {
-                toast.error('No se pudo conectar con el servidor.');
-
-                return false;
-            },
-            onFinish: () => setBusyMemberId(null),
-        });
+        removeMember(memberToRemove, () => setMemberToRemove(null));
     }
 
     return (
@@ -157,19 +91,26 @@ export default function Members({
                 />
 
                 {lastOwnerError && (
-                    <Alert variant="destructive" data-testid="last-owner-error">
+                    <Alert
+                        variant="destructive"
+                        data-testid="last-owner-error"
+                    >
                         <AlertCircle />
                         <AlertTitle>
                             No podés dejar la cuenta sin Owner
                         </AlertTitle>
-                        <AlertDescription>{lastOwnerError}</AlertDescription>
+                        <AlertDescription>
+                            {lastOwnerError}
+                        </AlertDescription>
                     </Alert>
                 )}
 
                 {is_admin && (
                     <InviteMemberForm
-                        accountId={account.id}
+                        inviteState={inviteState}
+                        inviteMember={inviteMember}
                         isOwner={is_owner}
+                        roleOptions={roleOptions}
                     />
                 )}
 
@@ -179,7 +120,7 @@ export default function Members({
                             className="divide-y divide-border"
                             data-testid="members-roster"
                         >
-                            {members.length === 0 && (
+                            {enrichedMembers.length === 0 && (
                                 <li className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
                                     <Users className="size-6 text-muted-foreground" />
                                     <p className="text-sm text-muted-foreground">
@@ -188,11 +129,7 @@ export default function Members({
                                 </li>
                             )}
 
-                            {members.map((member) => {
-                                const soleOwnerSelf =
-                                    member.is_you &&
-                                    member.role === 'owner' &&
-                                    ownerCount === 1;
+                            {enrichedMembers.map((member) => {
                                 const busy = busyMemberId === member.id;
 
                                 return (
@@ -242,8 +179,12 @@ export default function Members({
                                             <MemberActionsCell
                                                 member={member}
                                                 isOwner={is_owner}
-                                                soleOwnerSelf={soleOwnerSelf}
+                                                soleOwnerSelf={
+                                                    member.isSoleOwner &&
+                                                    member.is_you
+                                                }
                                                 busy={busy}
+                                                roleOptions={roleOptions}
                                                 onRoleChange={changeRole}
                                                 onRemove={setMemberToRemove}
                                             />
@@ -269,18 +210,18 @@ export default function Members({
                 >
                     Tu rol actual es {ROLE_LABEL[account.role]}.
                 </p>
-            </div>
 
-            <ConfirmRemoveMemberDialog
-                accountName={account.name}
-                member={memberToRemove}
-                processing={
-                    memberToRemove !== null &&
-                    busyMemberId === memberToRemove.id
-                }
-                onClose={() => setMemberToRemove(null)}
-                onConfirm={removeMember}
-            />
+                <ConfirmRemoveMemberDialog
+                    accountName={account.name}
+                    member={memberToRemove}
+                    processing={
+                        memberToRemove !== null &&
+                        busyMemberId === memberToRemove.id
+                    }
+                    onClose={() => setMemberToRemove(null)}
+                    onConfirm={confirmRemove}
+                />
+            </div>
         </>
     );
 }

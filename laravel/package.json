@@ -9,7 +9,9 @@
     "format:check": "biome format",
     "lint": "biome check --write",
     "lint:check": "biome check",
-    "types:check": "tsc --noEmit"
+    "types:check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.4",
@@ -18,7 +20,8 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "playwright": "^1.61.1",
     "radix-ui": "^1.6.2",
-    "react-grab": "^0.1.48"
+    "react-grab": "^0.1.48",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

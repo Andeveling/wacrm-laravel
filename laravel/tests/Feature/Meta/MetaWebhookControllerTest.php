@@ -107,11 +107,36 @@ class MetaWebhookControllerTest extends TestCase
 
         $delivery = WhatsappWebhookDelivery::firstOrFail();
         $this->assertSame($header, $delivery->signature_header);
+        // raw_body holds the byte-exact body Meta signed — not the
+        // json_decode round-trip. Key order, whitespace and number
+        // formatting are preserved.
+        $this->assertSame($body, $delivery->raw_body);
         $this->assertSame(['object' => 'whatsapp_business_account', 'entry' => []], $delivery->raw_payload);
         $this->assertSame(strlen($body), $delivery->content_length);
         $this->assertSame('received', $delivery->processing_state);
         $this->assertNotNull($delivery->received_at);
         $this->assertNotNull($delivery->processed_at);
+    }
+
+    #[Test]
+    public function raw_body_preserves_byte_exact_payload_not_just_decoded_array(): void
+    {
+        // Use deliberately non-canonical JSON formatting (extra spaces,
+        // non-sorted keys) so json_decode normalises things the raw
+        // body must keep.
+        $body = '{"b":1,"a":2,"c":{"nested":[1,2,3]}}';
+        $header = $this->sign($body);
+
+        $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
+            'HTTP_X_HUB_SIGNATURE_256' => $header,
+            'CONTENT_TYPE' => 'application/json',
+        ], $body)->assertOk();
+
+        $delivery = WhatsappWebhookDelivery::firstOrFail();
+        $this->assertSame($body, $delivery->raw_body);
+        // The decoded array loses original key order — which is the
+        // reason raw_body exists.
+        $this->assertSame(['b' => 1, 'a' => 2, 'c' => ['nested' => [1, 2, 3]]], $delivery->raw_payload);
     }
 
     // -----------------------------------------------------------------

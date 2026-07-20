@@ -19,10 +19,16 @@ class WhatsappWebhookDeliveryFactory extends Factory
      */
     public function definition(): array
     {
+        $rawBody = json_encode(
+            ['object' => 'whatsapp_business_account', 'entry' => []],
+            JSON_THROW_ON_ERROR,
+        );
+
         return [
             'signature_header' => 'sha256='.fake()->sha256(),
+            'raw_body' => $rawBody,
             'raw_payload' => ['object' => 'whatsapp_business_account', 'entry' => []],
-            'content_length' => fake()->numberBetween(64, 4096),
+            'content_length' => strlen($rawBody),
             'received_at' => now(),
             'processed_at' => now(),
             'processing_state' => WhatsappWebhookDelivery::STATE_RECEIVED,

@@ -17,24 +17,23 @@ use Illuminate\Support\Carbon;
  * del worker no provoque reentregas innecesarias. La retención del
  * payload crudo es de 30 días (limpieza vía comando Artisan diario).
  *
- * `raw_payload` se almacena tal cual llegó desde Meta (jsonb en pgsql).
- * Cualquier columna derivada (e.g. `phone_number_id`, `wamid`) se añade
- * en tickets posteriores una vez la normalización de eventos (#66) las
- * necesite de verdad.
+ * `raw_body` guarda el cuerpo HTTP byte-exacto que Meta firmó — el
+ * `raw_payload jsonb` es un derivado para queries tipadas (#66+);
+ * `raw_body` es la fuente de verdad (auditoría, replay, evidencia).
  *
  * @property string $id
  * @property string|null $signature_header
+ * @property string $raw_body
  * @property array<string, mixed> $raw_payload
  * @property int $content_length
  * @property Carbon $received_at
  * @property Carbon|null $processed_at
  * @property string $processing_state
- * @property string|null $last_error
  * @property Carbon|null $created_at
  */
 #[Fillable([
-    'signature_header', 'raw_payload', 'content_length', 'received_at',
-    'processed_at', 'processing_state', 'last_error',
+    'signature_header', 'raw_body', 'raw_payload', 'content_length', 'received_at',
+    'processed_at', 'processing_state',
 ])]
 class WhatsappWebhookDelivery extends Model
 {
@@ -44,8 +43,6 @@ class WhatsappWebhookDelivery extends Model
     public const UPDATED_AT = null;
 
     public const STATE_RECEIVED = 'received';
-
-    public const STATE_PERSISTENCE_FAILED = 'persistence_failed';
 
     /**
      * @var array<string, mixed>

@@ -10,6 +10,8 @@ use App\Services\Meta\VerifyMetaWebhookSignature;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use JsonException;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -93,7 +95,7 @@ class MetaWebhookController extends Controller
         // well-formed signature cannot pass without it. Logged so
         // operators see the misconfiguration in their dashboard.
         if (! VerifyMetaWebhookSignature::isSecretConfigured()) {
-            report(new \RuntimeException(
+            report(new RuntimeException(
                 'Meta webhook hit while META_APP_SECRET is not configured; rejecting.',
             ));
 
@@ -121,7 +123,7 @@ class MetaWebhookController extends Controller
 
         try {
             $decoded = json_decode($rawBody, true, 16, JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
+        } catch (JsonException) {
             return response()->json([
                 'error' => ['code' => 'invalid_body', 'message' => 'Body must be JSON.'],
             ], Response::HTTP_BAD_REQUEST);
@@ -130,6 +132,7 @@ class MetaWebhookController extends Controller
         try {
             $delivery = WhatsappWebhookDelivery::create([
                 'signature_header' => $signatureHeader,
+                'raw_body' => $rawBody,
                 'raw_payload' => $decoded,
                 'content_length' => strlen($rawBody),
                 'received_at' => now(),

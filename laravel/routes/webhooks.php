@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Meta\MetaWebhookController;
-use App\Services\Meta\VerifyMetaWebhookSignature;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -33,8 +32,3 @@ Route::match(['get', 'post'], 'api/whatsapp/webhook', [MetaWebhookController::cl
 Route::post('api/whatsapp/webhook', [MetaWebhookController::class, 'receive'])
     ->middleware('throttle:meta-webhook')
     ->name('meta.webhook.receive');
-
-// Exposed only so the container binding smoke-tests the verifier.
-Route::get('meta-webhook/_health/secret', function (VerifyMetaWebhookSignature $verifier): array {
-    return ['configured' => VerifyMetaWebhookSignature::isSecretConfigured()];
-})->name('meta.webhook.health')->middleware('throttle:meta-webhook');

@@ -26,7 +26,7 @@ class MembersListTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->component('Accounts/Members')
+            ->component('accounts/members')
             ->where('account.id', $account->id)
             ->where('account.name', 'Acme Co')
             ->where('account.role', AccountRole::Viewer->value)
@@ -54,7 +54,7 @@ class MembersListTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->component('Accounts/Members')
+            ->component('accounts/members')
             ->where('is_owner', true)
             ->where('is_admin', true)
             ->where('account.role', AccountRole::Owner->value)
@@ -74,7 +74,7 @@ class MembersListTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->component('Accounts/Members')
+            ->component('accounts/members')
             ->where('is_owner', false)
             ->where('is_admin', true)
             ->where('account.role', AccountRole::Admin->value)
@@ -119,7 +119,7 @@ class MembersListTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->component('Accounts/Members')
+            ->component('accounts/members')
             ->has('members', 2)
             ->where('members.0.joined_at', $joinedAt->toIso8601String())
         );

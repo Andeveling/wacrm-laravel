@@ -39,7 +39,7 @@ final readonly class ListMembers
             ->map(fn (User $member): array => $this->row($member, $viewerId))
             ->all();
 
-        return Inertia::render('Accounts/Members', [
+        return Inertia::render('accounts/members', [
             'account' => [
                 'id' => $account->id,
                 'name' => $account->name,

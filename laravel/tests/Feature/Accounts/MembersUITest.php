@@ -21,7 +21,7 @@ class MembersUITest extends TestCase
         $this->getMembersPage($owner, $account)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Accounts/Members')
+                ->component('accounts/members')
                 ->where('is_owner', true)
                 ->where('is_admin', true)
                 ->has('members', 2)
@@ -39,7 +39,7 @@ class MembersUITest extends TestCase
         $this->getMembersPage($admin, $account)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Accounts/Members')
+                ->component('accounts/members')
                 ->where('is_owner', false)
                 ->where('is_admin', true)
             );
@@ -52,7 +52,7 @@ class MembersUITest extends TestCase
         $this->getMembersPage($member, $account)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Accounts/Members')
+                ->component('accounts/members')
                 ->where('is_owner', false)
                 ->where('is_admin', false)
             );
@@ -65,7 +65,7 @@ class MembersUITest extends TestCase
         $this->getMembersPage($viewer, $account)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Accounts/Members')
+                ->component('accounts/members')
                 ->where('is_owner', false)
                 ->where('is_admin', false)
             );

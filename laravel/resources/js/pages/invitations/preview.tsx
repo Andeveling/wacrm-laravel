@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { getInvitationStatus } from '@/lib/invitation-status';
+import { register } from '@/routes';
 
 type PreviewProps = {
     status: 'valid' | 'used' | 'expired' | 'invalid';
@@ -63,9 +64,7 @@ export default function PreviewInvitation(props: PreviewProps) {
                         </dl>
 
                         <Button asChild className="w-full">
-                            <Link
-                                href={`/register?invite=${encodeURIComponent(token)}`}
-                            >
+                            <Link href={register({ query: { invite: token } })}>
                                 Accept and register
                             </Link>
                         </Button>

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Enums\AccountRole;
+use Database\Factories\AccountUserFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
 
@@ -14,6 +16,9 @@ use Illuminate\Support\Carbon;
  */
 class AccountUser extends Pivot
 {
+    /** @use HasFactory<AccountUserFactory> */
+    use HasFactory;
+
     protected $table = 'account_user';
 
     /**

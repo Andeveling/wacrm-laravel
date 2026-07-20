@@ -38,4 +38,32 @@ class DealFactory extends Factory
             'status' => DealStatus::Open,
         ];
     }
+
+    /**
+     * Pin the deal to a specific stage. Useful for seeder demos that need
+     * a deal at, say, the "proposal" stage rather than a random one.
+     */
+    public function forStage(PipelineStage $stage): static
+    {
+        return $this->state(fn (): array => [
+            'stage_id' => $stage->id,
+            'pipeline_id' => $stage->pipeline_id,
+        ]);
+    }
+
+    /**
+     * Indicate that the deal was won.
+     */
+    public function won(): static
+    {
+        return $this->state(fn (): array => ['status' => DealStatus::Won]);
+    }
+
+    /**
+     * Indicate that the deal was lost.
+     */
+    public function lost(): static
+    {
+        return $this->state(fn (): array => ['status' => DealStatus::Lost]);
+    }
 }

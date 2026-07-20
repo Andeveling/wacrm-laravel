@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\ContactTagFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
 
@@ -18,7 +20,8 @@ use Illuminate\Support\Carbon;
  */
 class ContactTag extends Pivot
 {
-    use HasUuids;
+    /** @use HasFactory<ContactTagFactory> */
+    use HasFactory, HasUuids;
 
     public const UPDATED_AT = null;
 

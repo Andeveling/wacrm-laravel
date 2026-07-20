@@ -29,4 +29,28 @@ class ConversationFactory extends Factory
             'status' => ConversationStatus::Open,
         ];
     }
+
+    /**
+     * Indicate that the conversation is in the `open` state (default).
+     */
+    public function open(): static
+    {
+        return $this->state(fn (): array => ['status' => ConversationStatus::Open]);
+    }
+
+    /**
+     * Indicate that the conversation is waiting on something (no agent action yet).
+     */
+    public function pending(): static
+    {
+        return $this->state(fn (): array => ['status' => ConversationStatus::Pending]);
+    }
+
+    /**
+     * Indicate that the conversation has been closed out.
+     */
+    public function closed(): static
+    {
+        return $this->state(fn (): array => ['status' => ConversationStatus::Closed]);
+    }
 }

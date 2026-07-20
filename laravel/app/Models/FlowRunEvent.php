@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Models\Enums\FlowRunEventType;
+use Database\Factories\FlowRunEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -24,7 +26,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['flow_run_id', 'event_type', 'node_key', 'payload'])]
 class FlowRunEvent extends Model
 {
-    use HasUuids;
+    /** @use HasFactory<FlowRunEventFactory> */
+    use HasFactory, HasUuids;
 
     public const UPDATED_AT = null;
 

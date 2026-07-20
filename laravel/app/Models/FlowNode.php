@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Models\Enums\FlowNodeType;
+use Database\Factories\FlowNodeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -29,7 +31,8 @@ use Illuminate\Support\Carbon;
 ])]
 class FlowNode extends Model
 {
-    use HasUuids;
+    /** @use HasFactory<FlowNodeFactory> */
+    use HasFactory, HasUuids;
 
     public const UPDATED_AT = null;
 

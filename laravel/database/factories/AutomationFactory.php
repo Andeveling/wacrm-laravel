@@ -28,4 +28,12 @@ class AutomationFactory extends Factory
             'is_active' => false,
         ];
     }
+
+    /**
+     * Indicate that the automation is currently active and listening for triggers.
+     */
+    public function active(): static
+    {
+        return $this->state(fn (): array => ['is_active' => true]);
+    }
 }

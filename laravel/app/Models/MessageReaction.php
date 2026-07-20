@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Database\Factories\MessageReactionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -24,7 +26,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['message_id', 'conversation_id', 'actor_type', 'actor_id', 'emoji'])]
 class MessageReaction extends Model
 {
-    use HasUuids;
+    /** @use HasFactory<MessageReactionFactory> */
+    use HasFactory, HasUuids;
 
     public const UPDATED_AT = null;
 

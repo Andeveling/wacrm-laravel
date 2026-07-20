@@ -29,4 +29,36 @@ class BroadcastFactory extends Factory
             'status' => BroadcastStatus::Draft,
         ];
     }
+
+    /**
+     * Indicate that the broadcast is still a draft (default).
+     */
+    public function draft(): static
+    {
+        return $this->state(fn (): array => ['status' => BroadcastStatus::Draft]);
+    }
+
+    /**
+     * Indicate that the broadcast has been sent and the totals reflect that.
+     */
+    public function sent(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => BroadcastStatus::Sent,
+            'total_recipients' => 5,
+            'sent_count' => 5,
+            'delivered_count' => 4,
+            'read_count' => 3,
+            'replied_count' => 1,
+            'failed_count' => 1,
+        ]);
+    }
+
+    /**
+     * Indicate that the broadcast failed at the gateway.
+     */
+    public function failed(): static
+    {
+        return $this->state(fn (): array => ['status' => BroadcastStatus::Failed]);
+    }
 }

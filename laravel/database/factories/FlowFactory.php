@@ -36,4 +36,20 @@ class FlowFactory extends Factory
             ],
         ];
     }
+
+    /**
+     * Indicate that the flow is currently active and processing inbound events.
+     */
+    public function active(): static
+    {
+        return $this->state(fn (): array => ['status' => FlowStatus::Active]);
+    }
+
+    /**
+     * Indicate that the flow has been archived and is no longer discoverable.
+     */
+    public function archived(): static
+    {
+        return $this->state(fn (): array => ['status' => FlowStatus::Archived]);
+    }
 }

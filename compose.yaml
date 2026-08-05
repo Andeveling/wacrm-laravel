@@ -25,8 +25,10 @@ services:
         networks:
             - sail
         depends_on:
-            - pgsql
-            - redis
+            pgsql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
     reverb:
         image: sail-8.4/app
         command: php artisan reverb:start --host=0.0.0.0 --port=8080
@@ -40,8 +42,10 @@ services:
         networks:
             - sail
         depends_on:
-            - pgsql
-            - redis
+            pgsql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
     queue:
         image: sail-8.4/app
         command: php artisan queue:work --tries=3
@@ -53,8 +57,10 @@ services:
         networks:
             - sail
         depends_on:
-            - pgsql
-            - redis
+            pgsql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
     scheduler:
         image: sail-8.4/app
         command: php artisan schedule:work
@@ -66,8 +72,10 @@ services:
         networks:
             - sail
         depends_on:
-            - pgsql
-            - redis
+            pgsql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
     pgsql:
         image: 'pgvector/pgvector:pg17'
         ports:

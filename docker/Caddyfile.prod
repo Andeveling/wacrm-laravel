@@ -2,7 +2,7 @@
 # completo de cutover (decisiones, dependencias, diferidos).
 #
 # Pasos al activar:
-#   1. Copiar a `laravel/Caddyfile` (raíz del docker-compose.yml).
+#   1. Copiar a `Caddyfile` (raíz del repo, junto al docker-compose.yml).
 #   2. Agregar el servicio `caddy` al docker-compose.yml:
 #        caddy:
 #          image: caddy:2-alpine

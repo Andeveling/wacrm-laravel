@@ -44,7 +44,7 @@ grep -q "^APP_KEY=base64" .env || { "$SAIL" artisan key:generate; log "APP_KEY g
 # ----- 3. Migraciones + seed ------------------------------------------------------
 log "Esperando a que Postgres esté healthy..."
 for i in {1..30}; do
-  status=$(docker inspect --format='{{.State.Health.Status}}' laravel-pgsql-1 2>/dev/null || echo "missing")
+  status=$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q pgsql)" 2>/dev/null || echo "missing")
   [[ "$status" == "healthy" ]] && break
   sleep 2
 done

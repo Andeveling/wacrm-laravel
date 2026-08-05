@@ -1,3 +1,6 @@
+# Fixed so container and volume names survive a rename of the repo directory.
+name: wacrm
+
 services:
     laravel.test:
         build:

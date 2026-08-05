@@ -7,6 +7,41 @@ opere el sistema como un usuario más.
 Sin Vercel. Sin Supabase. Sin plan gratuito que caduca. `docker compose up` y es
 tuyo.
 
+## Camino al MVP
+
+```
+Base de plataforma   ████████████████████   7/7   ✔ completa
+Producto (MVP)       ███░░░░░░░░░░░░░░░░░   1/7   en curso
+```
+
+La base sobre la que se apoya todo está terminada y con tests. El producto
+mínimo usable — recibir un mensaje de WhatsApp, verlo en vivo y responderlo —
+está empezando.
+
+| # | Base de plataforma | |
+| --- | --- | --- |
+| 1 | Esquema de datos completo — 28 migraciones, 39 modelos | ✔ |
+| 2 | Auth: registro, login, 2FA/TOTP, passkeys, reset | ✔ |
+| 3 | Multi-tenant fail-closed (HTTP, consola y colas) | ✔ |
+| 4 | Roles y permisos con protección del owner | ✔ |
+| 5 | Invitaciones con token hasheado y canje público | ✔ |
+| 6 | API keys con scopes, audit trail y rate limit | ✔ |
+| 7 | Servidor MCP — 18 tools, dos transportes | ✔ |
+
+| # | Producto (MVP) | |
+| --- | --- | --- |
+| 1 | Webhook de Meta: verificación de firma e inbox durable | ✔ |
+| 2 | Conexión a Meta: configuración y diagnóstico | ▫ |
+| 3 | Normalización de eventos y resolución de tenant | ▫ |
+| 4 | Mensaje entrante → contacto + conversación | ▫ |
+| 5 | Bandeja de entrada en vivo vía Reverb | ▫ |
+| 6 | Envío saliente contra la Graph API | ▫ |
+| 7 | Contactos operativos | ▫ |
+
+Después del MVP: Panel, Embudos, Difusiones, Notificaciones, Automatizaciones,
+Flujos y Agentes de IA. La interfaz de esos módulos ya está portada; les falta
+el backend.
+
 ---
 
 ## Por qué existe
@@ -74,28 +109,21 @@ de ellos.**
 
 ---
 
-## Estado actual
+## Cómo se lee ese tablero
 
-Honestamente: **la plataforma está construida, los módulos de producto no.**
+Los siete puntos de la base no son casillas marcadas a ojo. Cada uno tiene la
+propiedad que lo hace útil:
 
-Lo que funciona hoy, con tests:
+- **Multi-tenant fail-closed** — `BelongsToAccount` + `AccountScope`: sin cuenta ligada la consulta **falla**, en vez de filtrar de más. Cubre HTTP, consola y jobs en cola vía `TenantAware`.
+- **Roles** — jerarquía ordinal Owner/Admin/Member/Viewer, con el invariante de protección del owner en [ADR 0002](docs/adr/0002-owner-protection-invariant.md).
+- **Invitaciones y API keys** — el token en claro nunca se persiste; solo su SHA-256.
+- **Webhook de Meta** — guarda el body **byte-exacto**, no el JSON decodificado, para que un evento mal procesado se pueda reprocesar sin haber perdido información.
 
-- **Auth completo** sobre Fortify — registro, login, 2FA/TOTP, passkeys (WebAuthn), reset de contraseña
-- **Multi-tenant fail-closed** — `BelongsToAccount` + `AccountScope`; sin cuenta ligada, la consulta falla en vez de filtrar de más. Cubre HTTP, consola y jobs en cola (`TenantAware`)
-- **Roles y permisos** — jerarquía ordinal Owner/Admin/Member/Viewer, con el invariante de protección del owner en [ADR 0002](docs/adr/0002-owner-protection-invariant.md)
-- **Invitaciones** — token hasheado, expiración, revocación, página pública de canje
-- **API keys** — scopes, audit trail, rate limit por key
-- **Servidor MCP** — 18 tools, dos transportes
-- **Ingesta del webhook de Meta** — verificación de firma HMAC y bandeja durable que preserva el body byte-exacto para poder reprocesar
-
-Lo que **no** está todavía:
-
-- Los módulos de producto (Contactos, Bandeja, Embudos, Difusiones, Automatizaciones, Flujos, Agentes) tienen la interfaz portada pero **no tienen backend**. Se ven; no operan.
-- La capa de IA tiene el esquema y el SDK listos (pgvector, `ai_configs`, chunks de conocimiento, log de uso) pero la lógica de RAG y agentes está sin escribir.
-- Los tests de navegador están escritos pero no corren dentro de Sail — falta Playwright en la imagen.
-
-El esquema de datos sí está completo: 28 migraciones, 39 modelos, portado desde
-el Supabase original con cada desviación documentada.
+Y lo que todavía no existe, dicho sin rodeos: los módulos de producto tienen la
+interfaz portada pero **ningún backend** — se ven, no operan. La capa de IA
+tiene esquema y SDK listos (pgvector, `ai_configs`, chunks de conocimiento, log
+de uso) pero la lógica de RAG está sin escribir. Y los tests de navegador están
+escritos pero no corren dentro de Sail: falta Playwright en la imagen.
 
 ---
 

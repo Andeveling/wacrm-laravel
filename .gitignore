@@ -30,3 +30,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Local AI session memory — machine-specific, not part of the project.
+/.engram/

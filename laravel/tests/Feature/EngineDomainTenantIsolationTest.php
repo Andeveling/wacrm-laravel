@@ -1,7 +1,5 @@
 <?php
 
-namespace Tests\Feature;
-
 use App\Models\Account;
 use App\Models\AiConfig;
 use App\Models\AiKnowledgeChunk;
@@ -32,133 +30,103 @@ use Database\Factories\WebhookEndpointFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\Concerns\AssertsTenantIsolation;
-use Tests\TestCase;
+
+uses(AssertsTenantIsolation::class);
+uses(RefreshDatabase::class);
+
+afterEach(function () {
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+});
 
 /**
- * Issue #40: cada modelo de motores + IA con tenencia (BelongsToAccount)
- * pasa las cinco aserciones de aislamiento, más los invariantes únicos
- * que custodian índices parciales/UNIQUE (portados de Supabase 003/010/029).
- * Las tablas hijas sin account_id (broadcast_recipients, automation_steps,
- * flow_nodes, flow_run_events) heredan tenencia vía su padre.
+ * @return array<string, array{class-string, class-string<Factory>}>
  */
-class EngineDomainTenantIsolationTest extends TestCase
-{
-    use AssertsTenantIsolation, RefreshDatabase;
+dataset('tenantScopedModels', function () {
+    return [
+        'broadcasts' => [Broadcast::class, BroadcastFactory::class],
+        'automations' => [Automation::class, AutomationFactory::class],
+        'automation_logs' => [AutomationLog::class, AutomationLogFactory::class],
+        'automation_pending_executions' => [AutomationPendingExecution::class, AutomationPendingExecutionFactory::class],
+        'flows' => [Flow::class, FlowFactory::class],
+        'flow_runs' => [FlowRun::class, FlowRunFactory::class],
+        'webhook_endpoints' => [WebhookEndpoint::class, WebhookEndpointFactory::class],
+        'ai_configs' => [AiConfig::class, AiConfigFactory::class],
+        'ai_knowledge_documents' => [AiKnowledgeDocument::class, AiKnowledgeDocumentFactory::class],
+        'ai_knowledge_chunks' => [AiKnowledgeChunk::class, AiKnowledgeChunkFactory::class],
+        'ai_usage_log' => [AiUsageLog::class, AiUsageLogFactory::class],
+    ];
+});
 
-    protected function tearDown(): void
-    {
-        app()->forgetInstance(AccountScope::CONTAINER_KEY);
+test('model is tenant isolated', function (string $modelClass, string $factoryClass) {
+    $this->assertTenantIsolation($modelClass, $factoryClass::new());
+})->with('tenantScopedModels');
 
-        parent::tearDown();
-    }
+test('second active flow run for same contact is rejected', function () {
+    $account = Account::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
 
-    /**
-     * @return array<string, array{class-string, class-string<Factory>}>
-     */
-    public static function tenantScopedModels(): array
-    {
-        return [
-            'broadcasts' => [Broadcast::class, BroadcastFactory::class],
-            'automations' => [Automation::class, AutomationFactory::class],
-            'automation_logs' => [AutomationLog::class, AutomationLogFactory::class],
-            'automation_pending_executions' => [AutomationPendingExecution::class, AutomationPendingExecutionFactory::class],
-            'flows' => [Flow::class, FlowFactory::class],
-            'flow_runs' => [FlowRun::class, FlowRunFactory::class],
-            'webhook_endpoints' => [WebhookEndpoint::class, WebhookEndpointFactory::class],
-            'ai_configs' => [AiConfig::class, AiConfigFactory::class],
-            'ai_knowledge_documents' => [AiKnowledgeDocument::class, AiKnowledgeDocumentFactory::class],
-            'ai_knowledge_chunks' => [AiKnowledgeChunk::class, AiKnowledgeChunkFactory::class],
-            'ai_usage_log' => [AiUsageLog::class, AiUsageLogFactory::class],
-        ];
-    }
+    $run = FlowRun::factory()->create([
+        'account_id' => $account->id,
+        'contact_id' => Contact::factory()->create(['account_id' => $account->id])->id,
+        'status' => FlowRunStatus::Active,
+    ]);
 
-    /**
-     * @param  class-string  $modelClass
-     * @param  class-string<Factory>  $factoryClass
-     */
-    #[Test]
-    #[DataProvider('tenantScopedModels')]
-    public function model_is_tenant_isolated(string $modelClass, string $factoryClass): void
-    {
-        $this->assertTenantIsolation($modelClass, $factoryClass::new());
-    }
+    $this->expectException(QueryException::class);
 
-    #[Test]
-    public function second_active_flow_run_for_same_contact_is_rejected(): void
-    {
-        $account = Account::factory()->create();
-        app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+    FlowRun::factory()->create([
+        'account_id' => $account->id,
+        'contact_id' => $run->contact_id,
+        'status' => FlowRunStatus::Active,
+    ]);
+});
 
-        $run = FlowRun::factory()->create([
-            'account_id' => $account->id,
-            'contact_id' => Contact::factory()->create(['account_id' => $account->id])->id,
-            'status' => FlowRunStatus::Active,
-        ]);
+test('ended run frees the active slot for the contact', function () {
+    $account = Account::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
 
-        $this->expectException(QueryException::class);
+    $contact = Contact::factory()->create(['account_id' => $account->id]);
+    FlowRun::factory()->create([
+        'account_id' => $account->id,
+        'contact_id' => $contact->id,
+        'status' => FlowRunStatus::Completed,
+    ]);
 
-        FlowRun::factory()->create([
-            'account_id' => $account->id,
-            'contact_id' => $run->contact_id,
-            'status' => FlowRunStatus::Active,
-        ]);
-    }
+    $again = FlowRun::factory()->create([
+        'account_id' => $account->id,
+        'contact_id' => $contact->id,
+        'status' => FlowRunStatus::Active,
+    ]);
 
-    #[Test]
-    public function ended_run_frees_the_active_slot_for_the_contact(): void
-    {
-        $account = Account::factory()->create();
-        app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+    expect($again->fresh()->status)->toBe(FlowRunStatus::Active);
+});
 
-        $contact = Contact::factory()->create(['account_id' => $account->id]);
-        FlowRun::factory()->create([
-            'account_id' => $account->id,
-            'contact_id' => $contact->id,
-            'status' => FlowRunStatus::Completed,
-        ]);
+test('duplicate whatsapp message id on recipients is rejected', function () {
+    $account = Account::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
 
-        $again = FlowRun::factory()->create([
-            'account_id' => $account->id,
-            'contact_id' => $contact->id,
-            'status' => FlowRunStatus::Active,
-        ]);
+    $broadcast = Broadcast::factory()->create(['account_id' => $account->id]);
+    BroadcastRecipient::create([
+        'broadcast_id' => $broadcast->id,
+        'whatsapp_message_id' => 'wamid.duplicated',
+    ]);
 
-        $this->assertSame(FlowRunStatus::Active, $again->fresh()->status);
-    }
+    $this->expectException(QueryException::class);
 
-    #[Test]
-    public function duplicate_whatsapp_message_id_on_recipients_is_rejected(): void
-    {
-        $account = Account::factory()->create();
-        app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+    BroadcastRecipient::create([
+        'broadcast_id' => $broadcast->id,
+        'whatsapp_message_id' => 'wamid.duplicated',
+    ]);
+});
 
-        $broadcast = Broadcast::factory()->create(['account_id' => $account->id]);
-        BroadcastRecipient::create([
-            'broadcast_id' => $broadcast->id,
-            'whatsapp_message_id' => 'wamid.duplicated',
-        ]);
+test('second ai config for same account is rejected', function () {
+    $account = Account::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
 
-        $this->expectException(QueryException::class);
+    AiConfig::factory()->create(['account_id' => $account->id]);
 
-        BroadcastRecipient::create([
-            'broadcast_id' => $broadcast->id,
-            'whatsapp_message_id' => 'wamid.duplicated',
-        ]);
-    }
+    $this->expectException(QueryException::class);
 
-    #[Test]
-    public function second_ai_config_for_same_account_is_rejected(): void
-    {
-        $account = Account::factory()->create();
-        app()->instance(AccountScope::CONTAINER_KEY, $account->id);
-
-        AiConfig::factory()->create(['account_id' => $account->id]);
-
-        $this->expectException(QueryException::class);
-
-        AiConfig::factory()->create(['account_id' => $account->id]);
-    }
-}
+    AiConfig::factory()->create(['account_id' => $account->id]);
+});

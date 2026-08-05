@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Invitations;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\Enums\AccountType;
 use App\Models\Invitation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

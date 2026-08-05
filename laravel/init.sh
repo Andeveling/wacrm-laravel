@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Inicializa el proyecto Laravel en local: deps + contenedores + DB + healthcheck.
+# Inicializa el proyecto Laravel en local con Sail: deps + contenedores + DB + healthcheck.
 # Idempotente: correlo todas las veces que haga falta.
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -15,25 +15,13 @@ fail() { printf '%s[init]%s %s\n' "$RED"   "$NC" "$*" >&2; exit 1; }
 command -v docker >/dev/null || fail "docker no está instalado"
 docker info >/dev/null 2>&1 || fail "docker daemon no responde"
 
-# Wrapper de sail que funciona tanto con el alias de fish como desde bash.
-# En bash no hay `command sail` que llame a la función — necesitamos shim distinto.
-if command -v sail >/dev/null && ! declare -F sail >/dev/null; then
-  # El alias externo está disponible, lo usamos vía env.
-  SAIL_BIN="sail"
-elif [[ -x vendor/bin/sail ]]; then
-  SAIL_BIN="vendor/bin/sail"
-else
-  fail "sail no encontrado (ni en PATH ni en vendor/bin/)"
-fi
-sail() { "$SAIL_BIN" "$@"; }
-
 # ----- 1. Dependencias del host ---------------------------------------------------
 if [[ ! -d vendor ]]; then
   log "Instalando dependencias Composer..."
   docker run --rm -v "$ROOT":/app -w /app composer:latest composer install
-else
-  log "vendor/ OK"
 fi
+SAIL="vendor/bin/sail"
+[[ -x "$SAIL" ]] || fail "vendor/bin/sail no encontrado — corré 'composer install'"
 
 if [[ ! -d node_modules ]]; then
   log "Instalando dependencias npm..."
@@ -46,11 +34,12 @@ else
 fi
 
 [[ -f .env ]] || { cp .env.example .env; log ".env creado desde .env.example"; }
-grep -q "^APP_KEY=base64" .env || { docker compose run --rm app php artisan key:generate; log "APP_KEY generada"; }
 
 # ----- 2. Levantar contenedores ---------------------------------------------------
 log "Levantando contenedores (sail up -d)..."
-sail up -d
+"$SAIL" up -d
+
+grep -q "^APP_KEY=base64" .env || { "$SAIL" artisan key:generate; log "APP_KEY generada"; }
 
 # ----- 3. Migraciones + seed ------------------------------------------------------
 log "Esperando a que Postgres esté healthy..."
@@ -62,7 +51,7 @@ done
 [[ "$status" == "healthy" ]] || fail "Postgres no quedó healthy (status: $status)"
 
 log "Corriendo migrate:fresh --seed..."
-sail artisan migrate:fresh --seed --force
+"$SAIL" artisan migrate:fresh --seed --force
 
 # ----- 4. Build de assets si hace falta -------------------------------------------
 if [[ ! -f public/build/manifest.json ]]; then
@@ -70,9 +59,6 @@ if [[ ! -f public/build/manifest.json ]]; then
 fi
 
 # ----- 5. Healthcheck HTTP --------------------------------------------------------
-log "Reiniciando nginx para refrescar resolución DNS de 'app'..."
-docker compose restart nginx >/dev/null
-
 log "Esperando HTTP 200 en http://localhost:8000..."
 for i in {1..30}; do
   code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:8000 || true)
@@ -83,5 +69,5 @@ done
 if [[ "$code" == "200" ]]; then
   log "Listo. Abrí http://localhost:8000"
 else
-  fail "Nginx responde $code — revisá: sail logs nginx && sail logs app"
+  fail "Sail responde $code — revisá: $SAIL logs laravel.test"
 fi

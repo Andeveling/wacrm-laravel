@@ -32,7 +32,7 @@ trait AssertsTenantIsolation
 
         $row = $factory->create(['account_id' => null]);
 
-        $this->assertSame($account->id, $row->fresh()->account_id);
+        expect($row->fresh()->account_id)->toBe($account->id);
 
         app()->forgetInstance(AccountScope::CONTAINER_KEY);
     }
@@ -45,7 +45,7 @@ trait AssertsTenantIsolation
 
         $row = $factory->create(['account_id' => $otherAccount->id]);
 
-        $this->assertSame($otherAccount->id, $row->fresh()->account_id);
+        expect($row->fresh()->account_id)->toBe($otherAccount->id);
 
         app()->forgetInstance(AccountScope::CONTAINER_KEY);
     }
@@ -61,8 +61,8 @@ trait AssertsTenantIsolation
         app()->instance(AccountScope::CONTAINER_KEY, $accountB->id);
         $rowB = $factory->create(['account_id' => $accountB->id]);
 
-        $this->assertSame(1, $modelClass::count());
-        $this->assertSame($rowB->getKey(), $modelClass::first()->getKey());
+        expect($modelClass::count())->toBe(1);
+        expect($modelClass::first()->getKey())->toBe($rowB->getKey());
 
         app()->forgetInstance(AccountScope::CONTAINER_KEY);
     }
@@ -82,7 +82,7 @@ trait AssertsTenantIsolation
             ->whereIn('account_id', [$accountA->id, $accountB->id])
             ->count();
 
-        $this->assertSame(2, $bypassedCount);
+        expect($bypassedCount)->toBe(2);
 
         app()->forgetInstance(AccountScope::CONTAINER_KEY);
     }
@@ -95,6 +95,6 @@ trait AssertsTenantIsolation
 
         app()->forgetInstance(AccountScope::CONTAINER_KEY);
 
-        $this->assertSame(0, $modelClass::count());
+        expect($modelClass::count())->toBe(0);
     }
 }

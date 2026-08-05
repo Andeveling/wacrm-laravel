@@ -1,7 +1,5 @@
 <?php
 
-namespace Tests\Feature;
-
 use App\Models\Account;
 use App\Models\Contact;
 use App\Models\ContactNote;
@@ -31,111 +29,83 @@ use Database\Factories\WhatsappConfigFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\Concerns\AssertsTenantIsolation;
-use Tests\TestCase;
+
+uses(AssertsTenantIsolation::class);
+uses(RefreshDatabase::class);
+
+afterEach(function () {
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+});
 
 /**
- * Issue #39: cada modelo de dominio core con tenencia (BelongsToAccount)
- * pasa las cinco aserciones de aislamiento, más los invariantes de
- * anti-duplicados que en pgsql custodian columnas GENERATED/índices únicos.
+ * @return array<string, array{class-string, class-string<Factory>}>
  */
-class CoreDomainTenantIsolationTest extends TestCase
-{
-    use AssertsTenantIsolation, RefreshDatabase;
+dataset('tenantScopedModels', function () {
+    return [
+        'contacts' => [Contact::class, ContactFactory::class],
+        'tags' => [Tag::class, TagFactory::class],
+        'custom_fields' => [CustomField::class, CustomFieldFactory::class],
+        'contact_notes' => [ContactNote::class, ContactNoteFactory::class],
+        'whatsapp_config' => [WhatsappConfig::class, WhatsappConfigFactory::class],
+        'conversations' => [Conversation::class, ConversationFactory::class],
+        'quick_replies' => [QuickReply::class, QuickReplyFactory::class],
+        'message_templates' => [MessageTemplate::class, MessageTemplateFactory::class],
+        'pipelines' => [Pipeline::class, PipelineFactory::class],
+        'deals' => [Deal::class, DealFactory::class],
+        'notifications' => [Notification::class, NotificationFactory::class],
+        'member_presence' => [MemberPresence::class, MemberPresenceFactory::class],
+    ];
+});
 
-    protected function tearDown(): void
-    {
-        app()->forgetInstance(AccountScope::CONTAINER_KEY);
+test('model is tenant isolated', function (string $modelClass, string $factoryClass) {
+    $this->assertTenantIsolation($modelClass, $factoryClass::new());
+})->with('tenantScopedModels');
 
-        parent::tearDown();
-    }
+test('contact phone is normalized to digits', function () {
+    $account = Account::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
 
-    /**
-     * @return array<string, array{class-string, class-string<Factory>}>
-     */
-    public static function tenantScopedModels(): array
-    {
-        return [
-            'contacts' => [Contact::class, ContactFactory::class],
-            'tags' => [Tag::class, TagFactory::class],
-            'custom_fields' => [CustomField::class, CustomFieldFactory::class],
-            'contact_notes' => [ContactNote::class, ContactNoteFactory::class],
-            'whatsapp_config' => [WhatsappConfig::class, WhatsappConfigFactory::class],
-            'conversations' => [Conversation::class, ConversationFactory::class],
-            'quick_replies' => [QuickReply::class, QuickReplyFactory::class],
-            'message_templates' => [MessageTemplate::class, MessageTemplateFactory::class],
-            'pipelines' => [Pipeline::class, PipelineFactory::class],
-            'deals' => [Deal::class, DealFactory::class],
-            'notifications' => [Notification::class, NotificationFactory::class],
-            'member_presence' => [MemberPresence::class, MemberPresenceFactory::class],
-        ];
-    }
+    $contact = Contact::factory()->create(['phone' => '+1 (555) 123-4567']);
 
-    /**
-     * @param  class-string  $modelClass
-     * @param  class-string<Factory>  $factoryClass
-     */
-    #[Test]
-    #[DataProvider('tenantScopedModels')]
-    public function model_is_tenant_isolated(string $modelClass, string $factoryClass): void
-    {
-        $this->assertTenantIsolation($modelClass, $factoryClass::new());
-    }
+    expect($contact->fresh()->phone_normalized)->toBe('15551234567');
+});
 
-    #[Test]
-    public function contact_phone_is_normalized_to_digits(): void
-    {
-        $account = Account::factory()->create();
-        app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+test('duplicate normalized phone is rejected within an account', function () {
+    $account = Account::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
 
-        $contact = Contact::factory()->create(['phone' => '+1 (555) 123-4567']);
+    Contact::factory()->create(['account_id' => $account->id, 'phone' => '+57 310 555 0101']);
 
-        $this->assertSame('15551234567', $contact->fresh()->phone_normalized);
-    }
+    $this->expectException(QueryException::class);
 
-    #[Test]
-    public function duplicate_normalized_phone_is_rejected_within_an_account(): void
-    {
-        $account = Account::factory()->create();
-        app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+    Contact::factory()->create(['account_id' => $account->id, 'phone' => '573105550101']);
+});
 
-        Contact::factory()->create(['account_id' => $account->id, 'phone' => '+57 310 555 0101']);
+test('same phone is allowed on another account', function () {
+    $accountA = Account::factory()->create();
+    $accountB = Account::factory()->create();
 
-        $this->expectException(QueryException::class);
+    app()->instance(AccountScope::CONTAINER_KEY, $accountA->id);
+    Contact::factory()->create(['phone' => '+57 310 555 0102']);
 
-        Contact::factory()->create(['account_id' => $account->id, 'phone' => '573105550101']);
-    }
+    app()->instance(AccountScope::CONTAINER_KEY, $accountB->id);
+    $other = Contact::factory()->create(['phone' => '573105550102']);
 
-    #[Test]
-    public function same_phone_is_allowed_on_another_account(): void
-    {
-        $accountA = Account::factory()->create();
-        $accountB = Account::factory()->create();
+    expect($other->fresh()->phone_normalized)->toBe('573105550102');
+});
 
-        app()->instance(AccountScope::CONTAINER_KEY, $accountA->id);
-        Contact::factory()->create(['phone' => '+57 310 555 0102']);
+test('second conversation for same contact is rejected', function () {
+    $account = Account::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
 
-        app()->instance(AccountScope::CONTAINER_KEY, $accountB->id);
-        $other = Contact::factory()->create(['phone' => '573105550102']);
+    $conversation = Conversation::factory()->create(['account_id' => $account->id]);
 
-        $this->assertSame('573105550102', $other->fresh()->phone_normalized);
-    }
+    $this->expectException(QueryException::class);
 
-    #[Test]
-    public function second_conversation_for_same_contact_is_rejected(): void
-    {
-        $account = Account::factory()->create();
-        app()->instance(AccountScope::CONTAINER_KEY, $account->id);
-
-        $conversation = Conversation::factory()->create(['account_id' => $account->id]);
-
-        $this->expectException(QueryException::class);
-
-        Conversation::factory()->create([
-            'account_id' => $account->id,
-            'contact_id' => $conversation->contact_id,
-        ]);
-    }
-}
+    Conversation::factory()->create([
+        'account_id' => $account->id,
+        'contact_id' => $conversation->contact_id,
+    ]);
+});

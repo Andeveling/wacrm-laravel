@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-# Ponytail: wrapper local — Sail por defecto busca el servicio `laravel.test`,
-# pero en este proyecto el servicio PHP se llama `app`. Exportar APP_SERVICE
-# para que `sail artisan`, `sail composer`, `sail npm`, etc. apunten al bueno.
-export APP_SERVICE=app
-export APP_USER=1000
-exec ./vendor/bin/sail "$@"

@@ -1,7 +1,5 @@
 <?php
 
-namespace Tests\Feature\Auth;
-
 use App\Models\Account;
 use App\Models\Enums\AccountRole;
 use App\Models\Enums\AccountType;
@@ -11,114 +9,103 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use Laravel\Fortify\Features;
-use Tests\TestCase;
 
-class RegistrationWithInviteTest extends TestCase
-{
-    use RefreshDatabase;
+uses(RefreshDatabase::class);
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+beforeEach(function () {
+    $this->skipUnlessFortifyHas(Features::registration());
+});
 
-        $this->skipUnlessFortifyHas(Features::registration());
-    }
+test('register page preserves the invite token', function () {
+    $token = Str::random(48);
 
-    public function test_register_page_preserves_the_invite_token(): void
-    {
-        $token = Str::random(48);
+    $this->get(route('register', ['invite' => $token]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('auth/register')
+            ->where('invite', $token)
+        );
+});
 
-        $this->get(route('register', ['invite' => $token]))
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('auth/register')
-                ->where('invite', $token)
-            );
-    }
+test('registration with invite keeps personal account and joins team', function () {
+    $inviter = User::factory()->create();
+    $team = Account::factory()->create(['name' => 'Acme Team']);
+    $team->users()->attach($inviter->id, ['role' => AccountRole::Owner->value, 'joined_at' => now()]);
+    $token = Str::random(48);
 
-    public function test_registration_with_invite_keeps_personal_account_and_joins_team(): void
-    {
-        $inviter = User::factory()->create();
-        $team = Account::factory()->create(['name' => 'Acme Team']);
-        $team->users()->attach($inviter->id, ['role' => AccountRole::Owner->value, 'joined_at' => now()]);
-        $token = Str::random(48);
-
-        $invitation = Invitation::factory()
-            ->for($team)
-            ->for($inviter, 'inviter')
-            ->create([
-                'role' => AccountRole::Member->value,
-                'token_hash' => hash('sha256', $token),
-            ]);
-
-        $response = $this->post(route('register.store'), [
-            'name' => 'Ada Lovelace',
-            'email' => 'ada@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-            'invite' => $token,
+    $invitation = Invitation::factory()
+        ->for($team)
+        ->for($inviter, 'inviter')
+        ->create([
+            'role' => AccountRole::Member->value,
+            'token_hash' => hash('sha256', $token),
         ]);
 
-        $response->assertRedirect(route('dashboard', absolute: false));
-        $this->assertAuthenticated();
+    $response = $this->post(route('register.store'), [
+        'name' => 'Ada Lovelace',
+        'email' => 'ada@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'invite' => $token,
+    ]);
 
-        $user = User::where('email', 'ada@example.com')->firstOrFail();
-        $this->assertDatabaseCount('accounts', 2);
-        $this->assertDatabaseHas('accounts', ['type' => AccountType::Personal->value]);
-        $personal = $user->accounts()->where('type', AccountType::Personal->value)->firstOrFail();
-        $teamMembership = $user->accounts()->whereKey($team->id)->firstOrFail();
+    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticated();
 
-        $this->assertSame(AccountRole::Owner, $personal->pivot->role);
-        $this->assertSame(AccountRole::Member, $teamMembership->pivot->role);
-        $this->assertSame($personal->id, session('current_account_id'));
-        $this->assertTrue($user->accounts()->count() === 2);
-        $this->assertNotNull($invitation->fresh()->accepted_at);
-        $this->assertSame($user->id, $invitation->fresh()->accepted_by);
-        $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Te uniste a Acme Team — Ir']);
-    }
+    $user = User::where('email', 'ada@example.com')->firstOrFail();
+    $this->assertDatabaseCount('accounts', 2);
+    $this->assertDatabaseHas('accounts', ['type' => AccountType::Personal->value]);
+    $personal = $user->accounts()->where('type', AccountType::Personal->value)->firstOrFail();
+    $teamMembership = $user->accounts()->whereKey($team->id)->firstOrFail();
 
-    public function test_registration_with_invalid_invite_rolls_back_user_and_personal_account(): void
-    {
-        $response = $this->post(route('register.store'), [
-            'name' => 'Ada Lovelace',
-            'email' => 'ada@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-            'invite' => 'invalid-token',
-        ]);
+    expect($personal->pivot->role)->toBe(AccountRole::Owner);
+    expect($teamMembership->pivot->role)->toBe(AccountRole::Member);
+    expect(session('current_account_id'))->toBe($personal->id);
+    expect($user->accounts()->count() === 2)->toBeTrue();
+    expect($invitation->fresh()->accepted_at)->not->toBeNull();
+    expect($invitation->fresh()->accepted_by)->toBe($user->id);
+    $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Te uniste a Acme Team — Ir']);
+});
 
-        $response->assertSessionHasErrors('invite');
-        $this->assertGuest();
-        $this->assertDatabaseMissing('users', ['email' => 'ada@example.com']);
-        $this->assertDatabaseCount('accounts', 0);
-        $this->assertNull(session('current_account_id'));
-    }
+test('registration with invalid invite rolls back user and personal account', function () {
+    $response = $this->post(route('register.store'), [
+        'name' => 'Ada Lovelace',
+        'email' => 'ada@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'invite' => 'invalid-token',
+    ]);
 
-    public function test_registration_with_expired_invite_rolls_back_user_and_personal_account(): void
-    {
-        $inviter = User::factory()->create();
-        $team = Account::factory()->create();
-        $team->users()->attach($inviter->id, ['role' => AccountRole::Owner->value, 'joined_at' => now()]);
-        $token = Str::random(48);
+    $response->assertSessionHasErrors('invite');
+    $this->assertGuest();
+    $this->assertDatabaseMissing('users', ['email' => 'ada@example.com']);
+    $this->assertDatabaseCount('accounts', 0);
+    expect(session('current_account_id'))->toBeNull();
+});
 
-        Invitation::factory()
-            ->for($team)
-            ->for($inviter, 'inviter')
-            ->expired()
-            ->create(['token_hash' => hash('sha256', $token)]);
+test('registration with expired invite rolls back user and personal account', function () {
+    $inviter = User::factory()->create();
+    $team = Account::factory()->create();
+    $team->users()->attach($inviter->id, ['role' => AccountRole::Owner->value, 'joined_at' => now()]);
+    $token = Str::random(48);
 
-        $response = $this->post(route('register.store'), [
-            'name' => 'Ada Lovelace',
-            'email' => 'ada@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-            'invite' => $token,
-        ]);
+    Invitation::factory()
+        ->for($team)
+        ->for($inviter, 'inviter')
+        ->expired()
+        ->create(['token_hash' => hash('sha256', $token)]);
 
-        $response->assertSessionHasErrors('invite');
-        $this->assertGuest();
-        $this->assertDatabaseMissing('users', ['email' => 'ada@example.com']);
-        $this->assertDatabaseCount('accounts', 1);
-        $this->assertNull(session('current_account_id'));
-    }
-}
+    $response = $this->post(route('register.store'), [
+        'name' => 'Ada Lovelace',
+        'email' => 'ada@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'invite' => $token,
+    ]);
+
+    $response->assertSessionHasErrors('invite');
+    $this->assertGuest();
+    $this->assertDatabaseMissing('users', ['email' => 'ada@example.com']);
+    $this->assertDatabaseCount('accounts', 1);
+    expect(session('current_account_id'))->toBeNull();
+});

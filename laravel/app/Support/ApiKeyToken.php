@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\Enums\ApiScope;
 use InvalidArgumentException;
 
 /**

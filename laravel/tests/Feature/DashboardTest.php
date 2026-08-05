@@ -1,41 +1,32 @@
 <?php
 
-namespace Tests\Feature;
-
 use App\Models\Account;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
-class DashboardTest extends TestCase
-{
-    use RefreshDatabase;
+uses(RefreshDatabase::class);
 
-    public function test_guests_are_redirected_to_the_login_page()
-    {
-        $response = $this->get(route('dashboard'));
-        $response->assertRedirect(route('login'));
-    }
+test('guests are redirected to the login page', function () {
+    $response = $this->get(route('dashboard'));
+    $response->assertRedirect(route('login'));
+});
 
-    public function test_authenticated_users_with_a_current_account_can_visit_the_dashboard()
-    {
-        $user = User::factory()->create();
-        $account = Account::factory()->create();
-        $account->users()->attach($user->id, ['role' => 'owner', 'joined_at' => now()]);
+test('authenticated users with a current account can visit the dashboard', function () {
+    $user = User::factory()->create();
+    $account = Account::factory()->create();
+    $account->users()->attach($user->id, ['role' => 'owner', 'joined_at' => now()]);
 
-        $response = $this->actingAs($user)
-            ->withSession(['current_account_id' => $account->id])
-            ->get(route('dashboard'));
+    $response = $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('dashboard'));
 
-        $response->assertOk();
-    }
+    $response->assertOk();
+});
 
-    public function test_authenticated_users_without_a_current_account_are_redirected_to_the_switcher()
-    {
-        $user = User::factory()->create();
-        $this->actingAs($user);
+test('authenticated users without a current account are redirected to the switcher', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
 
-        $response = $this->get(route('dashboard'));
-        $response->assertRedirect(route('accounts.switch'));
-    }
-}
+    $response = $this->get(route('dashboard'));
+    $response->assertRedirect(route('accounts.switch'));
+});

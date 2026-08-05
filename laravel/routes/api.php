@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiKey;
+use App\Models\ApiKey;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware([AuthenticateApiKey::class, 'throttle:api_key'])->prefix('v1')->group(function () {
     Route::get('me', function () {
-        /** @var \App\Models\ApiKey $apiKey */
+        /** @var ApiKey $apiKey */
         $apiKey = auth('api_key')->user();
 
         return response()->json([

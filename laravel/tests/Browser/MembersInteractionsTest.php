@@ -30,7 +30,7 @@ test('invite member shows success feedback', function () {
         ->type('input#password', 'password')
         ->press('button[type="submit"]');
 
-    $this->visit('/accounts/' . $data['account']->id . '/members')
+    $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
         ->assertSee('Invitar miembro')
         ->type('input#invite-email', 'nuevo@test.com')
@@ -46,9 +46,9 @@ test('change member role persists the change', function () {
         ->type('input#password', 'password')
         ->press('button[type="submit"]');
 
-    $this->visit('/accounts/' . $data['account']->id . '/members')
+    $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
-        ->click('[data-testid="member-role-select-' . $data['member']->id . '"]');
+        ->click('[data-testid="member-role-select-'.$data['member']->id.'"]');
 });
 
 test('remove member via dialog removes from list', function () {
@@ -59,9 +59,9 @@ test('remove member via dialog removes from list', function () {
         ->type('input#password', 'password')
         ->press('button[type="submit"]');
 
-    $this->visit('/accounts/' . $data['account']->id . '/members')
+    $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
-        ->click('[data-testid="remove-member-' . $data['member']->id . '"]')
+        ->click('[data-testid="remove-member-'.$data['member']->id.'"]')
         ->assertSee('¿Remover miembro?')
         ->click('[data-testid="confirm-remove-member"]');
 });
@@ -74,7 +74,7 @@ test('owner cannot remove themselves — remove button is disabled', function ()
         ->type('input#password', 'password')
         ->press('button[type="submit"]');
 
-    $this->visit('/accounts/' . $data['account']->id . '/members')
+    $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
-        ->assertAttribute('[data-testid="remove-member-' . $data['owner']->id . '"]', 'disabled', 'true');
+        ->assertAttribute('[data-testid="remove-member-'.$data['owner']->id.'"]', 'disabled', 'true');
 });

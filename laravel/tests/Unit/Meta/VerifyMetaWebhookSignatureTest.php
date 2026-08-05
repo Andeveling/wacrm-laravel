@@ -1,137 +1,88 @@
 <?php
 
 declare(strict_types=1);
-
-namespace Tests\Unit\Meta;
-
 use App\Services\Meta\VerifyMetaWebhookSignature;
-use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
 
-/**
- * Contract for the HMAC-SHA256 verifier the Meta webhook depends on.
- * Mirrors the unit tests in the Next.js reference implementation
- * (`src/lib/whatsapp/webhook-signature.test.ts`) so the public behavior
- * matches the seam that production has been calling for years.
- */
-class VerifyMetaWebhookSignatureTest extends TestCase
+const META_SIGNATURE_SECRET = 'test-app-secret-for-meta-webhook';
+function signedHeader(string $body, ?string $secret = null): string
 {
-    private const SECRET = 'test-app-secret-for-meta-webhook';
-
-    private function signedHeader(string $body, ?string $secret = null): string
-    {
-        return 'sha256='.hash_hmac('sha256', $body, $secret ?? self::SECRET);
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        config()->set('services.meta.app_secret', self::SECRET);
-    }
-
-    #[Test]
-    public function it_accepts_a_request_signed_with_the_configured_secret(): void
-    {
-        $body = '{"object":"whatsapp_business_account"}';
-
-        $verifier = new VerifyMetaWebhookSignature;
-
-        $this->assertTrue($verifier->isValid($body, $this->signedHeader($body)));
-    }
-
-    #[Test]
-    public function it_rejects_a_signature_computed_with_a_different_secret(): void
-    {
-        $body = '{"object":"whatsapp_business_account"}';
-        $verifier = new VerifyMetaWebhookSignature;
-
-        $this->assertFalse($verifier->isValid($body, $this->signedHeader($body, self::SECRET.'tampered')));
-    }
-
-    #[Test]
-    public function it_rejects_a_body_that_has_been_tampered_with_after_signing(): void
-    {
-        $signed = '{"entry":[]}';
-        $tampered = '{"entry":[{"id":"injected"}]}';
-        $header = $this->signedHeader($signed);
-
-        $verifier = new VerifyMetaWebhookSignature;
-
-        $this->assertFalse($verifier->isValid($tampered, $header));
-    }
-
-    #[Test]
-    public function it_rejects_when_the_x_hub_signature_256_header_is_missing(): void
-    {
-        $verifier = new VerifyMetaWebhookSignature;
-
-        $this->assertFalse($verifier->isValid('{}', null));
-    }
-
-    #[Test]
-    public function it_rejects_a_header_without_the_sha256_prefix(): void
-    {
-        $body = '{}';
-        $hex = hash_hmac('sha256', $body, self::SECRET);
-        $verifier = new VerifyMetaWebhookSignature;
-
-        $this->assertFalse($verifier->isValid($body, $hex));
-        $this->assertFalse($verifier->isValid($body, 'sha512='.$hex));
-    }
-
-    #[Test]
-    public function it_rejects_a_header_of_the_wrong_length_without_throwing(): void
-    {
-        $verifier = new VerifyMetaWebhookSignature;
-
-        // hash_equals throws on length mismatch; the verifier should
-        // catch it and return false instead of bubbling up.
-        $this->assertFalse($verifier->isValid('{}', 'sha256=tooshort'));
-    }
-
-    #[Test]
-    public function it_rejects_when_meta_app_secret_is_not_configured_fail_closed(): void
-    {
-        config()->set('services.meta.app_secret', null);
-        $verifier = new VerifyMetaWebhookSignature;
-
-        // Even a correctly-formed signature must be rejected when the
-        // operator forgot to wire META_APP_SECRET — fail-closed is the
-        // whole point of the missing-secret branch.
-        $this->assertFalse($verifier->isValid('{}', $this->signedHeader('{}', 'any-secret')));
-    }
-
-    #[Test]
-    public function it_rejects_when_meta_app_secret_is_the_empty_string(): void
-    {
-        config()->set('services.meta.app_secret', '');
-        $verifier = new VerifyMetaWebhookSignature;
-
-        $this->assertFalse($verifier->isValid('{}', $this->signedHeader('{}', 'any-secret')));
-    }
-
-    #[Test]
-    public function it_returns_the_same_answer_for_equivalent_hex_case(): void
-    {
-        $body = '{"x":1}';
-        $header = $this->signedHeader($body);
-        $verifier = new VerifyMetaWebhookSignature;
-
-        $this->assertTrue($verifier->isValid($body, $header));
-        $this->assertTrue($verifier->isValid($body, $header));
-    }
-
-    #[Test]
-    public function it_exposes_a_static_guard_for_secret_configuration(): void
-    {
-        config()->set('services.meta.app_secret', null);
-        $this->assertFalse(VerifyMetaWebhookSignature::isSecretConfigured());
-
-        config()->set('services.meta.app_secret', 'present');
-        $this->assertTrue(VerifyMetaWebhookSignature::isSecretConfigured());
-
-        config()->set('services.meta.app_secret', '');
-        $this->assertFalse(VerifyMetaWebhookSignature::isSecretConfigured());
-    }
+    return 'sha256='.hash_hmac('sha256', $body, $secret ?? META_SIGNATURE_SECRET);
 }
+beforeEach(function () {
+    config()->set('services.meta.app_secret', META_SIGNATURE_SECRET);
+});
+it('accepts a request signed with the configured secret', function () {
+    $body = '{"object":"whatsapp_business_account"}';
+
+    $verifier = new VerifyMetaWebhookSignature;
+
+    expect($verifier->isValid($body, signedHeader($body)))->toBeTrue();
+});
+it('rejects a signature computed with a different secret', function () {
+    $body = '{"object":"whatsapp_business_account"}';
+    $verifier = new VerifyMetaWebhookSignature;
+
+    expect($verifier->isValid($body, signedHeader($body, META_SIGNATURE_SECRET.'tampered')))->toBeFalse();
+});
+it('rejects a body that has been tampered with after signing', function () {
+    $signed = '{"entry":[]}';
+    $tampered = '{"entry":[{"id":"injected"}]}';
+    $header = signedHeader($signed);
+
+    $verifier = new VerifyMetaWebhookSignature;
+
+    expect($verifier->isValid($tampered, $header))->toBeFalse();
+});
+it('rejects when the x hub signature 256 header is missing', function () {
+    $verifier = new VerifyMetaWebhookSignature;
+
+    expect($verifier->isValid('{}', null))->toBeFalse();
+});
+it('rejects a header without the sha256 prefix', function () {
+    $body = '{}';
+    $hex = hash_hmac('sha256', $body, META_SIGNATURE_SECRET);
+    $verifier = new VerifyMetaWebhookSignature;
+
+    expect($verifier->isValid($body, $hex))->toBeFalse();
+    expect($verifier->isValid($body, 'sha512='.$hex))->toBeFalse();
+});
+it('rejects a header of the wrong length without throwing', function () {
+    $verifier = new VerifyMetaWebhookSignature;
+
+    // hash_equals throws on length mismatch; the verifier should
+    // catch it and return false instead of bubbling up.
+    expect($verifier->isValid('{}', 'sha256=tooshort'))->toBeFalse();
+});
+it('rejects when meta app secret is not configured fail closed', function () {
+    config()->set('services.meta.app_secret', null);
+    $verifier = new VerifyMetaWebhookSignature;
+
+    // Even a correctly-formed signature must be rejected when the
+    // operator forgot to wire META_APP_SECRET — fail-closed is the
+    // whole point of the missing-secret branch.
+    expect($verifier->isValid('{}', signedHeader('{}', 'any-secret')))->toBeFalse();
+});
+it('rejects when meta app secret is the empty string', function () {
+    config()->set('services.meta.app_secret', '');
+    $verifier = new VerifyMetaWebhookSignature;
+
+    expect($verifier->isValid('{}', signedHeader('{}', 'any-secret')))->toBeFalse();
+});
+it('returns the same answer for equivalent hex case', function () {
+    $body = '{"x":1}';
+    $header = signedHeader($body);
+    $verifier = new VerifyMetaWebhookSignature;
+
+    expect($verifier->isValid($body, $header))->toBeTrue();
+    expect($verifier->isValid($body, $header))->toBeTrue();
+});
+it('exposes a static guard for secret configuration', function () {
+    config()->set('services.meta.app_secret', null);
+    expect(VerifyMetaWebhookSignature::isSecretConfigured())->toBeFalse();
+
+    config()->set('services.meta.app_secret', 'present');
+    expect(VerifyMetaWebhookSignature::isSecretConfigured())->toBeTrue();
+
+    config()->set('services.meta.app_secret', '');
+    expect(VerifyMetaWebhookSignature::isSecretConfigured())->toBeFalse();
+});

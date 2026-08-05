@@ -29,7 +29,7 @@ test('submit forgot password shows success message', function () {
 test('reset password page renders with email prefilled and readonly', function () {
     $token = Password::createToken($this->user);
 
-    $this->visit('/reset-password/' . $token)
+    $this->visit('/reset-password/'.$token)
         ->assertNoSmoke()
         ->assertSee('Restablecer contraseña')
         ->assertSee('Contraseña')
@@ -39,7 +39,7 @@ test('reset password page renders with email prefilled and readonly', function (
 test('reset with valid token redirects to login', function () {
     $token = Password::createToken($this->user);
 
-    $this->visit('/reset-password/' . $token)
+    $this->visit('/reset-password/'.$token)
         ->type('input#password', 'new-password-123')
         ->type('input#password_confirmation', 'new-password-123')
         ->click('[data-test="reset-password-button"]');

@@ -34,7 +34,6 @@ class Invitation extends Model
     /** @use HasFactory<InvitationFactory> */
     use BelongsToAccount, HasFactory, HasUuids;
 
-
     /**
      * Resolve the public preview status of an invitation looked up by its
      * token hash. The lookup bypasses the tenant scope (callers are

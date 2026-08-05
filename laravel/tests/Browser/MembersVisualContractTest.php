@@ -35,7 +35,7 @@ test('viewer sees member list without management controls', function () {
         ->type('input#password', 'password')
         ->press('button[type="submit"]');
 
-    $this->visit('/accounts/' . $data['account']->id . '/members')
+    $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
         ->assertSee('Members of')
         ->assertDontSee('Invitar miembro')
@@ -51,7 +51,7 @@ test('admin sees full management UI', function () {
         ->type('input#password', 'password')
         ->press('button[type="submit"]');
 
-    $this->visit('/accounts/' . $data['account']->id . '/members')
+    $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
         ->assertSee('Members of')
         ->assertSee('Invitar miembro')
@@ -66,7 +66,7 @@ test('admin not owner does not see owner role in select', function () {
         ->type('input#password', 'password')
         ->press('button[type="submit"]');
 
-    $this->visit('/accounts/' . $data['account']->id . '/members')
+    $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
         ->click('Invitar miembro')
         ->assertDontSee('value="owner"');
@@ -80,8 +80,8 @@ test('sole owner role selector is locked', function () {
         ->type('input#password', 'password')
         ->press('button[type="submit"]');
 
-    $this->visit('/accounts/' . $data['account']->id . '/members')
+    $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
         ->assertSee('Sos el único Owner')
-        ->assertAttribute('[data-testid="member-role-select-' . $data['owner']->id . '"]', 'data-locked', 'true');
+        ->assertAttribute('[data-testid="member-role-select-'.$data['owner']->id.'"]', 'data-locked', 'true');
 });

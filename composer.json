@@ -71,7 +71,7 @@
       "@php artisan test"
     ],
     "hooks:install": [
-      "@php -r \"is_dir('.git') and passthru('git config core.hooksPath .githooks');\""
+      "@php -r \"is_dir('.git') and is_dir('node_modules') and passthru('pnpm exec lefthook install');\""
     ],
     "post-autoload-dump": [
       "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

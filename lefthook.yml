@@ -1,0 +1,57 @@
+# Quality gate. Same checks as `composer ci:check`, scoped to staged files.
+#
+# Installed automatically by `pnpm install` (lefthook's postinstall) and by
+# `composer install` (see composer.json hooks:install).
+#
+# Pint and Biome fix and re-stage on their own, so a formatting slip never
+# costs a round trip. The rest report and block.
+#
+# Escape hatch: LEFTHOOK=0 git commit … , or --no-verify. CI runs the full
+# suite either way, so bypassing only moves the failure later.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: pint
+      glob: '*.php'
+      exclude: ['original-wacrm/*']
+      run: vendor/bin/pint {staged_files}
+      stage_fixed: true
+
+    - name: no-inline-fqcn
+      glob: '*.php'
+      exclude: ['original-wacrm/*']
+      run: php tools/lint/no-inline-fqcn.php {staged_files}
+
+    # Reads the working tree, not the index — phpstan has no per-file mode
+    # that still resolves types across the project.
+    - name: phpstan
+      glob: '*.php'
+      exclude: ['original-wacrm/*']
+      run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+    - name: biome
+      glob: '*.{ts,tsx,js,jsx,mjs,mts,css,json}'
+      exclude: ['original-wacrm/*']
+      run: pnpm exec biome check --write {staged_files}
+      stage_fixed: true
+
+    # Deliberately not scoped to resources/js: lefthook's `**` does not match
+    # files sitting directly in a directory, which would silently skip
+    # resources/js/app.tsx. The script scans resources/js itself and costs
+    # 0.15s, so the widest glob is the safe one.
+    - name: ui-language
+      glob: '*.{ts,tsx}'
+      exclude: ['original-wacrm/*']
+      run: node scripts/check-ui-language.mjs
+
+    # Same working-tree caveat as phpstan.
+    - name: tsc
+      glob: '*.{ts,tsx}'
+      exclude: ['original-wacrm/*']
+      run: pnpm exec tsc --noEmit
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}

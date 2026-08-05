@@ -2,6 +2,7 @@ packages:
   - '.'
 
 allowBuilds:
+  lefthook: true
   unrs-resolver: true
 
 publicHoistPattern:

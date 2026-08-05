@@ -16,9 +16,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
     "@laravel/vite-plugin-wayfinder": "^0.1.7",
     "@types/node": "^22.20.1",
     "babel-plugin-react-compiler": "^1.0.0",
+    "lefthook": "^2.1.10",
     "playwright": "^1.62.1",
     "radix-ui": "^1.6.7",
     "react-grab": "^0.1.50",

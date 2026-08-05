@@ -18,14 +18,28 @@ Laravel 13 + Inertia v3 + React 19 + Tailwind v4, running under Sail. Package ve
 
 ## Git hooks — the standard is enforced, not requested
 
-`composer install` points `core.hooksPath` at `.githooks/`. Two hooks run automatically:
+**Lefthook** runs them; `pnpm install` and `composer install` both arm it. Config is `lefthook.yml` — edit that, never `.git/hooks/`.
 
-- **`pre-commit`** — on staged files only, ~1.5–3s. Pint, `no-inline-fqcn`, PHPStan, Biome, `check-ui-language`, `tsc --noEmit`. Same checks as `composer ci:check`. `original-wacrm/` is out of scope.
-- **`commit-msg`** — Conventional Commits, subject ≤72 chars, English imperative. Merge/revert/fixup subjects pass through.
+`pre-commit`, on staged files only, all jobs in parallel (~1.5–3s):
 
-**Do not use `--no-verify`.** A failing hook names the fix command (`composer lint`, `pnpm lint`); run it and re-commit. Bypassing only moves the failure to CI, which runs the full suite anyway.
+| Job | Files | Behaviour |
+|---|---|---|
+| `pint` | `*.php` | **fixes and re-stages** |
+| `biome` | `*.{ts,tsx,js,jsx,mjs,mts,css,json}` | **fixes and re-stages** |
+| `no-inline-fqcn` | `*.php` | blocks |
+| `phpstan` | `*.php` | blocks |
+| `tsc --noEmit` | `*.{ts,tsx}` | blocks |
+| `check-ui-language` | `*.{ts,tsx}` | blocks |
 
-If the hooks stop firing, run `composer hooks:install`.
+`commit-msg` runs **commitlint** (`commitlint.config.mjs`): Conventional Commits, subject ≤72 chars, English imperative. Merge and revert subjects pass through.
+
+Formatting never costs a round trip — Pint and Biome repair the staged content in place. The other four report and block; fix the cause and re-commit.
+
+**Do not use `--no-verify` or `LEFTHOOK=0`.** Bypassing only moves the failure to CI, which runs the full suite anyway.
+
+Two jobs read the working tree rather than the index, because neither tool has a per-file mode that still resolves types across the project: `phpstan` and `tsc`. A commit built with `git add -p` is therefore checked against unstaged changes too.
+
+If the hooks stop firing, run `pnpm exec lefthook install`.
 
 ## JS/TS tooling
 

@@ -16,6 +16,17 @@ Laravel 13 + Inertia v3 + React 19 + Tailwind v4, running under Sail. Package ve
 | `echo-development` | Broadcasting, WebSockets, Reverb, presence channels, `ShouldBroadcast` | Channel auth and Echo config are easy to get subtly wrong |
 | `ai-sdk-development` | `Laravel\Ai\` namespace or any AI feature of this app | First-party SDK, v0 — API not in training data |
 
+## Git hooks — the standard is enforced, not requested
+
+`composer install` points `core.hooksPath` at `.githooks/`. Two hooks run automatically:
+
+- **`pre-commit`** — on staged files only, ~1.5–3s. Pint, `no-inline-fqcn`, PHPStan, Biome, `check-ui-language`, `tsc --noEmit`. Same checks as `composer ci:check`. `original-wacrm/` is out of scope.
+- **`commit-msg`** — Conventional Commits, subject ≤72 chars, English imperative. Merge/revert/fixup subjects pass through.
+
+**Do not use `--no-verify`.** A failing hook names the fix command (`composer lint`, `pnpm lint`); run it and re-commit. Bypassing only moves the failure to CI, which runs the full suite anyway.
+
+If the hooks stop firing, run `composer hooks:install`.
+
 ## JS/TS tooling
 
 Linter + formatter: **Biome 2.5** (`@biomejs/biome`). Single config at `biome.json`. ESLint and Prettier are gone — do not reintroduce them.

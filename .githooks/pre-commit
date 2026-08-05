@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Runs the same checks as `composer ci:check`, scoped to what is being
+# committed so it stays around two seconds. Installed by composer via
+# core.hooksPath — see composer.json post-autoload-dump.
+#
+# Escape hatch: `git commit --no-verify`. CI runs the full suite regardless,
+# so bypassing here only moves the failure later.
+#
+# ponytail: tsc and phpstan read the working tree, not the index, so a commit
+# built with `git add -p` is checked against unstaged changes too. Stashing to
+# fix that loses more to flakiness than it buys.
+
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+fail=0
+
+# Quiet on success, full output plus a fix hint on failure.
+check() {
+  local label=$1 fix=$2 out
+  shift 2
+  if ! out=$("$@" 2>&1); then
+    printf '\n\033[1;31m✗ %s\033[0m\n' "$label"
+    printf '%s\n' "$out"
+    printf '  fix: \033[1m%s\033[0m\n' "$fix"
+    fail=1
+  fi
+}
+
+mapfile -t -d '' staged < <(git diff --cached --name-only --diff-filter=ACMR -z)
+[ ${#staged[@]} -eq 0 ] && exit 0
+
+php=()
+web=()
+ui=0
+for f in "${staged[@]}"; do
+  case "$f" in
+    original-wacrm/*) continue ;;
+    *.php) php+=("$f") ;;
+    *.ts | *.tsx | *.js | *.jsx | *.mjs | *.mts | *.css | *.json) web+=("$f") ;;
+  esac
+  case "$f" in resources/js/*) ui=1 ;; esac
+done
+
+if [ ${#php[@]} -gt 0 ]; then
+  check "Pint: PHP formatting" "composer lint" \
+    ./vendor/bin/pint --test "${php[@]}"
+  check "Inline FQCN: import the class with a \`use\` statement" "edit the files listed above" \
+    php tools/lint/no-inline-fqcn.php "${php[@]}"
+  check "PHPStan: static analysis" "read the errors above, no autofix" \
+    ./vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+fi
+
+if [ ${#web[@]} -gt 0 ]; then
+  check "Biome: lint and format" "pnpm lint" \
+    pnpm exec biome check "${web[@]}"
+fi
+
+if [ "$ui" -eq 1 ]; then
+  check "UI language: Rioplatense voseo is not allowed" "rewrite the strings above in neutral Spanish" \
+    node scripts/check-ui-language.mjs
+  check "TypeScript: type errors" "read the errors above, no autofix" \
+    pnpm exec tsc --noEmit
+fi
+
+[ "$fail" -eq 0 ] || printf '\n\033[2mBypass with --no-verify; CI runs these anyway.\033[0m\n'
+exit "$fail"

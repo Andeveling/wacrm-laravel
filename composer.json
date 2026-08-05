@@ -63,16 +63,20 @@
       "npm run types:check",
       "@test"
     ],
-    "types:check": ["phpstan analyse"],
+    "types:check": ["phpstan analyse --memory-limit=1G"],
     "test": [
       "@php artisan config:clear --ansi",
       "@lint:check",
       "@types:check",
       "@php artisan test"
     ],
+    "hooks:install": [
+      "@php -r \"is_dir('.git') and passthru('git config core.hooksPath .githooks');\""
+    ],
     "post-autoload-dump": [
       "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-      "@php artisan package:discover --ansi"
+      "@php artisan package:discover --ansi",
+      "@hooks:install"
     ],
     "post-update-cmd": [
       "@php artisan vendor:publish --tag=laravel-assets --ansi --force"

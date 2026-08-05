@@ -1,103 +1,103 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.5.4/schema.json",
-    "vcs": {
-        "enabled": true,
-        "clientKind": "git",
-        "useIgnoreFile": true
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": ["**", "!original-wacrm"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80,
+    "lineEnding": "lf",
+    "useEditorconfig": true,
+    "includes": [
+      "**",
+      "!resources/js/components/ui/*",
+      "!resources/views/mail/*"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "warn"
+      },
+      "a11y": {
+        "noSvgWithoutTitle": "off",
+        "useSemanticElements": "off",
+        "useButtonType": "off",
+        "useAriaPropsSupportedByRole": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off",
+        "noBlankTarget": "off"
+      }
     },
-    "files": {
-        "ignoreUnknown": false,
-        "includes": ["**", "!original-wacrm"]
-    },
+    "includes": [
+      "**",
+      "!vendor",
+      "!node_modules",
+      "!public",
+      "!public/favicon.svg",
+      "!bootstrap/ssr",
+      "!tailwind.config.js",
+      "!vite.config.mts",
+      "!resources/js/actions/**",
+      "!resources/js/components/ui/*",
+      "!resources/js/components/tremor/*",
+      "!resources/js/routes/**",
+      "!resources/js/wayfinder/**"
+    ]
+  },
+  "javascript": {
     "formatter": {
-        "enabled": true,
-        "indentStyle": "space",
-        "indentWidth": 2,
-        "lineWidth": 80,
-        "lineEnding": "lf",
-        "useEditorconfig": true,
-        "includes": [
-            "**",
-            "!resources/js/components/ui/*",
-            "!resources/views/mail/*"
-        ]
-    },
-    "linter": {
-        "enabled": true,
-        "rules": {
-            "preset": "recommended",
-            "suspicious": {
-                "noExplicitAny": "off",
-                "noArrayIndexKey": "off"
-            },
-            "correctness": {
-                "useExhaustiveDependencies": "warn"
-            },
-            "a11y": {
-                "noSvgWithoutTitle": "off",
-                "useSemanticElements": "off",
-                "useButtonType": "off",
-                "useAriaPropsSupportedByRole": "off"
-            },
-            "security": {
-                "noDangerouslySetInnerHtml": "off",
-                "noBlankTarget": "off"
-            }
-        },
-        "includes": [
-            "**",
-            "!vendor",
-            "!node_modules",
-            "!public",
-            "!public/favicon.svg",
-            "!bootstrap/ssr",
-            "!tailwind.config.js",
-            "!vite.config.mts",
-            "!resources/js/actions/**",
-            "!resources/js/components/ui/*",
-            "!resources/js/components/tremor/*",
-            "!resources/js/routes/**",
-            "!resources/js/wayfinder/**"
-        ]
-    },
-    "javascript": {
-        "formatter": {
-            "quoteStyle": "single",
-            "jsxQuoteStyle": "double",
-            "semicolons": "always",
-            "trailingCommas": "all",
-            "arrowParentheses": "always",
-            "quoteProperties": "asNeeded",
-            "bracketSameLine": false,
-            "bracketSpacing": true,
-            "attributePosition": "auto"
-        }
-    },
-    "css": {
-        "parser": {
-            "tailwindDirectives": true
-        }
-    },
-    "html": {
-        "formatter": {
-            "indentScriptAndStyle": false,
-            "selfCloseVoidElements": "always"
-        }
-    },
-    "overrides": [
-        {
-            "includes": ["**/*.yml", "**/*.yaml"],
-            "formatter": {
-                "indentWidth": 2
-            }
-        }
-    ],
-    "assist": {
-        "enabled": true,
-        "actions": {
-            "source": {
-                "organizeImports": "on"
-            }
-        }
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "always",
+      "quoteProperties": "asNeeded",
+      "bracketSameLine": false,
+      "bracketSpacing": true,
+      "attributePosition": "auto"
     }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "html": {
+    "formatter": {
+      "indentScriptAndStyle": false,
+      "selfCloseVoidElements": "always"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.yml", "**/*.yaml"],
+      "formatter": {
+        "indentWidth": 2
+      }
+    }
+  ],
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
 }

@@ -1,20 +1,25 @@
 # wacrm — Laravel
 
-Fase 1 del plan de migración ([docs/migration-laravel13-docker.md](../docs/migration-laravel13-docker.md)).
-Laravel 13 + Inertia 2 + React + Tailwind 4 (starter kit oficial React) con todo el
-stack de servicios en docker-compose: Postgres 17 + pgvector, Redis, Reverb
-(WebSockets), workers de cola y scheduler.
+Laravel 13 + Inertia 2 + React + Tailwind 4 (starter kit oficial React), corriendo
+sobre [Laravel Sail](https://laravel.com/docs/sail): Postgres 17 + pgvector, Redis,
+Reverb (WebSockets), worker de cola y scheduler.
 
 ## Arranque
 
 ```bash
 cp .env.example .env          # solo la primera vez
-composer install              # vendor/ vive en el host (PHP 8.4 local)
+composer install              # vendor/ vive en el host, no requiere PHP local completo
+./vendor/bin/sail up -d       # laravel.test, pgsql, redis, reverb, queue, scheduler
+./vendor/bin/sail artisan key:generate   # solo la primera vez
+./vendor/bin/sail artisan migrate
 pnpm install
-docker compose up -d          # pgsql, redis, nginx, php-fpm, reverb, queue, scheduler
-docker compose exec app php artisan key:generate   # solo la primera vez
-docker compose exec app php artisan migrate
 pnpm dev                      # Vite en el host (HMR)
+```
+
+Alias recomendado (evita escribir `./vendor/bin/sail` cada vez):
+
+```bash
+alias sail='sh vendor/bin/sail'
 ```
 
 - App: <http://localhost:8000>
@@ -26,7 +31,7 @@ pnpm dev                      # Vite en el host (HMR)
 Siempre dentro del contenedor (el `.env` apunta a los hosts de docker: `pgsql`, `redis`):
 
 ```bash
-docker compose exec app php artisan <comando>
+./vendor/bin/sail artisan <comando>
 ```
 
 ## Qué NO está todavía

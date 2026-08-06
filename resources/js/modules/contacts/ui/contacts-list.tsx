@@ -255,6 +255,7 @@ export function ContactsList({
                 Deseleccionar
               </Button>
               <Button
+                data-testid="contacts-bulk-delete"
                 variant="destructive"
                 size="sm"
                 onClick={() => setBulkDeleteOpen(true)}
@@ -416,6 +417,7 @@ export function ContactsList({
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
+                            data-testid={`contact-delete-row-${rowIndex}`}
                             variant="destructive"
                             onClick={(event) => {
                               event.stopPropagation();
@@ -481,7 +483,11 @@ export function ContactsList({
             <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={handleBulkDelete}>
+            <Button
+              data-testid="contacts-bulk-delete-confirm"
+              variant="destructive"
+              onClick={handleBulkDelete}
+            >
               Eliminar
             </Button>
           </DialogFooter>

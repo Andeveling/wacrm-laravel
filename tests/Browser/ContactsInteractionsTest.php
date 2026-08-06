@@ -113,3 +113,51 @@ test('contacts page creates and edits through the page seam', function () {
         ->click('[data-testid="contact-row-0"]')
         ->assertSee('Laura Gómez editado');
 });
+
+test('contacts page deletes a contact through the page seam', function () {
+    $this->visit('/login')
+        ->type('input#email', $this->owner->email)
+        ->type('input#password', $this->password)
+        ->press('button[type="submit"]');
+
+    $this->visit('/accounts/switch')
+        ->click('[data-testid="accounts-switcher"] button')
+        ->assertPathIs('/dashboard');
+
+    $this->visit('/contacts')
+        ->assertNoSmoke()
+        ->type('input[placeholder="Buscar por nombre, teléfono o correo…"]', 'Contacto 5')
+        ->assertSee('1 contactos')
+        ->click('[data-testid="contact-actions-row-0"]')
+        ->click('[data-testid="contact-delete-row-0"]')
+        ->assertSee('¿Eliminar a Contacto 5?')
+        ->click('[data-testid="contacts-delete-confirm"]')
+        ->assertSee('Contacto eliminado.')
+        ->assertSee('Ningún contacto coincide con el filtro.');
+
+    expect(Contact::query()->count())->toBe(23);
+});
+
+test('contacts page bulk deletes the selected rows through the page seam', function () {
+    $this->visit('/login')
+        ->type('input#email', $this->owner->email)
+        ->type('input#password', $this->password)
+        ->press('button[type="submit"]');
+
+    $this->visit('/accounts/switch')
+        ->click('[data-testid="accounts-switcher"] button')
+        ->assertPathIs('/dashboard');
+
+    $this->visit('/contacts')
+        ->assertNoSmoke()
+        ->click('thead [data-slot="checkbox"]')
+        ->assertSee('10 seleccionados')
+        ->click('[data-testid="contacts-bulk-delete"]')
+        ->assertSee('¿Eliminar 10 contactos seleccionados?')
+        ->click('[data-testid="contacts-bulk-delete-confirm"]')
+        ->assertSee('10 contactos eliminados.')
+        ->assertSee('14 contactos')
+        ->assertDontSee('seleccionados');
+
+    expect(Contact::query()->count())->toBe(14);
+});

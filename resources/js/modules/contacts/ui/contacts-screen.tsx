@@ -163,7 +163,11 @@ export function ContactsScreen({
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button
+              data-testid="contacts-delete-confirm"
+              variant="destructive"
+              onClick={handleDelete}
+            >
               Eliminar
             </Button>
           </DialogFooter>

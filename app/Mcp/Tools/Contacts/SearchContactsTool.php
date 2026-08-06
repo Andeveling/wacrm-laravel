@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Contacts;
 
+use App\Domain\Contacts\Support\ContactProjection;
 use App\Mcp\Support\SearchTool;
 use App\Models\Contact;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -28,7 +29,9 @@ class SearchContactsTool extends SearchTool
 
     protected function baseQuery(): Builder
     {
-        return Contact::query()->with('tags:id,name');
+        return Contact::query()
+            ->with(ContactProjection::RELATIONS)
+            ->select(ContactProjection::COLUMNS);
     }
 
     protected function searchQuery(Builder $query, string $search): Builder
@@ -46,13 +49,6 @@ class SearchContactsTool extends SearchTool
         /** @var Contact $c */
         $c = $item;
 
-        return [
-            'id' => $c->id,
-            'name' => $c->name,
-            'phone' => $c->phone,
-            'email' => $c->email,
-            'company' => $c->company,
-            'tags' => $c->tags->pluck('name'),
-        ];
+        return ContactProjection::from($c);
     }
 }

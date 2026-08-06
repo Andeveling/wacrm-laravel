@@ -1,13 +1,18 @@
+/**
+ * Mirrors `App\Domain\Contacts\Support\ContactProjection` — the single
+ * definition of a Contact's public shape on the backend. Every key is
+ * always present; the nullable ones arrive as `null`, not missing.
+ */
 export interface Contact {
   id: string;
   phone: string;
-  name?: string;
-  email?: string;
-  company?: string;
-  avatar_url?: string;
-  created_at: string;
-  updated_at: string;
-  tags?: Tag[];
+  name: string | null;
+  email: string | null;
+  company: string | null;
+  avatar_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  tags: Tag[];
 }
 
 export interface Tag {

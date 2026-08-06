@@ -380,14 +380,16 @@ export function ContactsList({
                       </div>
                     </TableCell>
                     <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">
-                      {new Date(contact.created_at).toLocaleDateString(
-                        'es-CO',
-                        {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        },
-                      )}
+                      {contact.created_at
+                        ? new Date(contact.created_at).toLocaleDateString(
+                            'es-CO',
+                            {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            },
+                          )
+                        : '—'}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

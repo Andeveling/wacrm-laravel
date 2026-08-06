@@ -14,10 +14,11 @@ export function buildContact(
 
   return {
     id: existing?.id ?? generatedId,
-    name: name || undefined,
+    name: name || null,
     phone,
-    email: email || undefined,
-    company: company || undefined,
+    email: email || null,
+    company: company || null,
+    avatar_url: existing?.avatar_url ?? null,
     created_at: existing?.created_at ?? updatedAt,
     updated_at: updatedAt,
     tags: tags.filter((tag) => values.tagIds.includes(tag.id)),
@@ -47,7 +48,7 @@ export function deriveContactsList(
       contact.email?.toLowerCase().includes(term);
     const matchesTags =
       selectedTagIds.length === 0 ||
-      (contact.tags ?? []).some((tag) => selectedTagIds.includes(tag.id));
+      contact.tags.some((tag) => selectedTagIds.includes(tag.id));
 
     return matchesTerm && matchesTags;
   });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Contacts;
 
+use App\Domain\Contacts\Support\ContactProjection;
 use App\Mcp\Support\ListTool;
 use App\Models\Contact;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -27,7 +28,8 @@ class ListContactsTool extends ListTool
     protected function query(Request $request): Builder
     {
         return Contact::query()
-            ->with('tags:id,name')
+            ->with(ContactProjection::RELATIONS)
+            ->select(ContactProjection::COLUMNS)
             ->latest();
     }
 
@@ -36,14 +38,6 @@ class ListContactsTool extends ListTool
         /** @var Contact $c */
         $c = $item;
 
-        return [
-            'id' => $c->id,
-            'name' => $c->name,
-            'phone' => $c->phone,
-            'email' => $c->email,
-            'company' => $c->company,
-            'tags' => $c->tags->pluck('name'),
-            'created_at' => $c->created_at?->toIso8601String(),
-        ];
+        return ContactProjection::from($c);
     }
 }

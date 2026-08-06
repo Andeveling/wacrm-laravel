@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Contacts;
 
+use App\Domain\Contacts\Support\ContactProjection;
 use App\Mcp\Support\GetTool;
 use App\Models\Contact;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -30,23 +31,24 @@ class GetContactTool extends GetTool
 
     protected function findQuery(string $id): Builder
     {
-        return Contact::query()
-            ->with(['tags:id,name', 'notes', 'conversations:id,contact_id,status,last_message_text,last_message_at,unread_count']);
+        return Contact::query()->with([
+            ...ContactProjection::RELATIONS,
+            'notes',
+            'conversations:id,contact_id,status,last_message_text,last_message_at,unread_count',
+        ]);
     }
 
+    /**
+     * The public shape plus what only the detail view needs. Spreading
+     * the projection keeps this tool from re-deriving the base fields.
+     */
     protected function mapItem(Model $item): array
     {
         /** @var Contact $c */
         $c = $item;
 
         return [
-            'id' => $c->id,
-            'name' => $c->name,
-            'phone' => $c->phone,
-            'email' => $c->email,
-            'company' => $c->company,
-            'avatar_url' => $c->avatar_url,
-            'tags' => $c->tags->map(fn ($t) => ['id' => $t->id, 'name' => $t->name]),
+            ...ContactProjection::from($c),
             'notes' => $c->notes->map(fn ($n) => [
                 'id' => $n->id,
                 'content' => $n->note_text,
@@ -59,7 +61,6 @@ class GetContactTool extends GetTool
                 'last_message_at' => $conv->last_message_at?->toIso8601String(),
                 'unread_count' => $conv->unread_count,
             ]),
-            'created_at' => $c->created_at?->toIso8601String(),
         ];
     }
 

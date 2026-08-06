@@ -71,10 +71,10 @@ export function ContactDetailView({
       onSuccess: () => {
         onUpdated({
           ...selectedContact,
-          name: form.data.name.trim() || undefined,
+          name: form.data.name.trim() || null,
           phone: form.data.phone.trim(),
-          email: form.data.email.trim() || undefined,
-          company: form.data.company.trim() || undefined,
+          email: form.data.email.trim() || null,
+          company: form.data.company.trim() || null,
           tags: tags.filter((tag) => form.data.tag_ids.includes(tag.id)),
           updated_at: new Date().toISOString(),
         });
@@ -93,7 +93,7 @@ export function ContactDetailView({
     );
   }
 
-  function getInitials(name?: string) {
+  function getInitials(name?: string | null) {
     if (!name) return '?';
 
     return name

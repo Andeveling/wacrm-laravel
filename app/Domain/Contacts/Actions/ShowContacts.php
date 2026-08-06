@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Contacts\Actions;
 
+use App\Domain\Contacts\Support\ContactProjection;
 use App\Models\Contact;
 use App\Models\CustomField;
 use App\Models\Tag;
@@ -17,9 +18,11 @@ final class ShowContacts
     {
         return Inertia::render('contacts', [
             'contacts' => Contact::query()
-                ->with('tags:id,name,color')
+                ->with(ContactProjection::RELATIONS)
                 ->latest('created_at')
-                ->get(['id', 'phone', 'name', 'email', 'company', 'avatar_url', 'created_at', 'updated_at']),
+                ->get(ContactProjection::COLUMNS)
+                ->map(ContactProjection::from(...))
+                ->all(),
             'tags' => Tag::query()->orderBy('name')->get(['id', 'name', 'color']),
             'customFields' => CustomField::query()
                 ->orderBy('field_name')

@@ -18,6 +18,9 @@ Invitación para que un User existente se una a un Team Account. Tiene token has
 ### ApiKey
 Token Bearer para acceso programático. Pertenece a un Account y carga un conjunto de **ApiScope**. Es inmutable tras crearse (no tiene `updated_at`). Implementa `AuthenticatableContract`: la key misma es la identidad del guard.
 
+### Contact
+Persona con la que el Account conversa por WhatsApp. Su **proyección pública** — `id`, `phone`, `name`, `email`, `company`, `avatar_url`, `created_at`, `updated_at` y sus `tags` — está definida una sola vez y es idéntica en todos los transportes: pantalla web, tools MCP y (cuando exista) la API REST. Agregar un campo al Contact público es editar ese único lugar. El detalle que devuelve MCP es esa misma proyección más `notes` y `conversations`.
+
 ## Roles (AccountRole)
 
 Jerarquía ordinal plana de lo que un User puede hacer dentro de un Account:

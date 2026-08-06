@@ -6,35 +6,33 @@ namespace App\Domain\Accounts\Actions;
 
 use App\Domain\Accounts\Responders\RemoveMemberResponder;
 use App\Domain\Accounts\Results\MemberActionResult;
+use App\Domain\Accounts\Support\MemberActionStatus;
+use App\Domain\Accounts\Support\MembershipRules;
 use App\Models\Account;
 use App\Models\AccountUser;
 use App\Models\Enums\AccountRole;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Removes a membership (account_user pivot row) from a Team Account.
  *
  * The Action is the invokable controller for
- * DELETE /accounts/{account}/members/{member} and delegates the
- * response shape to {@see RemoveMemberResponder}. Every legal branch
- * of the membership-mutation flow is encoded in the
- * {@see MemberActionResult} status enum so the Responder stays
- * transport-only (ADR 0001).
+ * DELETE /accounts/{account}/members/{member}. It reads the facts,
+ * asks {@see MembershipRules} for the verdict, and hands the
+ * {@see MemberActionResult} to {@see RemoveMemberResponder}, which
+ * stays transport-only (ADR 0001).
  *
- * Two invariants gate the DELETE:
+ * Self-removal and Owner Protection (ADR 0002) both live in the rules
+ * module, shared with ChangeMemberRole. Note the deliberate asymmetry
+ * between the two: an Admin may remove an Owner while another Owner
+ * remains, but may not demote one.
  *
- *  1. Self-removal is forbidden — a User cannot remove themselves from
- *     a Team Account via this endpoint (ADR 0002 §3 covers the future
- *     "leave Account" flow). Even the Account's sole Owner is blocked.
- *  2. Owner Protection (ADR 0002): when the target holds the Owner
- *     role and they are the last remaining Owner of the Account, the
- *     DELETE is refused. Promote another Owner first.
- *
- * The role check uses AccountPolicy::manageMembers so the Admin+
- * capability is the single source of truth, mirroring InviteMember
- * and ChangeMemberRole.
+ * Facts and DELETE share one transaction that opens by locking the
+ * Account row, so a concurrent mutation cannot invalidate the Owner
+ * count between the check and the write.
  */
 final readonly class RemoveMember
 {
@@ -44,60 +42,47 @@ final readonly class RemoveMember
     {
         $actor = $request->user();
 
-        if ($actor === null) {
-            return ($this->responder)(MemberActionResult::forbidden());
-        }
+        $result = DB::transaction(function () use ($account, $actor, $member): MemberActionResult {
+            Account::query()->whereKey($account->getKey())->lockForUpdate()->first();
 
-        // Self-removal block: a User cannot yank themselves out of a
-        // Team Account via this endpoint.
-        if ($actor->is($member)) {
-            return ($this->responder)(MemberActionResult::forbidden());
-        }
+            $pivot = $this->pivotOf($account, $member);
 
-        if (! $actor->can('manageMembers', $account)) {
-            return ($this->responder)(MemberActionResult::forbidden());
-        }
+            $status = MembershipRules::forRemoval(
+                $actor?->roleIn($account),
+                $pivot?->role,
+                $actor?->is($member) ?? false,
+                $this->ownerCount($account),
+            );
 
-        $pivot = $this->findPivot($account, $member);
+            if ($status !== MemberActionStatus::Success) {
+                return new MemberActionResult($status, account: $account);
+            }
 
-        if ($pivot === null) {
-            return ($this->responder)(MemberActionResult::notMember());
-        }
+            $account->users()->detach($member->id);
 
-        // Owner Protection: refuse the mutation if the target is the
-        // last Owner, BEFORE any DB write.
-        if ($this->isLastOwner($account, $pivot)) {
-            return ($this->responder)(MemberActionResult::lastOwnerBlocked());
-        }
+            return new MemberActionResult(
+                MemberActionStatus::Success,
+                member: $pivot,
+                account: $account,
+            );
+        });
 
-        $account->users()->detach($member->id);
-
-        return ($this->responder)(MemberActionResult::success($pivot));
-    }
-
-    private function findPivot(Account $account, User $member): ?AccountUser
-    {
-        $pivot = $account->users()
-            ->whereKey($member->id)
-            ->first();
-
-        return $pivot?->pivot;
+        return ($this->responder)($result);
     }
 
     /**
-     * True when $pivot holds the Owner role and is the only Owner of
-     * $account. Counting against the live DB (not the in-memory pivot)
-     * is intentional: a concurrent demotion could otherwise sneak past
-     * the check.
+     * The pivot row joining $member to $account, or null when they are
+     * not a member.
      */
-    private function isLastOwner(Account $account, AccountUser $pivot): bool
+    private function pivotOf(Account $account, User $member): ?AccountUser
     {
-        if ($pivot->role !== AccountRole::Owner) {
-            return false;
-        }
+        return $account->users()->whereKey($member->id)->first()?->pivot;
+    }
 
+    private function ownerCount(Account $account): int
+    {
         return $account->users()
             ->wherePivot('role', AccountRole::Owner->value)
-            ->count() === 1;
+            ->count();
     }
 }

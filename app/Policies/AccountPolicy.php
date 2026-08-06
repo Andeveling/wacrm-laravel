@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Domain\Accounts\Support\MembershipRules;
 use App\Models\Account;
 use App\Models\Enums\AccountRole;
 use App\Models\User;
@@ -23,11 +24,13 @@ class AccountPolicy
     }
 
     /**
-     * Owner/admin: invite, remove, and change roles of members.
+     * Owner/admin: invite, remove, and change roles of members. The
+     * threshold itself lives in MembershipRules so the gate the UI
+     * reads and the rule the membership Actions run cannot drift.
      */
     public function manageMembers(User $user, Account $account): bool
     {
-        return $user->roleIn($account)?->atLeast(AccountRole::Admin) ?? false;
+        return MembershipRules::canManageMembers($user->roleIn($account));
     }
 
     /**

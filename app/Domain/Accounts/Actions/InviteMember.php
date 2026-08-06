@@ -6,6 +6,8 @@ namespace App\Domain\Accounts\Actions;
 
 use App\Domain\Accounts\Responders\InviteMemberResponder;
 use App\Domain\Accounts\Results\MemberActionResult;
+use App\Domain\Accounts\Support\MemberActionStatus;
+use App\Domain\Accounts\Support\MembershipRules;
 use App\Domain\Invitations\Services\InvitationIssuer;
 use App\Http\Requests\Accounts\InviteMemberRequest;
 use App\Models\Account;
@@ -30,10 +32,13 @@ use Symfony\Component\HttpFoundation\Response;
  * Owner-protection (ADR 0002) does not apply to invitations: an
  * Invitation does not change Owner count, only creates a pending
  * offer. The not-yet-accepted Invitation cannot leave the Account
- * ownerless. LastOwnerBlocked is therefore intentionally absent.
+ * ownerless. LastOwnerBlocked is therefore intentionally absent — the
+ * rules module cannot return it for this flow.
  *
- * Token hashing + expiry live in {@see InvitationIssuer} so the
- * legacy /invitations store route and this Action share one source
+ * The verdict comes from {@see MembershipRules}, shared with
+ * ChangeMemberRole and RemoveMember, so the Admin floor is decided in
+ * one place. Token hashing + expiry live in {@see InvitationIssuer} so
+ * the legacy /invitations store route and this Action share one source
  * of truth (no duplication per ADR 0001 rule 1).
  */
 final readonly class InviteMember
@@ -46,17 +51,14 @@ final readonly class InviteMember
     public function __invoke(InviteMemberRequest $request, Account $account): Response
     {
         $actor = $request->user();
-
-        if ($actor === null) {
-            return ($this->responder)(MemberActionResult::forbidden());
-        }
-
-        if (! $actor->can('manageMembers', $account)) {
-            return ($this->responder)(MemberActionResult::forbidden());
-        }
-
         $validated = $request->validated();
-        if ($validated['role'] === AccountRole::Owner->value && $actor->roleIn($account) !== AccountRole::Owner) {
+
+        $status = MembershipRules::forInvitation(
+            $actor?->roleIn($account),
+            AccountRole::from((string) $validated['role']),
+        );
+
+        if ($actor === null || $status !== MemberActionStatus::Success) {
             return ($this->responder)(MemberActionResult::forbidden());
         }
 

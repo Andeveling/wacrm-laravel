@@ -99,6 +99,12 @@ Lo hace cumplir `tools/lint/test-layout.php` en el `pre-commit`; las reglas est�
 **Owner Protection**:
 Un Account debe tener **al menos un Owner** en todo momento. La última membresía con rol Owner no puede degradarse ni ser removida. Para soltar el rol de Owner, hay que promover a otro miembro a Owner primero. Regla enforced en la capa de aplicación (Actions de Accounts), no en SQL — ver ADR 0002.
 
+**Precedencia**:
+La autorización decide antes que Owner Protection. Un actor que no puede gestionar miembros recibe `Forbidden` sin importar el estado del Account: no llega a saber si el objetivo es miembro ni cuántos Owners quedan.
+
+**Asimetría remover / degradar**:
+Un Admin puede **remover** a un Owner mientras quede otro Owner, pero nunca puede **degradarlo**. Remover deja intacta la jerarquía de roles; degradar reescribe el tramo en el que el propio Admin está parado. Solo un Owner muta filas Owner o promueve a Owner.
+
 **Member Removal scope**:
 Remover a un miembro de un Team Account elimina **solo esa membresía**. El Personal Account del User removido queda intacto. Coherente con el modelo multi-account.
 

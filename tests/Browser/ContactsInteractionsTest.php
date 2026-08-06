@@ -1,0 +1,60 @@
+<?php
+
+use App\Models\Account;
+use App\Models\AccountUser;
+use App\Models\Enums\AccountRole;
+use App\Models\Enums\AccountType;
+use App\Models\User;
+
+beforeEach(function () {
+    $this->password = 'password';
+    $this->owner = User::factory()->create(['password' => $this->password]);
+    $this->account = Account::factory()->create(['type' => AccountType::Team]);
+
+    AccountUser::create([
+        'account_id' => $this->account->id,
+        'user_id' => $this->owner->id,
+        'role' => AccountRole::Owner,
+    ]);
+});
+
+test('contacts list filters through the page seam', function () {
+    $this->visit('/login')
+        ->type('input#email', $this->owner->email)
+        ->type('input#password', $this->password)
+        ->press('button[type="submit"]');
+
+    $this->visit('/accounts/switch')
+        ->click('[data-testid="accounts-switcher"] button')
+        ->assertPathIs('/dashboard');
+
+    $this->visit('/contacts')
+        ->assertNoSmoke()
+        ->assertSee('Contactos')
+        ->type('input[placeholder="Buscar por nombre, teléfono o correo…"]', 'Laura Gómez')
+        ->assertSee('3 contactos')
+        ->assertSee('Laura Gómez');
+});
+
+test('contacts list paginates, filters tags, and selects visible rows', function () {
+    $this->visit('/login')
+        ->type('input#email', $this->owner->email)
+        ->type('input#password', $this->password)
+        ->press('button[type="submit"]');
+
+    $this->visit('/accounts/switch')
+        ->click('[data-testid="accounts-switcher"] button')
+        ->assertPathIs('/dashboard');
+
+    $this->visit('/contacts')
+        ->assertNoSmoke()
+        ->click('[data-testid="contacts-next-page"]')
+        ->assertSee('Mostrando 11–20 de 24')
+        ->assertSee('Página 2 de 3')
+        ->click('[data-testid="contacts-previous-page"]')
+        ->click('[data-testid="contacts-tag-filter"]')
+        ->click('#tag-filter-tag-vip')
+        ->assertSee('8 contactos')
+        ->click('thead [data-slot="checkbox"]')
+        ->assertSee('8 seleccionados');
+});

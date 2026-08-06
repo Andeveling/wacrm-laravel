@@ -103,6 +103,23 @@ test('frontend modules own their domain contracts', function () {
     }
 });
 
+test('shared frontend code does not import domain modules', function () {
+    foreach (['components', 'hooks', 'layouts', 'lib', 'types'] as $directory) {
+        foreach (frontendFiles($directory) as $file) {
+            $moduleImports = array_filter(
+                frontendImports($file),
+                fn (string $import): bool => str_starts_with($import, '@/modules/')
+                    || (str_starts_with($import, '.') && str_contains(
+                        normalizeFrontendPath($file->getPath().'/'.$import),
+                        '/resources/js/modules/',
+                    )),
+            );
+
+            expect($moduleImports)->toBeEmpty();
+        }
+    }
+});
+
 test('frontend modules use Wayfinder for application URLs', function () {
     $applicationUrl = "~['\"`](/accounts|/agents|/automations|/broadcasts|/contacts|/dashboard|/flows|/inbox|/notifications|/pipelines|/settings)(?:[/\"'`?])~";
 

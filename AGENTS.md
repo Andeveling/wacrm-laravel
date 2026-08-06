@@ -27,17 +27,27 @@ Laravel 13 + Inertia v3 + React 19 + Tailwind v4, running under Sail. Package ve
 | `pint` | `*.php` | **fixes and re-stages** |
 | `biome` | `*.{ts,tsx,js,jsx,mjs,mts,css,json}` | **fixes and re-stages** |
 | `no-inline-fqcn` | `*.php` | blocks |
+| `adr-layers` | `*.php` | blocks |
 | `phpstan` | `*.php` | blocks |
 | `tsc --noEmit` | `*.{ts,tsx}` | blocks |
 | `check-ui-language` | `*.{ts,tsx}` | blocks |
 
 `commit-msg` runs **commitlint** (`commitlint.config.mjs`): Conventional Commits, subject ≤72 chars, English imperative. Merge and revert subjects pass through.
 
-Formatting never costs a round trip — Pint and Biome repair the staged content in place. The other four report and block; fix the cause and re-commit.
+Formatting never costs a round trip — Pint and Biome repair the staged content in place. The other five report and block; fix the cause and re-commit.
 
 **Do not use `--no-verify` or `LEFTHOOK=0`.** Bypassing only moves the failure to CI, which runs the full suite anyway.
 
-Two jobs read the working tree rather than the index, because neither tool has a per-file mode that still resolves types across the project: `phpstan` and `tsc`. A commit built with `git add -p` is therefore checked against unstaged changes too.
+Three jobs read the working tree rather than the index, because none has a per-file mode that still resolves the project as a whole: `adr-layers`, `phpstan` and `tsc`. A commit built with `git add -p` is therefore checked against unstaged changes too.
+
+`adr-layers` (`tools/lint/adr-layers.php`, also `composer lint:adr-layers`) is what makes ADR 0001 binding rather than advisory — read that table below as enforced, not aspirational. It boots the framework to read the real route table, touches no database, and costs ~0.2s:
+
+1. No class under `app/` is named `*Controller`.
+2. Every route handled by app code points at `App\Domain\<Contexto>\Actions\<X>` — a `Class@method` reference fails too.
+3. Actions are `final` and expose only `__invoke`.
+4. Responders are `final`, named `*Responder`, and import neither `App\Models` nor `Illuminate\Database`.
+5. Results are `final readonly`, named `*Result`, and import neither `Illuminate\Http` nor `Inertia`.
+6. A bounded context contains only `Actions`, `Responders`, `Results`, `Services`, `Support`. A new layer needs an ADR first.
 
 If the hooks stop firing, run `pnpm exec lefthook install`.
 

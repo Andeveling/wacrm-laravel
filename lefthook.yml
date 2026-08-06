@@ -23,6 +23,14 @@ pre-commit:
       exclude: ['original-wacrm/*']
       run: php tools/lint/no-inline-fqcn.php {staged_files}
 
+    # ADR 0001, enforced. Boots the framework to read the real route table,
+    # so like phpstan it reads the working tree rather than the index. No
+    # database, ~0.2s.
+    - name: adr-layers
+      glob: '*.php'
+      exclude: ['original-wacrm/*']
+      run: php tools/lint/adr-layers.php
+
     # Reads the working tree, not the index — phpstan has no per-file mode
     # that still resolves types across the project.
     - name: phpstan

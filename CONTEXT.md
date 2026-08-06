@@ -61,7 +61,11 @@ Cada tool es una clase que extiende `Laravel\Mcp\Server\Tool` y declara un schem
 
 ## Patrón arquitectónico
 
-ADR 0001: **Action / Domain / Responder** para features nuevos. Las Actions viven en `app/Domain/<Contexto>/Actions/`, los Responders en `app/Domain/<Contexto>/Responders/`, y los Results son value objects readonly con enum de estado. Fortify (`app/Actions/Fortify/*`) no se migra.
+ADR 0001: **Action / Domain / Responder**. Las Actions viven en `app/Domain/<Contexto>/Actions/`, los Responders en `app/Domain/<Contexto>/Responders/`, y los Results son value objects readonly con enum de estado. Fortify (`app/Actions/Fortify/*`) no se migra.
+
+`app/Http/Controllers/` ya no existe: los contextos `Accounts`, `Contacts`, `Dashboard`, `Invitations`, `Meta` y `Settings` viven completos bajo `app/Domain/`. `app/Http/` conserva solo lo que es realmente HTTP: `Middleware/` y `Requests/` (los FormRequest siguen siendo el input boundary).
+
+Los endpoints que solo renderizan una página o aplican una regla única no llevan Result ni Responder — la Action devuelve la respuesta directamente (regla 4 del ADR 0001). Result + Responder se reservan para flujos con varios desenlaces legales: `RedeemInvitation` (302 / 401 / 409 / 422) y `ReceiveMetaWebhook` (200 / 400 / 401 / 413 / 503).
 
 ## Términos clave
 

@@ -49,18 +49,24 @@
       "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
       "@php artisan key:generate",
       "@php artisan migrate --force",
-      "npm install",
-      "npm run build"
+      "pnpm install",
+      "pnpm build"
     ],
     "dev": ["Composer\\Config::disableProcessTimeout", "@php artisan dev"],
     "lint": ["pint --parallel"],
     "lint:no-inline-fqcn": ["@php tools/lint/no-inline-fqcn.php"],
-    "lint:check": ["pint --parallel --test", "@lint:no-inline-fqcn"],
+    "lint:adr-layers": ["@php tools/lint/adr-layers.php"],
+    "lint:check": [
+      "pint --parallel --test",
+      "@lint:no-inline-fqcn",
+      "@lint:adr-layers"
+    ],
     "ci:check": [
       "Composer\\Config::disableProcessTimeout",
-      "npm run lint:check",
-      "npm run format:check",
-      "npm run types:check",
+      "pnpm lint:check",
+      "pnpm format:check",
+      "pnpm types:check",
+      "pnpm test",
       "@test"
     ],
     "types:check": ["phpstan analyse --memory-limit=1G"],
@@ -68,8 +74,9 @@
       "@php artisan config:clear --ansi",
       "@lint:check",
       "@types:check",
-      "@php artisan test"
+      "@php artisan test --exclude-testsuite=Browser"
     ],
+    "test:browser": ["@php artisan test --testsuite=Browser"],
     "hooks:install": [
       "@php -r \"is_dir('.git') and is_dir('node_modules') and passthru('pnpm exec lefthook install');\""
     ],

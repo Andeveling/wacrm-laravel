@@ -44,7 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Contact, Tag } from '@/types';
+import type { Contact, Tag } from '../contracts';
 import {
   deriveContactsList,
   toggleContactSelection,

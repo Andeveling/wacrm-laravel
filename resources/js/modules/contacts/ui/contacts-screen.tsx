@@ -4,9 +4,6 @@ import { toast } from 'sonner';
 import bulkDestroy from '@/actions/App/Domain/Contacts/Actions/BulkDestroyContacts';
 import destroy from '@/actions/App/Domain/Contacts/Actions/DestroyContact';
 import exportContacts from '@/actions/App/Domain/Contacts/Actions/ExportContacts';
-import { ContactDetailView } from '@/components/contacts/contact-detail-view';
-import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
-import { ImportModal } from '@/components/contacts/import-modal';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,10 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Contact } from '@/types';
-import type { ContactsPageProps } from '../contracts';
+import { contacts } from '@/routes';
+import type { Contact, ContactsPageProps } from '../contracts';
+import { ContactDetailView } from './contact-detail-view';
 import { ContactForm } from './contact-form';
 import { ContactsList } from './contacts-list';
+import { CustomFieldsManager } from './custom-fields-manager';
+import { ImportModal } from './import-modal';
 
 export function ContactsScreen({
   contacts: initialContacts,
@@ -172,3 +172,12 @@ export function ContactsScreen({
     </>
   );
 }
+
+ContactsScreen.layout = {
+  breadcrumbs: [
+    {
+      title: 'Contactos',
+      href: contacts(),
+    },
+  ],
+};

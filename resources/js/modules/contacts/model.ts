@@ -1,5 +1,4 @@
-import type { Contact, Tag } from '@/types';
-import type { ContactFormValues } from './contracts';
+import type { Contact, ContactFormValues, Tag } from './contracts';
 
 export function buildContact(
   values: ContactFormValues,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Contact } from '@/types';
+import type { Contact } from './contracts';
 import {
   buildContact,
   deriveContactsList,

@@ -19,7 +19,7 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import settings from '@/routes/settings';
-import type { NavItem } from '@/types';
+import type { NavItem } from '@/types/navigation';
 
 const overviewNavItem: NavItem = {
   title: 'Resumen',

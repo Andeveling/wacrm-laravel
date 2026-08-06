@@ -1,6 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import { useRef } from 'react';
-import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
+import UpdatePassword from '@/actions/App/Domain/Settings/Actions/UpdatePassword';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 /* @chisel-passkeys */
@@ -40,7 +40,7 @@ export default function Security(props: Props) {
         />
 
         <Form
-          {...SecurityController.update.form()}
+          {...UpdatePassword.form()}
           options={{
             preserveScroll: true,
           }}

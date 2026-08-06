@@ -1,8 +1,13 @@
 <?php
 
-use App\Http\Controllers\Settings\ApiKeysController;
-use App\Http\Controllers\Settings\ProfileController;
-use App\Http\Controllers\Settings\SecurityController;
+use App\Domain\Settings\Actions\DestroyApiKey;
+use App\Domain\Settings\Actions\DestroyProfile;
+use App\Domain\Settings\Actions\ShowApiKeys;
+use App\Domain\Settings\Actions\ShowProfile;
+use App\Domain\Settings\Actions\ShowSecurity;
+use App\Domain\Settings\Actions\StoreApiKey;
+use App\Domain\Settings\Actions\UpdatePassword;
+use App\Domain\Settings\Actions\UpdateProfile;
 /* @chisel-password-confirmation */
 use Illuminate\Auth\Middleware\RequirePassword;
 /* @end-chisel-password-confirmation */
@@ -34,26 +39,26 @@ Route::middleware(['auth'])->group(function () {
     Route::inertia('settings/fields', 'settings/fields')->name('settings.fields');
     Route::inertia('settings/deals', 'settings/deals')->name('settings.deals');
 
-    Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('settings/profile', ShowProfile::class)->name('profile.edit');
+    Route::patch('settings/profile', UpdateProfile::class)->name('profile.update');
 
     Route::middleware('ensure.current-account')->group(function () {
-        Route::get('settings/api-keys', [ApiKeysController::class, 'index'])->name('settings.api-keys');
-        Route::post('settings/api-keys', [ApiKeysController::class, 'store'])->name('settings.api-keys.store');
-        Route::delete('settings/api-keys/{apiKey}', [ApiKeysController::class, 'destroy'])->name('settings.api-keys.destroy');
+        Route::get('settings/api-keys', ShowApiKeys::class)->name('settings.api-keys');
+        Route::post('settings/api-keys', StoreApiKey::class)->name('settings.api-keys.store');
+        Route::delete('settings/api-keys/{apiKey}', DestroyApiKey::class)->name('settings.api-keys.destroy');
     });
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::delete('settings/profile', DestroyProfile::class)->name('profile.destroy');
 
-    Route::get('settings/security', [SecurityController::class, 'edit'])
+    Route::get('settings/security', ShowSecurity::class)
         /* @chisel-password-confirmation */
         ->middleware(RequirePassword::class)
         /* @end-chisel-password-confirmation */
         ->name('security.edit');
 
-    Route::put('settings/password', [SecurityController::class, 'update'])
+    Route::put('settings/password', UpdatePassword::class)
         ->middleware('throttle:6,1')
         ->name('user-password.update');
 

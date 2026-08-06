@@ -2,10 +2,8 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { Copy, KeyRound, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import {
-  destroy,
-  store,
-} from '@/actions/App/Http/Controllers/Settings/ApiKeysController';
+import DestroyApiKey from '@/actions/App/Domain/Settings/Actions/DestroyApiKey';
+import StoreApiKey from '@/actions/App/Domain/Settings/Actions/StoreApiKey';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -77,7 +75,7 @@ export default function ApiKeysPage({
       toast.error('Dale un nombre a la llave.');
       return;
     }
-    form.submit(store(), {
+    form.submit(StoreApiKey(), {
       preserveScroll: true,
       onError: () => toast.error('No se pudo crear la llave.'),
     });
@@ -96,7 +94,7 @@ export default function ApiKeysPage({
   function handleRevoke() {
     if (!keyToRevoke) return;
     setRevokingId(keyToRevoke.id);
-    router.delete(destroy(keyToRevoke.id), {
+    router.delete(DestroyApiKey(keyToRevoke.id), {
       preserveScroll: true,
       onSuccess: () => setKeyToRevoke(null),
       onError: () => toast.error('No se pudo revocar la llave.'),

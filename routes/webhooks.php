@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Meta\MetaWebhookController;
+use App\Domain\Meta\Actions\ReceiveMetaWebhook;
+use App\Domain\Meta\Actions\VerifyMetaWebhook;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -25,10 +26,10 @@ RateLimiter::for('meta-webhook', function (Request $request): Limit {
     return Limit::perMinute(600)->by('meta-webhook:'.$key);
 });
 
-Route::match(['get', 'post'], 'api/whatsapp/webhook', [MetaWebhookController::class, 'verify'])
+Route::match(['get', 'post'], 'api/whatsapp/webhook', VerifyMetaWebhook::class)
     ->middleware('throttle:meta-webhook')
     ->name('meta.webhook.verify');
 
-Route::post('api/whatsapp/webhook', [MetaWebhookController::class, 'receive'])
+Route::post('api/whatsapp/webhook', ReceiveMetaWebhook::class)
     ->middleware('throttle:meta-webhook')
     ->name('meta.webhook.receive');

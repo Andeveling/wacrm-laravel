@@ -1,8 +1,9 @@
+import { useForm } from '@inertiajs/react';
 import { Building2, Check, Copy, Mail, Phone, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import update from '@/actions/App/Domain/Contacts/Actions/UpdateContact';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,13 +15,13 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MOCK_TAGS } from '@/lib/contacts/mock';
-import type { Contact } from '@/types';
+import type { Contact, Tag } from '@/types';
 
 interface ContactDetailViewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  contact: Contact | null;
+  contact: Contact;
+  tags: Tag[];
   onUpdated: (contact: Contact) => void;
 }
 
@@ -28,64 +29,76 @@ export function ContactDetailView({
   open,
   onOpenChange,
   contact,
+  tags,
   onUpdated,
 }: ContactDetailViewProps) {
   const [copiedPhone, setCopiedPhone] = useState(false);
-
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editCompany, setEditCompany] = useState('');
-  const [tagIds, setTagIds] = useState<string[]>([]);
+  const form = useForm({
+    name: '',
+    phone: '',
+    email: '',
+    company: '',
+    tag_ids: [] as string[],
+  });
 
   useEffect(() => {
-    if (open && contact) {
-      setEditName(contact.name ?? '');
-      setEditPhone(contact.phone);
-      setEditEmail(contact.email ?? '');
-      setEditCompany(contact.company ?? '');
-      setTagIds((contact.tags ?? []).map((tag) => tag.id));
-    }
-  }, [open, contact]);
+    if (!open || !contact) return;
 
-  if (!contact) return null;
-  const c = contact;
+    form.setData({
+      name: contact.name ?? '',
+      phone: contact.phone,
+      email: contact.email ?? '',
+      company: contact.company ?? '',
+      tag_ids: contact.tags?.map((tag) => tag.id) ?? [],
+    });
+  }, [open, contact, form.setData]);
+
+  const selectedContact = contact;
 
   function copyPhone() {
-    navigator.clipboard.writeText(c.phone);
+    void navigator.clipboard.writeText(selectedContact.phone);
     setCopiedPhone(true);
-    setTimeout(() => setCopiedPhone(false), 2000);
   }
 
   function saveDetails() {
-    if (!editPhone.trim()) {
+    if (!form.data.phone.trim()) {
       toast.error('El teléfono es obligatorio.');
       return;
     }
-    onUpdated({
-      ...c,
-      name: editName.trim() || undefined,
-      phone: editPhone.trim(),
-      email: editEmail.trim() || undefined,
-      company: editCompany.trim() || undefined,
-      updated_at: new Date().toISOString(),
+
+    form.submit(update(selectedContact.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        onUpdated({
+          ...selectedContact,
+          name: form.data.name.trim() || undefined,
+          phone: form.data.phone.trim(),
+          email: form.data.email.trim() || undefined,
+          company: form.data.company.trim() || undefined,
+          tags: tags.filter((tag) => form.data.tag_ids.includes(tag.id)),
+          updated_at: new Date().toISOString(),
+        });
+        toast.success('Contacto actualizado.');
+      },
+      onError: () => toast.error('No se pudo actualizar el contacto.'),
     });
-    toast.success('Contacto actualizado.');
   }
 
   function toggleTag(tagId: string) {
-    const next = tagIds.includes(tagId)
-      ? tagIds.filter((id) => id !== tagId)
-      : [...tagIds, tagId];
-    setTagIds(next);
-    onUpdated({ ...c, tags: MOCK_TAGS.filter((tag) => next.includes(tag.id)) });
+    form.setData(
+      'tag_ids',
+      form.data.tag_ids.includes(tagId)
+        ? form.data.tag_ids.filter((id) => id !== tagId)
+        : [...form.data.tag_ids, tagId],
+    );
   }
 
   function getInitials(name?: string) {
     if (!name) return '?';
+
     return name
       .split(' ')
-      .map((w) => w[0])
+      .map((word) => word[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -157,8 +170,10 @@ export function ContactDetailView({
                 <div className="space-y-1.5">
                   <Label className="text-xs">Nombre</Label>
                   <Input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
+                    value={form.data.name}
+                    onChange={(event) =>
+                      form.setData('name', event.target.value)
+                    }
                     className="h-8 text-sm"
                   />
                 </div>
@@ -167,30 +182,40 @@ export function ContactDetailView({
                     Teléfono <span className="text-destructive">*</span>
                   </Label>
                   <Input
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
+                    value={form.data.phone}
+                    onChange={(event) =>
+                      form.setData('phone', event.target.value)
+                    }
                     className="h-8 text-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Correo</Label>
                   <Input
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
+                    value={form.data.email}
+                    onChange={(event) =>
+                      form.setData('email', event.target.value)
+                    }
                     className="h-8 text-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Empresa</Label>
                   <Input
-                    value={editCompany}
-                    onChange={(e) => setEditCompany(e.target.value)}
+                    value={form.data.company}
+                    onChange={(event) =>
+                      form.setData('company', event.target.value)
+                    }
                     className="h-8 text-sm"
                   />
                 </div>
-                <Button size="sm" onClick={saveDetails}>
+                <Button
+                  size="sm"
+                  onClick={saveDetails}
+                  disabled={form.processing}
+                >
                   <Save className="size-4" />
-                  Guardar cambios
+                  {form.processing ? 'Guardando…' : 'Guardar cambios'}
                 </Button>
               </div>
             </TabsContent>
@@ -200,8 +225,9 @@ export function ContactDetailView({
               className="flex-1 overflow-y-auto px-4 py-3"
             >
               <div className="flex flex-wrap gap-1.5">
-                {MOCK_TAGS.map((tag) => {
-                  const selected = tagIds.includes(tag.id);
+                {tags.map((tag) => {
+                  const selected = form.data.tag_ids.includes(tag.id);
+
                   return (
                     <button
                       key={tag.id}
@@ -222,40 +248,24 @@ export function ContactDetailView({
                   );
                 })}
               </div>
+              <Button className="mt-4" size="sm" onClick={saveDetails}>
+                <Save className="size-4" />
+                Guardar etiquetas
+              </Button>
             </TabsContent>
 
-            <TabsContent
-              value="notes"
-              className="flex-1 overflow-y-auto px-4 py-3"
-            >
-              <ComingSoon />
-            </TabsContent>
-            <TabsContent
-              value="custom"
-              className="flex-1 overflow-y-auto px-4 py-3"
-            >
-              <ComingSoon />
-            </TabsContent>
-            <TabsContent
-              value="deals"
-              className="flex-1 overflow-y-auto px-4 py-3"
-            >
-              <ComingSoon />
-            </TabsContent>
+            {(['notes', 'custom', 'deals'] as const).map((tab) => (
+              <TabsContent
+                key={tab}
+                value={tab}
+                className="flex-1 px-4 py-3 text-sm text-muted-foreground"
+              >
+                Sin información registrada.
+              </TabsContent>
+            ))}
           </Tabs>
         </div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function ComingSoon() {
-  return (
-    <div className="flex flex-col items-center gap-2 py-8 text-center">
-      <Badge variant="outline">Próximamente</Badge>
-      <p className="text-sm text-muted-foreground">
-        Esta sección aún no está disponible.
-      </p>
-    </div>
   );
 }

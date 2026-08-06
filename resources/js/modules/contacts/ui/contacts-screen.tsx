@@ -1,8 +1,10 @@
-import { Head } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import bulkDestroy from '@/actions/App/Domain/Contacts/Actions/BulkDestroyContacts';
+import destroy from '@/actions/App/Domain/Contacts/Actions/DestroyContact';
+import exportContacts from '@/actions/App/Domain/Contacts/Actions/ExportContacts';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
-import { ContactForm } from '@/components/contacts/contact-form';
 import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
 import { ImportModal } from '@/components/contacts/import-modal';
 import { Button } from '@/components/ui/button';
@@ -14,18 +16,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { MOCK_TAGS, mockContacts } from '@/lib/contacts/mock';
 import type { Contact } from '@/types';
 import type { ContactsPageProps } from '../contracts';
+import { ContactForm } from './contact-form';
 import { ContactsList } from './contacts-list';
 
 export function ContactsScreen({
   contacts: initialContacts,
-  tags = MOCK_TAGS,
+  tags,
+  customFields,
+  canManageCustomFields,
 }: ContactsPageProps) {
-  const [contacts, setContacts] = useState<Contact[]>(
-    () => initialContacts ?? mockContacts(),
-  );
+  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [formOpen, setFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -33,6 +35,15 @@ export function ContactsScreen({
   const [importOpen, setImportOpen] = useState(false);
   const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
+
+  useEffect(() => {
+    setContacts(initialContacts);
+    setDetailContact((current) =>
+      current
+        ? (initialContacts.find((contact) => contact.id === current.id) ?? null)
+        : null,
+    );
+  }, [initialContacts]);
 
   function openAddForm() {
     setEditContact(null);
@@ -52,6 +63,7 @@ export function ContactsScreen({
   function upsertContact(contact: Contact) {
     setContacts((previous) => {
       const exists = previous.some((item) => item.id === contact.id);
+
       return exists
         ? previous.map((item) => (item.id === contact.id ? contact : item))
         : [contact, ...previous];
@@ -64,20 +76,26 @@ export function ContactsScreen({
   function handleDelete() {
     if (!deleteTarget) return;
 
-    setContacts((previous) =>
-      previous.filter((contact) => contact.id !== deleteTarget.id),
-    );
-    toast.success('Contacto eliminado.');
-    setDeleteTarget(null);
+    router.delete(destroy(deleteTarget.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Contacto eliminado.');
+        setDeleteTarget(null);
+      },
+      onError: () => toast.error('No se pudo eliminar el contacto.'),
+    });
   }
 
   function handleBulkDelete(selectedContacts: Contact[]) {
-    const selectedIds = new Set(selectedContacts.map((contact) => contact.id));
+    if (selectedContacts.length === 0) return;
 
-    setContacts((previous) =>
-      previous.filter((contact) => !selectedIds.has(contact.id)),
-    );
-    toast.success(`${selectedContacts.length} contactos eliminados.`);
+    router.delete(bulkDestroy(), {
+      data: { ids: selectedContacts.map((contact) => contact.id) },
+      preserveScroll: true,
+      onSuccess: () =>
+        toast.success(`${selectedContacts.length} contactos eliminados.`),
+      onError: () => toast.error('No se pudieron eliminar los contactos.'),
+    });
   }
 
   return (
@@ -89,6 +107,7 @@ export function ContactsScreen({
         tags={tags}
         onAdd={openAddForm}
         onImport={() => setImportOpen(true)}
+        onExport={() => window.location.assign(exportContacts.url())}
         onManageCustomFields={() => setCustomFieldsOpen(true)}
         onOpenDetail={openDetail}
         onEdit={openEditForm}
@@ -100,21 +119,32 @@ export function ContactsScreen({
         open={formOpen}
         onOpenChange={setFormOpen}
         contact={editContact}
-        onSaved={upsertContact}
-      />
-
-      <ContactDetailView
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        contact={detailContact}
+        tags={tags}
         onUpdated={upsertContact}
       />
 
-      <ImportModal open={importOpen} onOpenChange={setImportOpen} />
+      {detailContact && (
+        <ContactDetailView
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          contact={detailContact}
+          tags={tags}
+          onUpdated={upsertContact}
+        />
+      )}
+
+      <ImportModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={() => router.reload({ only: ['contacts', 'tags'] })}
+      />
 
       <CustomFieldsManager
         open={customFieldsOpen}
         onOpenChange={setCustomFieldsOpen}
+        fields={customFields}
+        canManage={canManageCustomFields}
+        onChanged={() => router.reload({ only: ['customFields'] })}
       />
 
       <Dialog

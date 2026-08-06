@@ -1,6 +1,6 @@
 # Issue Tracker
 
-Issues live in **GitHub Issues** on `github.com/Andeveling/wacrm`.
+Issues live in **GitHub Issues** on `github.com/Andeveling/wacrm-laravel`.
 
 Skills (`to-tickets`, `triage`, `to-spec`, `qa`) use the `gh` CLI to read and write issues.
 

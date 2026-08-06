@@ -4,6 +4,7 @@ export interface Contact {
   name?: string;
   email?: string;
   company?: string;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
   tags?: Tag[];
@@ -25,5 +26,21 @@ export interface CustomField {
   id: string;
   field_name: string;
   field_type: string;
+  field_options?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface ContactCustomValue {
+  id: string;
+  contact_id: string;
+  custom_field_id: string;
+  value?: string | null;
+  custom_field?: CustomField;
+}
+
+export interface ContactNote {
+  id: string;
+  contact_id: string;
+  note_text: string;
   created_at: string;
 }

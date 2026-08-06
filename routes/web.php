@@ -1,9 +1,20 @@
 <?php
 
-use App\Http\Controllers\Invitations\PreviewInvitationController;
-use App\Http\Controllers\Invitations\RedeemInvitationController;
-use App\Http\Controllers\Invitations\RevokeInvitationController;
-use App\Http\Controllers\Invitations\StoreInvitationController;
+use App\Domain\Contacts\Actions\BulkDestroyContacts;
+use App\Domain\Contacts\Actions\DestroyContact;
+use App\Domain\Contacts\Actions\DestroyCustomField;
+use App\Domain\Contacts\Actions\ExportContacts;
+use App\Domain\Contacts\Actions\ImportContacts;
+use App\Domain\Contacts\Actions\ShowContacts;
+use App\Domain\Contacts\Actions\StoreContact;
+use App\Domain\Contacts\Actions\StoreCustomField;
+use App\Domain\Contacts\Actions\UpdateContact;
+use App\Domain\Contacts\Actions\UpdateCustomField;
+use App\Domain\Dashboard\Actions\ShowDashboard;
+use App\Domain\Invitations\Actions\PreviewInvitation;
+use App\Domain\Invitations\Actions\RedeemInvitation;
+use App\Domain\Invitations\Actions\RevokeInvitation;
+use App\Domain\Invitations\Actions\StoreInvitation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -15,19 +26,28 @@ Route::get('/', function () {
 
 // Public preview + redeem-after-signup flow.
 // Preview is throttled per IP; redeem requires an authenticated user
-// (the controller enforces `auth`) so signed-out visitors get a 401
+// (the route enforces `auth`) so signed-out visitors get a 401
 // instead of redeeming through this path.
-Route::get('join/{token}', PreviewInvitationController::class)
+Route::get('join/{token}', PreviewInvitation::class)
     ->middleware('throttle:30,1')
     ->name('invitations.preview');
 
-Route::post('join/{token}/redeem', RedeemInvitationController::class)
+Route::post('join/{token}/redeem', RedeemInvitation::class)
     ->middleware(['auth', 'throttle:30,1'])
     ->name('invitations.redeem');
 
 Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
-    Route::inertia('contacts', 'contacts')->name('contacts');
+    Route::get('dashboard', ShowDashboard::class)->name('dashboard');
+    Route::get('contacts', ShowContacts::class)->name('contacts');
+    Route::post('contacts', StoreContact::class)->name('contacts.store');
+    Route::patch('contacts/{contact}', UpdateContact::class)->name('contacts.update');
+    Route::delete('contacts/{contact}', DestroyContact::class)->name('contacts.destroy');
+    Route::delete('contacts', BulkDestroyContacts::class)->name('contacts.bulk-destroy');
+    Route::post('contacts/import', ImportContacts::class)->name('contacts.import');
+    Route::get('contacts/export', ExportContacts::class)->name('contacts.export');
+    Route::post('contacts/custom-fields', StoreCustomField::class)->name('contacts.custom-fields.store');
+    Route::patch('contacts/custom-fields/{customField}', UpdateCustomField::class)->name('contacts.custom-fields.update');
+    Route::delete('contacts/custom-fields/{customField}', DestroyCustomField::class)->name('contacts.custom-fields.destroy');
     Route::inertia('pipelines', 'pipelines')->name('pipelines');
     Route::inertia('notifications', 'notifications')->name('notifications');
     Route::inertia('agents', 'agents')->name('agents');
@@ -46,9 +66,9 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
 
     Route::inertia('inbox', 'inbox')->name('inbox');
 
-    Route::post('invitations', StoreInvitationController::class)
+    Route::post('invitations', StoreInvitation::class)
         ->name('invitations.store');
-    Route::delete('invitations/{invitation}', RevokeInvitationController::class)
+    Route::delete('invitations/{invitation}', RevokeInvitation::class)
         ->name('invitations.revoke');
 });
 

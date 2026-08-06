@@ -2,8 +2,11 @@
 
 use App\Models\Account;
 use App\Models\AccountUser;
+use App\Models\Contact;
+use App\Models\ContactTag;
 use App\Models\Enums\AccountRole;
 use App\Models\Enums\AccountType;
+use App\Models\Tag;
 use App\Models\User;
 
 beforeEach(function () {
@@ -16,6 +19,29 @@ beforeEach(function () {
         'user_id' => $this->owner->id,
         'role' => AccountRole::Owner,
     ]);
+    $vip = Tag::factory()->create([
+        'account_id' => $this->account->id,
+        'user_id' => $this->owner->id,
+        'name' => 'VIP',
+        'color' => '#f59e0b',
+    ]);
+
+    for ($index = 0; $index < 24; $index++) {
+        $contact = Contact::factory()->create([
+            'account_id' => $this->account->id,
+            'user_id' => $this->owner->id,
+            'name' => in_array($index, [0, 8, 16], true)
+                ? 'Laura Gómez'
+                : "Contacto {$index}",
+        ]);
+
+        if ($index < 8) {
+            ContactTag::create([
+                'contact_id' => $contact->id,
+                'tag_id' => $vip->id,
+            ]);
+        }
+    }
 });
 
 test('contacts list filters through the page seam', function () {
@@ -53,8 +79,37 @@ test('contacts list paginates, filters tags, and selects visible rows', function
         ->assertSee('Página 2 de 3')
         ->click('[data-testid="contacts-previous-page"]')
         ->click('[data-testid="contacts-tag-filter"]')
-        ->click('#tag-filter-tag-vip')
+        ->click('[data-testid="contacts-tag-vip"]')
         ->assertSee('8 contactos')
         ->click('thead [data-slot="checkbox"]')
         ->assertSee('8 seleccionados');
+});
+
+test('contacts page creates and edits through the page seam', function () {
+    $this->visit('/login')
+        ->type('input#email', $this->owner->email)
+        ->type('input#password', $this->password)
+        ->press('button[type="submit"]');
+
+    $this->visit('/accounts/switch')
+        ->click('[data-testid="accounts-switcher"] button')
+        ->assertPathIs('/dashboard');
+
+    $this->visit('/contacts')
+        ->click('[data-testid="contacts-add"]')
+        ->assertSee('Nuevo contacto')
+        ->type('#cf-name', 'Sofía Méndez')
+        ->type('#cf-phone', '+57 300 999 9999')
+        ->type('#cf-email', 'sofia@example.com')
+        ->press('button[type="submit"]')
+        ->assertSee('Sofía Méndez')
+        ->type('input[placeholder="Buscar por nombre, teléfono o correo…"]', 'Laura Gómez')
+        ->click('[data-testid="contact-actions-row-0"]')
+        ->click('[data-testid="contact-edit-row-0"]')
+        ->assertSee('Editar contacto')
+        ->type('#cf-name', 'Laura Gómez editado')
+        ->press('button[type="submit"]')
+        ->assertSee('Laura Gómez editado')
+        ->click('[data-testid="contact-row-0"]')
+        ->assertSee('Laura Gómez editado');
 });

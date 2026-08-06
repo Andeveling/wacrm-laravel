@@ -7,7 +7,7 @@ Laravel 13 + Inertia v3 + React 19 + Tailwind v4, running under Sail. Package ve
 **Rule: activate the matching skill BEFORE writing code in its domain — not when stuck.** A task spanning several domains activates each skill as you enter it. Why: these stacks (Laravel 13, Inertia v3, Tailwind v4, Wayfinder) have breaking changes vs. training data; the skills carry the current APIs.
 
 | Skill | When | Why it matters |
-|---|---|---|
+| --- | --- | --- |
 | `laravel-best-practices` | Any backend PHP: controllers, models, migrations, form requests, policies, jobs, Eloquent queries | Catches N+1s, authz gaps, and Laravel-13-specific patterns |
 | `fortify-development` | Anything auth: login, register, 2FA, passkeys, password reset, `app/Actions/Fortify/` | Fortify owns all auth routes/controllers here. NOT for Passport or Socialite |
 | `inertia-react-development` | React pages, forms, navigation in `resources/js/` | Inertia v3 removed axios and `Inertia::lazy()`; hooks like `useHttp` are new |
@@ -23,7 +23,7 @@ Laravel 13 + Inertia v3 + React 19 + Tailwind v4, running under Sail. Package ve
 `pre-commit`, on staged files only, all jobs in parallel (~1.5–3s):
 
 | Job | Files | Behaviour |
-|---|---|---|
+| --- | --- | --- |
 | `pint` | `*.php` | **fixes and re-stages** |
 | `biome` | `*.{ts,tsx,js,jsx,mjs,mts,css,json}` | **fixes and re-stages** |
 | `no-inline-fqcn` | `*.php` | blocks |
@@ -64,7 +64,7 @@ Tailwind v4 `@source` / `@theme` / `@apply` directives in `resources/css/app.css
 
 ## Workflow references
 
-- **Issues**: GitHub Issues on `github.com/Andeveling/wacrm` — see `docs/agents/issue-tracker.md`.
+- **Issues**: GitHub Issues on `github.com/Andeveling/wacrm-laravel` — see `docs/agents/issue-tracker.md`.
 - **Triage labels**: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix` — see `docs/agents/triage-labels.md`.
 - **Domain docs**: single `CONTEXT.md` + `docs/adr/` — see `docs/agents/domain.md`.
 

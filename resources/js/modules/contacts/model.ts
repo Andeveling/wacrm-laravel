@@ -1,4 +1,29 @@
-import type { Contact } from '@/types';
+import type { Contact, Tag } from '@/types';
+import type { ContactFormValues } from './contracts';
+
+export function buildContact(
+  values: ContactFormValues,
+  existing: Contact | null,
+  tags: readonly Tag[],
+  updatedAt: string,
+  generatedId: string,
+): Contact {
+  const name = values.name.trim();
+  const phone = values.phone.trim();
+  const email = values.email.trim();
+  const company = values.company.trim();
+
+  return {
+    id: existing?.id ?? generatedId,
+    name: name || undefined,
+    phone,
+    email: email || undefined,
+    company: company || undefined,
+    created_at: existing?.created_at ?? updatedAt,
+    updated_at: updatedAt,
+    tags: tags.filter((tag) => values.tagIds.includes(tag.id)),
+  };
+}
 
 export interface ContactsListResult {
   pageRows: Contact[];

@@ -1,6 +1,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
   Filter,
   MoreHorizontal,
   Pencil,
@@ -57,6 +58,7 @@ type ContactsListProps = {
   tags: Tag[];
   onAdd: () => void;
   onImport: () => void;
+  onExport: () => void;
   onManageCustomFields: () => void;
   onOpenDetail: (contact: Contact) => void;
   onEdit: (contact: Contact) => void;
@@ -69,6 +71,7 @@ export function ContactsList({
   tags,
   onAdd,
   onImport,
+  onExport,
   onManageCustomFields,
   onOpenDetail,
   onEdit,
@@ -131,7 +134,11 @@ export function ContactsList({
               <Upload className="size-4" />
               Importar
             </Button>
-            <Button onClick={onAdd}>
+            <Button variant="outline" onClick={onExport}>
+              <Download className="size-4" />
+              Exportar
+            </Button>
+            <Button data-testid="contacts-add" onClick={onAdd}>
               <Plus className="size-4" />
               Agregar contacto
             </Button>
@@ -183,6 +190,7 @@ export function ContactsList({
                   {tags.map((tag) => (
                     <label
                       key={tag.id}
+                      data-testid={`contacts-tag-${tag.name.toLowerCase().replaceAll(' ', '-')}`}
                       htmlFor={`tag-filter-${tag.id}`}
                       className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 hover:bg-muted/50"
                     >
@@ -316,9 +324,10 @@ export function ContactsList({
                   </TableCell>
                 </TableRow>
               ) : (
-                pageRows.map((contact) => (
+                pageRows.map((contact, rowIndex) => (
                   <TableRow
                     key={contact.id}
+                    data-testid={`contact-row-${rowIndex}`}
                     className="cursor-pointer"
                     onClick={() => onOpenDetail(contact)}
                   >
@@ -384,6 +393,7 @@ export function ContactsList({
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
+                            data-testid={`contact-actions-row-${rowIndex}`}
                             variant="ghost"
                             size="icon"
                             onClick={(event) => event.stopPropagation()}
@@ -393,6 +403,7 @@ export function ContactsList({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
+                            data-testid={`contact-edit-row-${rowIndex}`}
                             onClick={(event) => {
                               event.stopPropagation();
                               onEdit(contact);

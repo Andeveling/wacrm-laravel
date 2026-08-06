@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-use App\Services\Meta\VerifyMetaWebhookSignature;
+use App\Domain\Meta\Support\VerifyMetaWebhookSignature;
 
 const META_SIGNATURE_SECRET = 'test-app-secret-for-meta-webhook';
 function signedHeader(string $body, ?string $secret = null): string

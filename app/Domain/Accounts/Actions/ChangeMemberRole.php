@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Accounts\Actions;
 
-use App\Domain\Accounts\Responders\ChangeMemberRoleResponder;
+use App\Domain\Accounts\Responders\MemberActionResponder;
 use App\Domain\Accounts\Results\MemberActionResult;
 use App\Domain\Accounts\Support\MemberActionStatus;
 use App\Domain\Accounts\Support\MembershipRules;
 use App\Http\Requests\Accounts\ChangeMemberRoleRequest;
 use App\Models\Account;
-use App\Models\AccountUser;
 use App\Models\Enums\AccountRole;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +37,7 @@ use Illuminate\Support\Facades\DB;
 final readonly class ChangeMemberRole
 {
     public function __construct(
-        private ChangeMemberRoleResponder $responder,
+        private MemberActionResponder $responder,
     ) {}
 
     public function __invoke(
@@ -59,31 +58,21 @@ final readonly class ChangeMemberRole
                 $this->ownerCount($account),
             );
 
-            if ($status !== MemberActionStatus::Success) {
-                return new MemberActionResult($status, account: $account);
+            if ($status === MemberActionStatus::Success) {
+                $account->users()->updateExistingPivot($member->id, [
+                    'role' => $newRole->value,
+                ]);
             }
 
-            $account->users()->updateExistingPivot($member->id, [
-                'role' => $newRole->value,
-            ]);
-
-            // Re-read the pivot so the result carries the joined_at of
-            // the row we just touched rather than a guess.
-            $updated = $account->users()->whereKey($member->id)->first();
-
-            return new MemberActionResult(
-                MemberActionStatus::Success,
-                member: new AccountUser([
-                    'account_id' => $account->id,
-                    'user_id' => $member->id,
-                    'role' => $newRole,
-                    'joined_at' => $updated?->pivot->joined_at,
-                ]),
-                account: $account,
-            );
+            return new MemberActionResult($status, account: $account);
         });
 
-        return ($this->responder)($result);
+        return ($this->responder)(
+            $result,
+            flash: 'role_changed',
+            toast: 'Rol actualizado.',
+            route: 'accounts.members.index',
+        );
     }
 
     /**
@@ -92,13 +81,7 @@ final readonly class ChangeMemberRole
      */
     private function roleOf(Account $account, User $member): ?AccountRole
     {
-        $role = $account->users()->whereKey($member->id)->first()?->pivot->role;
-
-        if ($role === null || $role instanceof AccountRole) {
-            return $role;
-        }
-
-        return AccountRole::from((string) $role);
+        return $account->users()->whereKey($member->id)->first()?->pivot->role;
     }
 
     private function ownerCount(Account $account): int

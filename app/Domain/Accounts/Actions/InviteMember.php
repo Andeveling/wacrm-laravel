@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Accounts\Actions;
 
-use App\Domain\Accounts\Responders\InviteMemberResponder;
+use App\Domain\Accounts\Responders\MemberActionResponder;
 use App\Domain\Accounts\Results\MemberActionResult;
 use App\Domain\Accounts\Support\MemberActionStatus;
 use App\Domain\Accounts\Support\MembershipRules;
@@ -45,7 +45,7 @@ final readonly class InviteMember
 {
     public function __construct(
         private InvitationIssuer $issuer,
-        private InviteMemberResponder $responder,
+        private MemberActionResponder $responder,
     ) {}
 
     public function __invoke(InviteMemberRequest $request, Account $account): Response
@@ -58,16 +58,17 @@ final readonly class InviteMember
             AccountRole::from((string) $validated['role']),
         );
 
-        if ($actor === null || $status !== MemberActionStatus::Success) {
-            return ($this->responder)(MemberActionResult::forbidden());
+        if ($actor !== null && $status === MemberActionStatus::Success) {
+            $this->issuer->issue(
+                accountId: $account->id,
+                inviter: $actor,
+                role: $validated['role'],
+            );
         }
 
-        $this->issuer->issue(
-            accountId: $account->id,
-            inviter: $actor,
-            role: $validated['role'],
+        return ($this->responder)(
+            new MemberActionResult($status, account: $account),
+            flash: 'invited',
         );
-
-        return ($this->responder)(MemberActionResult::successForInvitation());
     }
 }

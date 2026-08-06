@@ -27,9 +27,13 @@ Aplicamos la regla **"último Owner no degradable ni autoeliminable"** en la **c
 - `App\Domain\Accounts\Actions\RemoveMember` igual antes del delete.
 - Si el conteo post-acción sería 0 → bloquea.
 
+> **Actualización 2026-08-06 (issue #83).** La regla ya no vive en las Actions: `App\Domain\Accounts\Support\MembershipRules` la decide para los tres flujos de membresía y devuelve `MemberActionStatus`. Las Actions leen los hechos —incluido el conteo de Owners— y ejecutan la escritura dentro de una transacción que abre bloqueando la fila del Account, porque bloquear el pivot del objetivo no impedía que dos degradaciones simultáneas de Owners distintos leyeran ambas un conteo de 2. La autorización se evalúa antes que este invariante: quien no puede gestionar miembros recibe `Forbidden` y no llega a saber cuántos Owners quedan.
+
 ### Mensaje de error
 
 `LastOwnerBlocked` se mapea a HTTP 422 con mensaje traducible: "Promovés a otro Owner antes de degradar tu rol." (i18n siguiendo ADR-pendiente #24).
+
+> **Actualización 2026-08-06 (issue #95).** El 422 nunca se implementó: es un 302 con `withErrors(['last_owner_blocked' => ...])`, que es lo que Inertia necesita. La copia vigente es "Promueve a otro Owner antes de degradar el rol." y vive en `MemberActionResponder`. La tabla de códigos HTTP de los tres endpoints está en ADR 0005.
 
 ## Consideradas
 

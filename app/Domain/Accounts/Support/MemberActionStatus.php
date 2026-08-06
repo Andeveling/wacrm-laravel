@@ -29,21 +29,4 @@ enum MemberActionStatus: string
     case LastOwnerBlocked = 'last_owner_blocked';
     case NotMember = 'not_member';
     case Forbidden = 'forbidden';
-
-    /**
-     * Legacy helper: used to resolve translation keys for the
-     * Responder layer. Strings are currently hardcoded in Spanish
-     * per project decision (no i18n layer); the responder uses
-     * literal error keys. Kept for symmetry with future consumers
-     * (telemetry, audit log, API responses).
-     */
-    public function label(): string
-    {
-        return match ($this) {
-            self::Success => 'accounts.members.status.success',
-            self::LastOwnerBlocked => 'accounts.members.status.last_owner_blocked',
-            self::NotMember => 'accounts.members.status.not_member',
-            self::Forbidden => 'accounts.members.status.forbidden',
-        };
-    }
 }

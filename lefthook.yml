@@ -31,6 +31,13 @@ pre-commit:
       exclude: ['original-wacrm/*']
       run: php tools/lint/adr-layers.php
 
+    # ADR 0004, enforced. Pure filesystem plus phpunit.xml — no framework
+    # boot, no database. Also reads the working tree.
+    - name: test-layout
+      glob: '*.php'
+      exclude: ['original-wacrm/*']
+      run: php tools/lint/test-layout.php
+
     # Reads the working tree, not the index — phpstan has no per-file mode
     # that still resolves types across the project.
     - name: phpstan

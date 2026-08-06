@@ -56,10 +56,12 @@
     "lint": ["pint --parallel"],
     "lint:no-inline-fqcn": ["@php tools/lint/no-inline-fqcn.php"],
     "lint:adr-layers": ["@php tools/lint/adr-layers.php"],
+    "lint:test-layout": ["@php tools/lint/test-layout.php"],
     "lint:check": [
       "pint --parallel --test",
       "@lint:no-inline-fqcn",
-      "@lint:adr-layers"
+      "@lint:adr-layers",
+      "@lint:test-layout"
     ],
     "ci:check": [
       "Composer\\Config::disableProcessTimeout",

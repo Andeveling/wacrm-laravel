@@ -67,6 +67,21 @@ ADR 0001: **Action / Domain / Responder**. Las Actions viven en `app/Domain/<Con
 
 Los endpoints que solo renderizan una página o aplican una regla única no llevan Result ni Responder — la Action devuelve la respuesta directamente (regla 4 del ADR 0001). Result + Responder se reservan para flujos con varios desenlaces legales: `RedeemInvitation` (302 / 401 / 409 / 422) y `ReceiveMetaWebhook` (200 / 400 / 401 / 413 / 503).
 
+## Organización de las pruebas
+
+ADR 0004: cada comportamiento se prueba una sola vez, en el seam público más alto que lo observe. Las cuatro suites de `phpunit.xml` son ese contrato:
+
+| Suite | Cubre | Base de datos |
+| --- | --- | --- |
+| `Domain` | reglas PHP puras de un contexto | no |
+| `Unit` | reglas PHP puras fuera de `app/Domain` | no |
+| `Feature` | seams HTTP, Inertia, API y MCP | sí |
+| `Browser` | interacciones críticas de React | sí |
+
+`tests/Feature/` y `tests/Domain/` espejan los contextos de `app/Domain/` — `Accounts`, `Contacts`, `Dashboard`, `Invitations`, `Meta`, `Settings` — más los seams transversales `Api`, `Auth`, `Concerns` y `Jobs`, que no pertenecen a un solo contexto. Los helpers compartidos viven en `tests/Concerns/` y `tests/Fixtures/`, fuera de las suites, porque Pest solo recoge `*Test.php`.
+
+Lo hace cumplir `tools/lint/test-layout.php` en el `pre-commit`; las reglas están en `AGENTS.md`.
+
 ## Términos clave
 
 - **Account** — tenant. Todo está escopeado a uno.

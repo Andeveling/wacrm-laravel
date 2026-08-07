@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { automations } from '@/routes';
 import type { AutomationLog, AutomationLogStepResult } from '../contracts';
-import { mockAutomationLogs, mockAutomations } from '../fixtures';
 import { formatRelative } from '../trigger-meta';
 
 const STATUS_LABEL: Record<AutomationLog['status'], string> = {
@@ -55,12 +54,13 @@ function StepRow({ result }: { result: AutomationLogStepResult }) {
   );
 }
 
-export default function AutomationLogsPage({ id }: { id: string }) {
-  const automation =
-    mockAutomations().find((a) => a.id === id) ?? mockAutomations()[0];
-  const [logs] = useState<AutomationLog[]>(() =>
-    mockAutomationLogs(automation.id),
-  );
+export default function AutomationLogsPage({
+  automation,
+  logs,
+}: {
+  automation: { id: string; name: string };
+  logs: AutomationLog[];
+}) {
   const [openLogId, setOpenLogId] = useState<string | null>(null);
 
   return (

@@ -12,6 +12,7 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     # Mirrors the `pgsql` service in compose.yaml — same image, same
     # credentials. ADR 0004: every test that persists runs on PostgreSQL
@@ -121,6 +122,10 @@ jobs:
 
   browser:
     runs-on: ubuntu-latest
+    # The suite hangs entering MembersInteractionsTest (run 31146187705 sat
+    # there for 6h). Until that is fixed, cap the job so a wedged run fails
+    # with a readable log instead of burning the 6h default budget.
+    timeout-minutes: 20
 
     # Independent of the `ci` job's service: each job gets its own runner
     # and network, so it needs its own Postgres+pgvector instance too.

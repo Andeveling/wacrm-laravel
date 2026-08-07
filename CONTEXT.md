@@ -95,9 +95,11 @@ Lo hace cumplir `tools/lint/test-layout.php` en el `pre-commit`; las reglas est�
 | Una suite | `sail artisan test --testsuite=Feature` (o `Unit`, `Domain`, `Browser`) |
 | Gate rápido completo (estática + Unit + Domain + Feature + Vitest) | `sail composer test` |
 | Gate Browser (Playwright) | `sail composer test:browser` |
-| Vitest solo | `pnpm test` |
+| Vitest solo | `sail pnpm test` |
 
 `sail composer test` es el mismo comando que corre el job `ci` en CI; `sail composer test:browser`, el job `browser`. Ambos son obligatorios en cada pull request.
+
+Los comandos de Node van por `sail`, igual que los de PHP. `node_modules` se instala dentro del contenedor, así que registra la versión de pnpm y la ruta del store del contenedor. Un `pnpm` del host lee esos datos, no reconoce nada, y ofrece borrar `node_modules` antes de ejecutar — de ahí los cuelgues de `pnpm build` y `pnpm lint`.
 
 `--exclude-testsuite=Browser` no es opcional en una corrida enfocada. Sin él, `artisan test` recorre las cuatro suites, así que un `--filter` que coincide con un archivo de `tests/Browser/` arranca Playwright y Chromium: el ciclo red-green pasa de medio segundo a minutos. Es el mismo flag que `composer test` ya aplica.
 

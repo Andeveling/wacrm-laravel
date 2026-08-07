@@ -88,10 +88,16 @@ jobs:
       # Sail seeds this through create-testing-database.sql at container
       # init; phpunit.xml points DB_DATABASE at it. RefreshDatabase
       # migrates but never creates, so the database has to exist first.
+      # The timeouts mirror docker/postgres/init.sql. Without them a query
+      # blocked on a lock waits forever, so a wedged run burns the job's
+      # whole time budget instead of failing in seconds with a real error.
       - name: Create testing database
         env:
           PGPASSWORD: secret
-        run: psql -h localhost -U wacrm -d wacrm -c 'CREATE DATABASE testing'
+        run: |
+          psql -h localhost -U wacrm -d wacrm -c 'CREATE DATABASE testing'
+          psql -h localhost -U wacrm -d wacrm -c "ALTER ROLE wacrm SET lock_timeout = '10s'"
+          psql -h localhost -U wacrm -d wacrm -c "ALTER ROLE wacrm SET idle_in_transaction_session_timeout = '120s'"
 
       # Migrated up front rather than left to whichever RefreshDatabase
       # test runs first: the Unit suite touches tables without that trait.
@@ -178,10 +184,16 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
+      # The timeouts mirror docker/postgres/init.sql. Without them a query
+      # blocked on a lock waits forever, so a wedged run burns the job's
+      # whole time budget instead of failing in seconds with a real error.
       - name: Create testing database
         env:
           PGPASSWORD: secret
-        run: psql -h localhost -U wacrm -d wacrm -c 'CREATE DATABASE testing'
+        run: |
+          psql -h localhost -U wacrm -d wacrm -c 'CREATE DATABASE testing'
+          psql -h localhost -U wacrm -d wacrm -c "ALTER ROLE wacrm SET lock_timeout = '10s'"
+          psql -h localhost -U wacrm -d wacrm -c "ALTER ROLE wacrm SET idle_in_transaction_session_timeout = '120s'"
 
       - name: Migrate testing database
         env:

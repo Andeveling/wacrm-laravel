@@ -13,6 +13,7 @@
 /resources/js/routes
 /resources/js/wayfinder
 /vendor
+/.pnpm-store
 .DS_Store
 .env
 .env.backup

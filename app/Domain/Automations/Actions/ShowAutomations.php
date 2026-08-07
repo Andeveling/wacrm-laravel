@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Automations\Actions;
+
+use App\Models\Automation;
+use App\Models\AutomationStep;
+use Inertia\Inertia;
+use Inertia\Response;
+
+final class ShowAutomations
+{
+    public function __invoke(): Response
+    {
+        $automations = Automation::query()
+            ->with('steps')
+            ->latest('created_at')
+            ->get()
+            ->map(fn (Automation $automation): array => [
+                'id' => $automation->id,
+                'name' => $automation->name,
+                'description' => $automation->description,
+                'trigger_type' => $automation->trigger_type,
+                'is_active' => $automation->is_active,
+                'execution_count' => $automation->execution_count,
+                'last_executed_at' => $automation->last_executed_at?->toISOString(),
+                'created_at' => $automation->created_at?->toISOString(),
+                'updated_at' => $automation->updated_at?->toISOString(),
+                'steps' => $automation->steps
+                    ->sortBy('position')
+                    ->map(fn (AutomationStep $step): array => [
+                        'id' => $step->id,
+                        'step_type' => $step->step_type,
+                        'step_config' => $step->step_config,
+                        'position' => $step->position,
+                    ])
+                    ->values()
+                    ->all(),
+            ])
+            ->values()
+            ->all();
+
+        return Inertia::render('automations', ['automations' => $automations]);
+    }
+}

@@ -1,41 +1,27 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
   Clock,
-  Copy,
   FileText,
   MessageCircle,
   MoreVertical,
   Pencil,
   PhoneCall,
   Plus,
-  Trash2,
   Users,
   Zap,
 } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { automations } from '@/routes';
 import { edit, logs, newMethod } from '@/routes/automations';
 import type { Automation } from '../contracts';
-import { AUTOMATION_TEMPLATES, mockAutomations } from '../fixtures';
+import { AUTOMATION_TEMPLATES } from '../templates';
 import { formatRelative, triggerMeta } from '../trigger-meta';
 
 const TEMPLATE_ICON: Record<string, typeof Zap> = {
@@ -45,43 +31,12 @@ const TEMPLATE_ICON: Record<string, typeof Zap> = {
   follow_up_reminder: PhoneCall,
 };
 
-export default function AutomationsPage() {
-  const [automations, setAutomations] = useState<Automation[]>(() =>
-    mockAutomations(),
-  );
-  const [pendingDelete, setPendingDelete] = useState<Automation | null>(null);
-
-  function toggleActive(a: Automation, next: boolean) {
-    setAutomations((prev) =>
-      prev.map((x) => (x.id === a.id ? { ...x, is_active: next } : x)),
-    );
-    toast.success(
-      next ? 'Automatización activada.' : 'Automatización pausada.',
-    );
-  }
-
-  function duplicate(a: Automation) {
-    setAutomations((prev) => [
-      {
-        ...a,
-        id: `${a.id}-copy-${Date.now()}`,
-        name: `${a.name} (copia)`,
-        execution_count: 0,
-        last_executed_at: null,
-      },
-      ...prev,
-    ]);
-    toast.success('Automatización duplicada.');
-  }
-
-  function confirmDelete() {
-    if (!pendingDelete) return;
-    setAutomations((prev) => prev.filter((x) => x.id !== pendingDelete.id));
-    toast.success('Automatización eliminada.');
-    setPendingDelete(null);
-  }
-
-  const showTemplates = automations.length < 3;
+export default function AutomationsPage({
+  automations: initialAutomations,
+}: {
+  automations: Automation[];
+}) {
+  const showTemplates = initialAutomations.length < 3;
 
   return (
     <>
@@ -138,7 +93,7 @@ export default function AutomationsPage() {
           </section>
         )}
 
-        {automations.length === 0 ? (
+        {initialAutomations.length === 0 ? (
           <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/40">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <Zap className="h-6 w-6 text-primary" />
@@ -152,42 +107,12 @@ export default function AutomationsPage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {automations.map((a) => (
-              <AutomationCard
-                key={a.id}
-                automation={a}
-                onToggle={(next) => toggleActive(a, next)}
-                onDuplicate={() => duplicate(a)}
-                onDelete={() => setPendingDelete(a)}
-              />
+            {initialAutomations.map((a) => (
+              <AutomationCard key={a.id} automation={a} />
             ))}
           </ul>
         )}
       </div>
-
-      <Dialog
-        open={!!pendingDelete}
-        onOpenChange={(v) => !v && setPendingDelete(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Eliminar automatización</DialogTitle>
-            <DialogDescription>
-              ¿Eliminar «{pendingDelete?.name}»? Esta acción no se puede
-              deshacer.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPendingDelete(null)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              <Trash2 className="h-4 w-4" />
-              Eliminar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
@@ -196,17 +121,7 @@ AutomationsPage.layout = {
   breadcrumbs: [{ title: 'Automatizaciones', href: automations() }],
 };
 
-function AutomationCard({
-  automation,
-  onToggle,
-  onDuplicate,
-  onDelete,
-}: {
-  automation: Automation;
-  onToggle: (next: boolean) => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-}) {
+function AutomationCard({ automation }: { automation: Automation }) {
   const meta = triggerMeta(automation.trigger_type);
   return (
     <li className="rounded-xl border border-border bg-card transition-colors hover:border-border">
@@ -223,12 +138,16 @@ function AutomationCard({
             <span className="truncate text-sm font-semibold text-foreground">
               {automation.name}
             </span>
-            {automation.is_active && (
-              <span className="relative flex h-2 w-2" aria-label="activa">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-            )}
+            <span
+              className={cn(
+                'rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                automation.is_active
+                  ? 'border-primary/30 bg-primary/10 text-primary'
+                  : 'border-border bg-muted text-muted-foreground',
+              )}
+            >
+              {automation.is_active ? 'Activa' : 'Pausada'}
+            </span>
           </div>
           {automation.description && (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -248,17 +167,19 @@ function AutomationCard({
               {automation.execution_count} ejecuciones
             </span>
             <span aria-hidden>·</span>
+            <span className="tabular-nums">
+              {automation.steps.length} pasos
+            </span>
+            <span aria-hidden>·</span>
+            <span className="truncate">
+              {automation.steps.map((step) => step.step_type).join(', ')}
+            </span>
+            <span aria-hidden>·</span>
             <span>Última: {formatRelative(automation.last_executed_at)}</span>
           </div>
         </Link>
 
-        <div className="flex items-center gap-3">
-          <Switch
-            checked={automation.is_active}
-            onCheckedChange={(v) => onToggle(!!v)}
-            aria-label={automation.is_active ? 'Desactivar' : 'Activar'}
-          />
-
+        <div className="flex items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -276,20 +197,11 @@ function AutomationCard({
                   Editar
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onDuplicate}>
-                <Copy className="h-4 w-4" />
-                Duplicar
-              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href={logs(automation.id)}>
                   <FileText className="h-4 w-4" />
                   Ver registros
                 </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4" />
-                Eliminar
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

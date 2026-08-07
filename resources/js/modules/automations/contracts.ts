@@ -17,13 +17,21 @@ export type AutomationTriggerType =
 export interface Automation {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   trigger_type: AutomationTriggerType;
   is_active: boolean;
   execution_count: number;
   last_executed_at?: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
+  steps: AutomationStep[];
+}
+
+export interface AutomationStep {
+  id: string;
+  step_type: AutomationStepType;
+  step_config: Record<string, unknown>;
+  position: number;
 }
 
 export type AutomationStepType =
@@ -46,10 +54,10 @@ export interface AutomationLog {
   id: string;
   automation_id: string;
   contact_id: string | null;
-  contact?: AutomationContact;
+  contact?: AutomationContact | null;
   trigger_event: string;
   steps_executed: AutomationLogStepResult[];
   status: AutomationLogStatus;
   error_message?: string | null;
-  created_at: string;
+  created_at: string | null;
 }

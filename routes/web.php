@@ -1,5 +1,8 @@
 <?php
 
+use App\Domain\Automations\Actions\EditAutomation;
+use App\Domain\Automations\Actions\ShowAutomationLogs;
+use App\Domain\Automations\Actions\ShowAutomations;
 use App\Domain\Contacts\Actions\BulkDestroyContacts;
 use App\Domain\Contacts\Actions\DestroyContact;
 use App\Domain\Contacts\Actions\DestroyContactNote;
@@ -81,10 +84,10 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
     Route::inertia('broadcasts/new', 'broadcasts/new')->name('broadcasts.new');
     Route::get('broadcasts/{id}', fn (string $id) => inertia('broadcasts/show', ['id' => $id]))->name('broadcasts.show');
 
-    Route::inertia('automations', 'automations')->name('automations');
+    Route::get('automations', ShowAutomations::class)->name('automations');
     Route::inertia('automations/new', 'automations/new')->name('automations.new');
-    Route::get('automations/{id}/edit', fn (string $id) => inertia('automations/edit', ['id' => $id]))->name('automations.edit');
-    Route::get('automations/{id}/logs', fn (string $id) => inertia('automations/logs', ['id' => $id]))->name('automations.logs');
+    Route::get('automations/{automation}/edit', EditAutomation::class)->name('automations.edit');
+    Route::get('automations/{automation}/logs', ShowAutomationLogs::class)->name('automations.logs');
 
     Route::inertia('flows', 'flows')->name('flows');
     Route::get('flows/{id}/runs', fn (string $id) => inertia('flows/runs', ['id' => $id]))->name('flows.runs');

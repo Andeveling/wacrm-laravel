@@ -9,18 +9,16 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { automations } from '@/routes';
-import { mockAutomations } from '../fixtures';
+import type { Automation } from '../contracts';
 
-export default function EditAutomationPage({ id }: { id: string }) {
-  const automation = mockAutomations().find((a) => a.id === id);
-
+export default function EditAutomationPage({
+  automation,
+}: {
+  automation: Automation;
+}) {
   return (
     <>
-      <Head
-        title={
-          automation ? `Editar ${automation.name}` : 'Editar automatización'
-        }
-      />
+      <Head title={`Editar ${automation.name}`} />
 
       <div className="mx-auto max-w-2xl space-y-6">
         <Button variant="ghost" size="sm" asChild>
@@ -33,7 +31,7 @@ export default function EditAutomationPage({ id }: { id: string }) {
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
-              <CardTitle>{automation?.name ?? 'Automatización'}</CardTitle>
+              <CardTitle>{automation.name}</CardTitle>
               <Badge variant="outline">Próximamente</Badge>
             </div>
             <CardDescription>

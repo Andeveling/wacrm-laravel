@@ -46,6 +46,17 @@ trap cleanup EXIT INT TERM
 "$(dirname "$0")/sail.sh" run "$worktree_path" artisan key:generate --force
 keep_running=true
 
+workspace_id=$(herdr worktree list --cwd "$repository_root" |
+    jq -er --arg path "$worktree_path" '.result.worktrees[] | select(.path == $path) | .open_workspace_id')
+pane_id=$(herdr pane list --workspace "$workspace_id" | jq -er '.result.panes[0].pane_id')
+
+herdr pane run "$pane_id" opencode run -i \
+    --command implement \
+    --model "${WORKTREE_AGENT_MODEL:-openai/gpt-5.6-luna}" \
+    --variant "${WORKTREE_AGENT_VARIANT:-high}" \
+    "$issue_number"
+
 git -C "$worktree_path" status --short --branch
 git -C "$worktree_path" log -1 --oneline
 "$(dirname "$0")/sail.sh" status "$worktree_path"
+echo "opencode started in ${pane_id} (workspace ${workspace_id})"

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Broadcasts\Actions\ShowMessageTemplates;
 use App\Domain\Contacts\Actions\ShowContactFields;
 use App\Domain\Settings\Actions\DestroyApiKey;
 use App\Domain\Settings\Actions\DestroyProfile;
@@ -35,7 +36,6 @@ Route::middleware(['auth'])->group(function () {
     })->name('settings.overview');
 
     Route::inertia('settings/whatsapp', 'settings/whatsapp')->name('settings.whatsapp');
-    Route::inertia('settings/templates', 'settings/templates')->name('settings.templates');
     Route::inertia('settings/quick-replies', 'settings/quick-replies')->name('settings.quick-replies');
     Route::inertia('settings/deals', 'settings/deals')->name('settings.deals');
 
@@ -47,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('settings/api-keys', StoreApiKey::class)->name('settings.api-keys.store');
         Route::delete('settings/api-keys/{apiKey}', DestroyApiKey::class)->name('settings.api-keys.destroy');
         Route::get('settings/fields', ShowContactFields::class)->name('settings.fields');
+        Route::get('settings/templates', ShowMessageTemplates::class)->name('settings.templates');
     });
 });
 

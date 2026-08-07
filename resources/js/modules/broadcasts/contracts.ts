@@ -55,7 +55,11 @@ export type MessageTemplateStatus =
   | 'DRAFT'
   | 'PENDING'
   | 'APPROVED'
-  | 'REJECTED';
+  | 'REJECTED'
+  | 'PAUSED'
+  | 'DISABLED'
+  | 'IN_APPEAL'
+  | 'PENDING_DELETION';
 
 export interface MessageTemplate {
   id: string;

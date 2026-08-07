@@ -21,6 +21,11 @@ export interface Conversation {
   updated_at: string;
 }
 
+export interface InboxPageProps {
+  conversations: Conversation[];
+  messages: Message[];
+}
+
 export type SenderType = 'customer' | 'agent' | 'bot';
 export type MessageStatus =
   | 'sending'

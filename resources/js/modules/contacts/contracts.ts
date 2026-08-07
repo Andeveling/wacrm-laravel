@@ -37,19 +37,21 @@ export interface CustomField {
   created_at: string;
 }
 
-export interface ContactCustomValue {
-  id: string;
-  contact_id: string;
-  custom_field_id: string;
-  value?: string | null;
-  custom_field?: CustomField;
-}
-
 export interface ContactNote {
   id: string;
   contact_id: string;
   note_text: string;
-  created_at: string;
+  created_at: string | null;
+  user: { id: number; name: string | null };
+}
+
+export interface ContactDeal {
+  id: string;
+  title: string;
+  value: string;
+  currency: string | null;
+  status: string | null;
+  stage: { id: string; name: string; color: string } | null;
 }
 
 export interface ContactsFilters {
@@ -62,7 +64,11 @@ export interface ContactsPageProps {
   tags: Tag[];
   customFields: CustomField[];
   canManageCustomFields: boolean;
+  canWrite: boolean;
   filters: ContactsFilters;
+  notes?: ContactNote[];
+  customValues?: Record<string, string | null>;
+  contactDeals?: ContactDeal[];
 }
 
 export interface ContactFieldsPageProps {

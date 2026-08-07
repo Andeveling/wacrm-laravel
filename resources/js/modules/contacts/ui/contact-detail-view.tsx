@@ -1,7 +1,22 @@
-import { useForm } from '@inertiajs/react';
-import { Building2, Check, Copy, Mail, Phone, Save } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { router, useForm } from '@inertiajs/react';
+import {
+  Building2,
+  Check,
+  Copy,
+  ExternalLink,
+  Mail,
+  Phone,
+  Save,
+  Trash2,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import destroyContactNote from '@/actions/App/Domain/Contacts/Actions/DestroyContactNote';
+import showContactCustomValues from '@/actions/App/Domain/Contacts/Actions/ShowContactCustomValues';
+import showContactDeals from '@/actions/App/Domain/Contacts/Actions/ShowContactDeals';
+import showContactNotes from '@/actions/App/Domain/Contacts/Actions/ShowContactNotes';
+import storeContactCustomValues from '@/actions/App/Domain/Contacts/Actions/StoreContactCustomValues';
+import storeContactNote from '@/actions/App/Domain/Contacts/Actions/StoreContactNote';
 import update from '@/actions/App/Domain/Contacts/Actions/UpdateContact';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -14,25 +29,63 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Contact, Tag } from '../contracts';
+import { Textarea } from '@/components/ui/textarea';
+import { formatCurrency } from '@/lib/currency';
+import { pipelines } from '@/routes';
+import type {
+  Contact,
+  ContactDeal,
+  ContactNote,
+  CustomField,
+  Tag,
+} from '../contracts';
 
 interface ContactDetailViewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contact: Contact;
   tags: Tag[];
+  customFields: CustomField[];
+  notes?: ContactNote[];
+  customValues?: Record<string, string | null>;
+  contactDeals?: ContactDeal[];
+  canWrite: boolean;
   onUpdated: (contact: Contact) => void;
 }
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('es-CO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const DEAL_STATUS_LABEL: Record<string, string> = {
+  open: 'Abierto',
+  won: 'Ganado',
+  lost: 'Perdido',
+};
 
 export function ContactDetailView({
   open,
   onOpenChange,
   contact,
   tags,
+  customFields,
+  notes,
+  customValues,
+  contactDeals,
+  canWrite,
   onUpdated,
 }: ContactDetailViewProps) {
   const [copiedPhone, setCopiedPhone] = useState(false);
+  const [readyTabs, setReadyTabs] = useState<Set<string>>(new Set());
+  const loadedTabsRef = useRef<Set<string>>(new Set());
   const form = useForm({
     name: '',
     phone: '',
@@ -40,6 +93,8 @@ export function ContactDetailView({
     company: '',
     tag_ids: [] as string[],
   });
+  const noteForm = useForm({ note_text: '' });
+  const customValuesForm = useForm<Record<string, string>>({});
 
   useEffect(() => {
     if (!open || !contact) return;
@@ -52,6 +107,38 @@ export function ContactDetailView({
       tag_ids: contact.tags?.map((tag) => tag.id) ?? [],
     });
   }, [open, contact, form.setData]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: customValuesForm.setData is a stable reference from useForm
+  useEffect(() => {
+    customValuesForm.setData(
+      Object.fromEntries(
+        customFields.map((field) => [field.id, customValues?.[field.id] ?? '']),
+      ),
+    );
+  }, [customValues, customFields]);
+
+  function loadTab(tab: 'notes' | 'custom' | 'deals', force = false) {
+    if (!force && loadedTabsRef.current.has(tab)) return;
+    loadedTabsRef.current.add(tab);
+
+    const routeByTab = {
+      notes: showContactNotes,
+      custom: showContactCustomValues,
+      deals: showContactDeals,
+    } as const;
+    const onlyByTab = {
+      notes: 'notes',
+      custom: 'customValues',
+      deals: 'contactDeals',
+    } as const;
+
+    router.visit(routeByTab[tab](contact.id).url, {
+      only: [onlyByTab[tab]],
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => setReadyTabs((prev) => new Set(prev).add(tab)),
+    });
+  }
 
   const selectedContact = contact;
 
@@ -91,6 +178,47 @@ export function ContactDetailView({
         ? form.data.tag_ids.filter((id) => id !== tagId)
         : [...form.data.tag_ids, tagId],
     );
+  }
+
+  function addNote(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!noteForm.data.note_text.trim()) return;
+
+    noteForm.submit(storeContactNote(contact.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        noteForm.reset();
+        loadTab('notes', true);
+        toast.success('Nota agregada.');
+      },
+      onError: () => toast.error('No se pudo agregar la nota.'),
+    });
+  }
+
+  function deleteNote(note: ContactNote) {
+    router.delete(destroyContactNote(note.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        loadTab('notes', true);
+        toast.success('Nota eliminada.');
+      },
+      onError: () => toast.error('No se pudo eliminar la nota.'),
+    });
+  }
+
+  function saveCustomValues(event: React.FormEvent) {
+    event.preventDefault();
+
+    customValuesForm.transform((data) => ({ values: data }));
+    customValuesForm.submit(storeContactCustomValues(contact.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        loadTab('custom', true);
+        toast.success('Campos guardados.');
+      },
+      onError: () => toast.error('No se pudieron guardar los campos.'),
+    });
   }
 
   function getInitials(name?: string | null) {
@@ -153,7 +281,15 @@ export function ContactDetailView({
             </div>
           </SheetHeader>
 
-          <Tabs defaultValue="details" className="flex min-h-0 flex-1 flex-col">
+          <Tabs
+            defaultValue="details"
+            className="flex min-h-0 flex-1 flex-col"
+            onValueChange={(tab) => {
+              if (tab === 'notes' || tab === 'custom' || tab === 'deals') {
+                loadTab(tab);
+              }
+            }}
+          >
             <TabsList className="mx-4 mt-3">
               <TabsTrigger value="details">Detalles</TabsTrigger>
               <TabsTrigger value="tags">Etiquetas</TabsTrigger>
@@ -254,15 +390,173 @@ export function ContactDetailView({
               </Button>
             </TabsContent>
 
-            {(['notes', 'custom', 'deals'] as const).map((tab) => (
-              <TabsContent
-                key={tab}
-                value={tab}
-                className="flex-1 px-4 py-3 text-sm text-muted-foreground"
-              >
-                Sin información registrada.
-              </TabsContent>
-            ))}
+            <TabsContent
+              value="notes"
+              className="flex-1 overflow-y-auto px-4 py-3"
+            >
+              {!readyTabs.has('notes') || notes === undefined ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {canWrite && (
+                    <form onSubmit={addNote} className="space-y-2">
+                      <Textarea
+                        placeholder="Escribe una nota…"
+                        value={noteForm.data.note_text}
+                        onChange={(event) =>
+                          noteForm.setData('note_text', event.target.value)
+                        }
+                        className="min-h-16 text-sm"
+                      />
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={
+                          !noteForm.data.note_text.trim() || noteForm.processing
+                        }
+                      >
+                        Agregar nota
+                      </Button>
+                    </form>
+                  )}
+
+                  {notes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Sin notas registradas.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {notes.map((note) => (
+                        <li
+                          key={note.id}
+                          className="rounded-lg border bg-muted/40 p-3 text-sm"
+                        >
+                          <p className="whitespace-pre-wrap">
+                            {note.note_text}
+                          </p>
+                          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                            <span>
+                              {note.user.name ?? 'Usuario'}
+                              {note.created_at
+                                ? ` · ${formatDate(note.created_at)}`
+                                : ''}
+                            </span>
+                            {canWrite && (
+                              <button
+                                type="button"
+                                onClick={() => deleteNote(note)}
+                                aria-label="Eliminar nota"
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent
+              value="custom"
+              className="flex-1 overflow-y-auto px-4 py-3"
+            >
+              {!readyTabs.has('custom') || customValues === undefined ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : customFields.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No hay campos personalizados definidos.
+                </p>
+              ) : (
+                <form onSubmit={saveCustomValues} className="space-y-3">
+                  {customFields.map((field) => (
+                    <div key={field.id} className="space-y-1.5">
+                      <Label className="text-xs">{field.field_name}</Label>
+                      <Input
+                        value={customValuesForm.data[field.id] ?? ''}
+                        onChange={(event) =>
+                          customValuesForm.setData(field.id, event.target.value)
+                        }
+                        disabled={!canWrite}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  ))}
+                  {canWrite && (
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={customValuesForm.processing}
+                    >
+                      <Save className="size-4" />
+                      Guardar campos
+                    </Button>
+                  )}
+                </form>
+              )}
+            </TabsContent>
+
+            <TabsContent
+              value="deals"
+              className="flex-1 overflow-y-auto px-4 py-3"
+            >
+              {!readyTabs.has('deals') || contactDeals === undefined ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : contactDeals.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Sin negocios registrados.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <ul className="space-y-2">
+                    {contactDeals.map((deal) => (
+                      <li
+                        key={deal.id}
+                        className="rounded-lg border p-3 text-sm"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-medium">{deal.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {deal.status
+                              ? DEAL_STATUS_LABEL[deal.status]
+                              : null}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{deal.stage?.name ?? 'Sin etapa'}</span>
+                          <span className="font-semibold text-primary">
+                            {formatCurrency(
+                              Number(deal.value),
+                              deal.currency ?? undefined,
+                            )}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.visit(pipelines().url)}
+                  >
+                    <ExternalLink className="size-4" />
+                    Ver en Pipelines
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
       </SheetContent>

@@ -3,17 +3,14 @@
 use App\Models\Account;
 use App\Models\Enums\AccountRole;
 use App\Models\User;
-use Pest\Browser\Playwright\Playwright;
 use Tests\BrowserTestCase;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature', 'Unit');
 
-pest()->extend(BrowserTestCase::class)
-    ->in('Browser')
-    ->beforeEach(function () {
-        Playwright::setTimeout(15_000);
-    });
+pest()->extend(BrowserTestCase::class)->in('Browser');
+
+pest()->browser()->timeout(15_000);
 
 /**
  * @return array{0: Account, 1: User}

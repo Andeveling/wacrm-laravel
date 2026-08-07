@@ -1,5 +1,5 @@
-# Fixed so container and volume names survive a rename of the repo directory.
-name: wacrm
+# Worktree scripts override this so every checkout owns its containers and volumes.
+name: '${COMPOSE_PROJECT_NAME:-wacrm}'
 
 services:
     laravel.test:
@@ -13,7 +13,7 @@ services:
             - 'host.docker.internal:host-gateway'
         ports:
             - '${APP_PORT:-80}:80'
-            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
+            - '${FORWARD_VITE_PORT:-${VITE_PORT:-5173}}:${VITE_PORT:-5173}'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1

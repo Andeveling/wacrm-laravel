@@ -15,7 +15,6 @@ import { cn } from '@/lib/utils';
 import { flows } from '@/routes';
 import { show } from '@/routes/flows';
 import type { FlowRun, FlowRunEvent } from '../contracts';
-import { mockFlowRuns, mockFlows } from '../fixtures';
 
 const STATUS_META: Record<
   FlowRun['status'],
@@ -138,9 +137,15 @@ function RunCard({
   );
 }
 
-export default function FlowRunsPage({ id }: { id: string }) {
-  const flow = mockFlows().find((f) => f.id === id) ?? mockFlows()[0];
-  const [{ runs, events }] = useState(() => mockFlowRuns());
+export default function FlowRunsPage({
+  flow,
+  runs,
+  events,
+}: {
+  flow: { id: string; name: string };
+  runs: FlowRun[];
+  events: FlowRunEvent[];
+}) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   function toggle(runId: string) {

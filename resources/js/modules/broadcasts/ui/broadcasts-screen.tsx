@@ -1,6 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
 import { Plus, Radio } from 'lucide-react';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -12,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { broadcasts } from '@/routes';
 import { newMethod, show } from '@/routes/broadcasts';
-import { mockBroadcasts } from '../fixtures';
+import type { Broadcast } from '../contracts';
 import { getBroadcastStatus } from '../status';
 
 function percent(numerator: number, denominator: number): number {
@@ -45,9 +44,11 @@ function RateCell({
   );
 }
 
-export default function BroadcastsPage() {
-  const [broadcasts] = useState(() => mockBroadcasts());
-
+export default function BroadcastsPage({
+  broadcasts: broadcastList,
+}: {
+  broadcasts: Broadcast[];
+}) {
   return (
     <>
       <Head title="Difusiones" />
@@ -101,7 +102,7 @@ export default function BroadcastsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {broadcasts.map((broadcast) => {
+                {broadcastList.map((broadcast) => {
                   const status = getBroadcastStatus(broadcast.status);
                   return (
                     <TableRow key={broadcast.id} className="cursor-pointer">

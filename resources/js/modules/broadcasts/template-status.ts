@@ -25,4 +25,20 @@ export const templateStatusConfig: Record<
     label: 'Rechazada',
     classes: 'bg-red-600/20 text-red-400 border-red-600/30',
   },
+  PAUSED: {
+    label: 'Pausada',
+    classes: 'bg-orange-600/20 text-orange-400 border-orange-600/30',
+  },
+  DISABLED: {
+    label: 'Deshabilitada',
+    classes: 'bg-slate-700/20 text-muted-foreground border-slate-700/30',
+  },
+  IN_APPEAL: {
+    label: 'En apelación',
+    classes: 'bg-indigo-600/20 text-indigo-400 border-indigo-600/30',
+  },
+  PENDING_DELETION: {
+    label: 'Pendiente de eliminación',
+    classes: 'bg-red-600/20 text-red-400 border-red-600/30',
+  },
 };

@@ -26,7 +26,6 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { overview as settingsOverview } from '@/routes/settings';
 import type { MessageTemplate, MessageTemplateCategory } from '../contracts';
-import { MOCK_TEMPLATES } from '../fixtures';
 import { templateStatusConfig } from '../template-status';
 
 const CATEGORIES: MessageTemplateCategory[] = [
@@ -44,30 +43,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   Utility: 'bg-blue-600/20 text-blue-400 border-blue-600/30',
   Authentication: 'bg-amber-600/20 text-amber-400 border-amber-600/30',
 };
-
-function mockTemplates(): MessageTemplate[] {
-  return [
-    ...MOCK_TEMPLATES,
-    {
-      id: 'tpl-encuesta',
-      name: 'encuesta_satisfaccion',
-      category: 'Utility',
-      language: 'es_CO',
-      body_text: 'Hola {{1}}, ¿cómo calificarías tu experiencia con nosotros?',
-      status: 'PENDING',
-    },
-    {
-      id: 'tpl-descuento',
-      name: 'descuento_black_friday',
-      category: 'Marketing',
-      language: 'es_CO',
-      body_text: '¡{{1}}, tenemos un descuento especial solo para ti!',
-      status: 'REJECTED',
-      rejection_reason:
-        'El contenido promocional no cumple con las políticas de Meta.',
-    },
-  ];
-}
 
 interface TemplateFormData {
   name: string;
@@ -87,10 +62,13 @@ function emptyForm(): TemplateFormData {
   };
 }
 
-export default function Templates() {
-  const [templates, setTemplates] = useState<MessageTemplate[]>(() =>
-    mockTemplates(),
-  );
+export default function Templates({
+  templates: initialTemplates,
+}: {
+  templates: MessageTemplate[];
+}) {
+  const [templates, setTemplates] =
+    useState<MessageTemplate[]>(initialTemplates);
   const [syncing, setSyncing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

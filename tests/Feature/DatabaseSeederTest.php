@@ -78,8 +78,8 @@ test('demo team account has one member per role', function () {
 test('demo contacts have tags and custom values', function () {
     $team = seedAndBind();
 
-    // 4 tags y 3 custom fields sembrados dentro de la cuenta demo.
-    expect(Tag::where('account_id', $team->id)->count())->toBeGreaterThanOrEqual(4);
+    // 3 tags y 3 custom fields sembrados dentro de la cuenta demo.
+    expect(Tag::where('account_id', $team->id)->count())->toBeGreaterThanOrEqual(3);
     expect(CustomField::where('account_id', $team->id)->count())->toBeGreaterThanOrEqual(3);
 
     $contacts = Contact::where('account_id', $team->id)->get();

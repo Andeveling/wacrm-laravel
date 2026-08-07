@@ -200,8 +200,8 @@ class DatabaseSeeder extends Seeder
 
     private function seedDemoTags(Account $team, User $owner): void
     {
-        $names = ['lead', 'customer', 'vip', 'churned'];
-        $colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+        $names = ['prospecto', 'cliente', 'VIP'];
+        $colors = ['#3b82f6', '#10b981', '#f59e0b'];
 
         foreach ($names as $i => $name) {
             Tag::firstOrCreate(
@@ -252,13 +252,13 @@ class DatabaseSeeder extends Seeder
             ]);
             $contacts->push($contact);
 
-            // Tags: 0-2 aleatorios + "churned" para los últimos 3.
+            // Tags: 0-2 aleatorios + "VIP" para los últimos 3.
             $tagIds = $tags->shuffle()->take(fake()->numberBetween(0, 2))->pluck('id')->all();
 
             if ($i >= count($spanishNames) - 3) {
-                $churnedId = $tags->firstWhere('name', 'churned')->id;
-                if (! in_array($churnedId, $tagIds, true)) {
-                    $tagIds[] = $churnedId;
+                $vipId = $tags->firstWhere('name', 'VIP')->id;
+                if (! in_array($vipId, $tagIds, true)) {
+                    $tagIds[] = $vipId;
                 }
             }
 

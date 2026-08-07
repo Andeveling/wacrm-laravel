@@ -26,13 +26,13 @@ export default function InboxPage({
   const [activeId, setActiveId] = useState<string | null>(
     () => initialConversations[0]?.id ?? null,
   );
-  const [messagesByConv, setMessagesByConv] = useState<
+  const [messagesByConversation, setMessagesByConversation] = useState<
     Record<string, Message[]>
   >(() => groupMessages(initialMessages));
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? null;
-  const messages = activeId ? (messagesByConv[activeId] ?? []) : [];
+  const messages = activeId ? (messagesByConversation[activeId] ?? []) : [];
 
   function selectConversation(conversation: Conversation) {
     setActiveId(conversation.id);
@@ -53,7 +53,7 @@ export default function InboxPage({
       status: 'sent',
       created_at: new Date().toISOString(),
     };
-    setMessagesByConv((prev) => ({
+    setMessagesByConversation((prev) => ({
       ...prev,
       [activeId]: [...(prev[activeId] ?? []), message],
     }));

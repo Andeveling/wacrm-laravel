@@ -25,11 +25,69 @@ test('contacts index is tenant scoped and includes tags and custom fields', func
 
     $response->assertOk()->assertInertia(fn ($page) => $page
         ->component('contacts')
-        ->has('contacts', 1)
-        ->where('contacts.0.id', $contact->id)
-        ->where('contacts.0.tags.0.id', $tag->id)
+        ->has('contacts.data', 1)
+        ->where('contacts.data.0.id', $contact->id)
+        ->where('contacts.data.0.tags.0.id', $tag->id)
+        ->where('contacts.total', 1)
         ->has('tags', 1)
-        ->has('customFields', 1));
+        ->has('customFields', 1)
+        ->where('filters.search', '')
+        ->where('filters.tags', []));
+});
+
+test('contacts index paginates ten per page server-side', function () {
+    [$owner, $account] = memberWithRole('owner');
+    Contact::factory()->for($account)->count(24)->create(['user_id' => $owner->id]);
+
+    $firstPage = $this->actingAs($owner)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('contacts'));
+
+    $firstPage->assertOk()->assertInertia(fn ($page) => $page
+        ->has('contacts.data', 10)
+        ->where('contacts.current_page', 1)
+        ->where('contacts.last_page', 3)
+        ->where('contacts.total', 24));
+
+    $secondPage = $this->actingAs($owner)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('contacts', ['page' => 2]));
+
+    $secondPage->assertOk()->assertInertia(fn ($page) => $page
+        ->has('contacts.data', 10)
+        ->where('contacts.current_page', 2));
+});
+
+test('contacts index filters by search term server-side', function () {
+    [$owner, $account] = memberWithRole('owner');
+    $match = Contact::factory()->for($account)->create(['user_id' => $owner->id, 'name' => 'Laura Gómez']);
+    Contact::factory()->for($account)->create(['user_id' => $owner->id, 'name' => 'Carlos Ruiz']);
+
+    $response = $this->actingAs($owner)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('contacts', ['search' => 'Laura']));
+
+    $response->assertOk()->assertInertia(fn ($page) => $page
+        ->has('contacts.data', 1)
+        ->where('contacts.data.0.id', $match->id)
+        ->where('filters.search', 'Laura'));
+});
+
+test('contacts index filters by tag server-side', function () {
+    [$owner, $account] = memberWithRole('owner');
+    $vip = Tag::factory()->for($account)->create(['name' => 'VIP']);
+    $tagged = Contact::factory()->for($account)->create(['user_id' => $owner->id]);
+    Contact::factory()->for($account)->create(['user_id' => $owner->id]);
+    ContactTag::create(['contact_id' => $tagged->id, 'tag_id' => $vip->id]);
+
+    $response = $this->actingAs($owner)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('contacts', ['tags' => [$vip->id]]));
+
+    $response->assertOk()->assertInertia(fn ($page) => $page
+        ->has('contacts.data', 1)
+        ->where('contacts.data.0.id', $tagged->id)
+        ->where('filters.tags', [$vip->id]));
 });
 
 test('account member can create update and delete a contact without crossing tenants', function () {

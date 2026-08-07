@@ -1,6 +1,10 @@
-import { Plus, Tag as TagIcon, X } from 'lucide-react';
+import { useForm } from '@inertiajs/react';
+import { Pencil, Plus, Tag as TagIcon, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import destroyTag from '@/actions/App/Domain/Contacts/Actions/DestroyTag';
+import storeTag from '@/actions/App/Domain/Contacts/Actions/StoreTag';
+import updateTag from '@/actions/App/Domain/Contacts/Actions/UpdateTag';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -20,7 +24,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Tag } from '../contracts';
-import { MOCK_TAGS } from '../fixtures';
 
 const PRESET_COLORS = [
   { name: 'rojo', value: '#ef4444' },
@@ -33,26 +36,54 @@ const PRESET_COLORS = [
   { name: 'rosa', value: '#ec4899' },
 ];
 
-export function TagManager() {
-  const [tags, setTags] = useState<Tag[]>(() => [...MOCK_TAGS]);
+interface TagManagerProps {
+  tags: Tag[];
+  canManage: boolean;
+  onChanged: () => void;
+}
+
+export function TagManager({ tags, canManage, onChanged }: TagManagerProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState<Tag | null>(null);
-  const [newTagName, setNewTagName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[3].value);
+  const form = useForm({
+    name: '',
+    color: PRESET_COLORS[3].value,
+  });
 
-  function handleCreate() {
-    const name = newTagName.trim();
-    if (!name) {
+  function startEditing(tag: Tag) {
+    setEditingId(tag.id);
+    form.setData({ name: tag.name, color: tag.color });
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    form.reset();
+  }
+
+  function saveTag(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!form.data.name.trim()) {
       toast.error('El nombre es obligatorio.');
       return;
     }
-    setTags((prev) => [
-      ...prev,
-      { id: `tag-${Date.now()}`, name, color: selectedColor },
-    ]);
-    toast.success('Etiqueta creada.');
-    setNewTagName('');
-    setSelectedColor(PRESET_COLORS[3].value);
+
+    const options = {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success(editingId ? 'Etiqueta actualizada.' : 'Etiqueta creada.');
+        resetForm();
+        onChanged();
+      },
+      onError: () => toast.error('No se pudo guardar la etiqueta.'),
+    };
+
+    if (editingId) {
+      form.submit(updateTag(editingId), options);
+    } else {
+      form.submit(storeTag(), options);
+    }
   }
 
   function confirmDelete(tag: Tag) {
@@ -62,10 +93,17 @@ export function TagManager() {
 
   function handleDelete() {
     if (!tagToDelete) return;
-    setTags((prev) => prev.filter((t) => t.id !== tagToDelete.id));
-    toast.success('Etiqueta eliminada.');
-    setDeleteDialogOpen(false);
-    setTagToDelete(null);
+
+    form.submit(destroyTag(tagToDelete.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Etiqueta eliminada.');
+        setDeleteDialogOpen(false);
+        setTagToDelete(null);
+        onChanged();
+      },
+      onError: () => toast.error('No se pudo eliminar la etiqueta.'),
+    });
   }
 
   return (
@@ -97,14 +135,26 @@ export function TagManager() {
                   style={{ backgroundColor: tag.color }}
                 />
                 {tag.name}
-                <button
-                  type="button"
-                  onClick={() => confirmDelete(tag)}
-                  aria-label={`Eliminar ${tag.name}`}
-                  className="ml-0.5 rounded-full p-0.5 opacity-60 transition-opacity hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/10"
-                >
-                  <X className="size-3" />
-                </button>
+                {canManage && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => startEditing(tag)}
+                      aria-label={`Editar ${tag.name}`}
+                      className="ml-0.5 rounded-full p-0.5 opacity-60 transition-opacity hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/10"
+                    >
+                      <Pencil className="size-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => confirmDelete(tag)}
+                      aria-label={`Eliminar ${tag.name}`}
+                      className="rounded-full p-0.5 opacity-60 transition-opacity hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/10"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </>
+                )}
               </span>
             ))}
           </div>
@@ -114,45 +164,57 @@ export function TagManager() {
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Input
-            placeholder="Nombre de la etiqueta"
-            value={newTagName}
-            onChange={(e) => setNewTagName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate();
-            }}
-            maxLength={40}
-            className="min-w-[180px] flex-1"
-          />
-          <div className="flex gap-1.5">
-            {PRESET_COLORS.map((color) => (
-              <button
-                key={color.value}
-                type="button"
-                onClick={() => setSelectedColor(color.value)}
-                aria-label={`Usar color ${color.name}`}
-                aria-pressed={selectedColor === color.value}
-                className={cn(
-                  'size-6 rounded-md transition-transform hover:scale-110',
-                  selectedColor === color.value &&
-                    'outline outline-2 outline-offset-2 outline-primary',
-                )}
-                style={{ backgroundColor: color.value }}
-                title={color.name}
-              />
-            ))}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCreate}
-            disabled={!newTagName.trim()}
+        {canManage && (
+          <form
+            onSubmit={saveTag}
+            className="flex flex-wrap items-center gap-2.5"
           >
-            <Plus className="size-4" />
-            Agregar etiqueta
-          </Button>
-        </div>
+            <Input
+              placeholder="Nombre de la etiqueta"
+              value={form.data.name}
+              onChange={(e) => form.setData('name', e.target.value)}
+              maxLength={40}
+              className="min-w-[180px] flex-1"
+            />
+            <div className="flex gap-1.5">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={color.value}
+                  type="button"
+                  onClick={() => form.setData('color', color.value)}
+                  aria-label={`Usar color ${color.name}`}
+                  aria-pressed={form.data.color === color.value}
+                  className={cn(
+                    'size-6 rounded-md transition-transform hover:scale-110',
+                    form.data.color === color.value &&
+                      'outline outline-2 outline-offset-2 outline-primary',
+                  )}
+                  style={{ backgroundColor: color.value }}
+                  title={color.name}
+                />
+              ))}
+            </div>
+            {editingId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={resetForm}
+              >
+                Cancelar edición
+              </Button>
+            )}
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              disabled={!form.data.name.trim() || form.processing}
+            >
+              <Plus className="size-4" />
+              {editingId ? 'Guardar' : 'Agregar etiqueta'}
+            </Button>
+          </form>
+        )}
       </CardContent>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

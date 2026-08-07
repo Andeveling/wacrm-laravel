@@ -79,16 +79,9 @@ test('quick replies stub page is displayed', function () {
         );
 });
 
-test('fields stub page is displayed', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->get(route('settings.fields'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/fields'),
-        );
-});
+// `settings/fields` left this file when it stopped being a stub: it is an
+// admin-gated Action now, covered against real tags and custom fields by
+// tests/Feature/Contacts/TagsTest.php.
 
 test('deals stub page is displayed', function () {
     $user = User::factory()->create();

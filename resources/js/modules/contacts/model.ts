@@ -25,44 +25,28 @@ export function buildContact(
   };
 }
 
-export interface ContactsListResult {
-  pageRows: Contact[];
-  totalCount: number;
-  totalPages: number;
-  hasActiveFilters: boolean;
+export interface ContactsFilterQuery {
+  [key: string]: string | string[] | undefined;
+  search?: string;
+  tags?: string[];
 }
 
-export function deriveContactsList(
-  contacts: readonly Contact[],
+export function buildContactsFilterQuery(
   search: string,
   selectedTagIds: readonly string[],
-  page: number,
-  pageSize: number,
-): ContactsListResult {
-  const term = search.trim().toLowerCase();
-  const filtered = contacts.filter((contact) => {
-    const matchesTerm =
-      !term ||
-      contact.name?.toLowerCase().includes(term) ||
-      contact.phone.includes(term) ||
-      contact.email?.toLowerCase().includes(term);
-    const matchesTags =
-      selectedTagIds.length === 0 ||
-      contact.tags.some((tag) => selectedTagIds.includes(tag.id));
+): ContactsFilterQuery {
+  const query: ContactsFilterQuery = {};
+  const term = search.trim();
 
-    return matchesTerm && matchesTags;
-  });
-  const safePageSize = Math.max(1, pageSize);
-  const safePage = Math.max(0, page);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / safePageSize));
-  const pageStart = safePage * safePageSize;
+  if (term) {
+    query.search = term;
+  }
 
-  return {
-    pageRows: filtered.slice(pageStart, pageStart + safePageSize),
-    totalCount: filtered.length,
-    totalPages,
-    hasActiveFilters: Boolean(term) || selectedTagIds.length > 0,
-  };
+  if (selectedTagIds.length > 0) {
+    query.tags = [...selectedTagIds];
+  }
+
+  return query;
 }
 
 export function toggleContactSelection(

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { contacts } from '@/routes';
+import type { Paginated } from '@/types/pagination';
 import type { Contact, ContactsPageProps } from '../contracts';
 import { ContactDetailView } from './contact-detail-view';
 import { ContactForm } from './contact-form';
@@ -26,8 +27,9 @@ export function ContactsScreen({
   tags,
   customFields,
   canManageCustomFields,
+  filters,
 }: ContactsPageProps) {
-  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+  const [contacts, setContacts] = useState<Paginated<Contact>>(initialContacts);
   const [formOpen, setFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -40,7 +42,8 @@ export function ContactsScreen({
     setContacts(initialContacts);
     setDetailContact((current) =>
       current
-        ? (initialContacts.find((contact) => contact.id === current.id) ?? null)
+        ? (initialContacts.data.find((contact) => contact.id === current.id) ??
+          null)
         : null,
     );
   }, [initialContacts]);
@@ -62,11 +65,16 @@ export function ContactsScreen({
 
   function upsertContact(contact: Contact) {
     setContacts((previous) => {
-      const exists = previous.some((item) => item.id === contact.id);
+      const exists = previous.data.some((item) => item.id === contact.id);
 
-      return exists
-        ? previous.map((item) => (item.id === contact.id ? contact : item))
-        : [contact, ...previous];
+      return {
+        ...previous,
+        data: exists
+          ? previous.data.map((item) =>
+              item.id === contact.id ? contact : item,
+            )
+          : [contact, ...previous.data],
+      };
     });
     setDetailContact((previous) =>
       previous && previous.id === contact.id ? contact : previous,
@@ -105,6 +113,7 @@ export function ContactsScreen({
       <ContactsList
         contacts={contacts}
         tags={tags}
+        filters={filters}
         onAdd={openAddForm}
         onImport={() => setImportOpen(true)}
         onExport={() => window.location.assign(exportContacts.url())}

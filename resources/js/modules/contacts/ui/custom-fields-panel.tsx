@@ -1,158 +1,170 @@
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { useForm } from '@inertiajs/react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import destroyCustomField from '@/actions/App/Domain/Contacts/Actions/DestroyCustomField';
+import storeCustomField from '@/actions/App/Domain/Contacts/Actions/StoreCustomField';
+import updateCustomField from '@/actions/App/Domain/Contacts/Actions/UpdateCustomField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { CustomField } from '../contracts';
-import { mockCustomFields } from '../fixtures';
 
-function isDuplicate(
-  fields: CustomField[],
-  name: string,
-  exceptId?: string,
-): boolean {
-  const lower = name.toLowerCase();
-  return fields.some(
-    (f) => f.id !== exceptId && f.field_name.toLowerCase() === lower,
-  );
+interface CustomFieldsPanelProps {
+  fields: CustomField[];
+  canManage: boolean;
+  onChanged: () => void;
 }
 
-export function CustomFieldsPanel() {
-  const [fields, setFields] = useState<CustomField[]>(() => mockCustomFields());
-  const [newName, setNewName] = useState('');
+export function CustomFieldsPanel({
+  fields,
+  canManage,
+  onChanged,
+}: CustomFieldsPanelProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const form = useForm({
+    field_name: '',
+    field_type: 'text',
+    field_options: [] as string[],
+  });
 
-  function handleCreate() {
-    const name = newName.trim();
-    if (!name) return;
-    if (isDuplicate(fields, name)) {
-      toast.error(`Ya existe un campo llamado «${name}».`);
+  function startEditing(field: CustomField) {
+    setEditingId(field.id);
+    form.setData({
+      field_name: field.field_name,
+      field_type: field.field_type,
+      field_options: [],
+    });
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    form.reset();
+  }
+
+  function saveField(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!form.data.field_name.trim()) {
+      toast.error('El nombre del campo es obligatorio.');
       return;
     }
-    const field: CustomField = {
-      id: `field-${Date.now()}`,
-      field_name: name,
-      field_type: 'text',
-      created_at: new Date().toISOString(),
+
+    const options = {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success(editingId ? 'Campo actualizado.' : 'Campo creado.');
+        resetForm();
+        onChanged();
+      },
+      onError: () => toast.error('No se pudo guardar el campo.'),
     };
-    setFields((prev) => [...prev, field]);
-    setNewName('');
-    toast.success(`Campo «${name}» creado.`);
-  }
 
-  function handleRename(field: CustomField, nextName: string): boolean {
-    const name = nextName.trim();
-    if (!name || name === field.field_name) return true;
-    if (isDuplicate(fields, name, field.id)) {
-      toast.error(`Ya existe un campo llamado «${name}».`);
-      return false;
+    if (editingId) {
+      form.submit(updateCustomField(editingId), options);
+    } else {
+      form.submit(storeCustomField(), options);
     }
-    setFields((prev) =>
-      prev.map((f) => (f.id === field.id ? { ...f, field_name: name } : f)),
-    );
-    return true;
   }
 
-  function handleDelete(field: CustomField) {
-    setFields((prev) => prev.filter((f) => f.id !== field.id));
-    toast.success(`Campo «${field.field_name}» eliminado.`);
+  function removeField(field: CustomField) {
+    form.submit(destroyCustomField(field.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success(`Campo «${field.field_name}» eliminado.`);
+        onChanged();
+      },
+      onError: () => toast.error('No se pudo eliminar el campo.'),
+    });
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Input
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleCreate();
-            }
-          }}
-          placeholder="Nombre del campo"
-        />
-        <Button
-          onClick={handleCreate}
-          disabled={!newName.trim()}
-          className="shrink-0"
-        >
-          <Plus className="size-4" />
-          Agregar campo
-        </Button>
-      </div>
+      {fields.length > 0 ? (
+        <div className="max-h-72 space-y-2 overflow-y-auto">
+          {fields.map((field) => (
+            <div
+              key={field.id}
+              className="flex items-center justify-between rounded-md border px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-medium">{field.field_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  Tipo: {field.field_type}
+                </p>
+              </div>
+              {canManage && (
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => startEditing(field)}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeField(field)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          Aún no hay campos personalizados.
+        </p>
+      )}
 
-      <div className="max-h-72 overflow-y-auto rounded-md border">
-        {fields.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Sin campos personalizados todavía.
-          </p>
-        ) : (
-          <ul className="divide-y">
-            {fields.map((field) => (
-              <FieldRow
-                key={field.id}
-                field={field}
-                onRename={handleRename}
-                onDelete={handleDelete}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
+      {canManage && (
+        <form onSubmit={saveField} className="space-y-3 border-t pt-4">
+          <div className="space-y-2">
+            <Label htmlFor="custom-field-name">
+              {editingId ? 'Renombrar campo' : 'Nuevo campo'}
+            </Label>
+            <Input
+              id="custom-field-name"
+              value={form.data.field_name}
+              onChange={(event) =>
+                form.setData('field_name', event.target.value)
+              }
+              placeholder="Ej. Fuente"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="custom-field-type">Tipo</Label>
+            <select
+              id="custom-field-type"
+              value={form.data.field_type}
+              onChange={(event) =>
+                form.setData('field_type', event.target.value)
+              }
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              disabled={!!editingId}
+            >
+              <option value="text">Texto</option>
+              <option value="number">Número</option>
+              <option value="date">Fecha</option>
+              <option value="select">Selección</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-2">
+            {editingId && (
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Cancelar edición
+              </Button>
+            )}
+            <Button type="submit" disabled={form.processing}>
+              <Plus className="size-4" />
+              {editingId ? 'Guardar' : 'Agregar campo'}
+            </Button>
+          </div>
+        </form>
+      )}
     </div>
-  );
-}
-
-function FieldRow({
-  field,
-  onRename,
-  onDelete,
-}: {
-  field: CustomField;
-  onRename: (field: CustomField, name: string) => boolean;
-  onDelete: (field: CustomField) => void;
-}) {
-  const [name, setName] = useState(field.field_name);
-  const [busy, setBusy] = useState(false);
-
-  function commit() {
-    if (name.trim() === field.field_name) {
-      setName(field.field_name);
-      return;
-    }
-    setBusy(true);
-    const ok = onRename(field, name);
-    setBusy(false);
-    if (!ok) setName(field.field_name);
-  }
-
-  return (
-    <li className="flex items-center gap-2 px-3 py-2">
-      <Input
-        value={name}
-        disabled={busy}
-        onChange={(e) => setName(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') e.currentTarget.blur();
-        }}
-        aria-label={`Renombrar ${field.field_name}`}
-        className="h-8 border-transparent bg-transparent hover:border-input focus:border-primary"
-      />
-      <Button
-        variant="ghost"
-        size="icon"
-        disabled={busy}
-        onClick={() => onDelete(field)}
-        title="Eliminar campo"
-        className="shrink-0 text-muted-foreground hover:text-destructive"
-      >
-        {busy ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Trash2 className="size-4" />
-        )}
-      </Button>
-    </li>
   );
 }

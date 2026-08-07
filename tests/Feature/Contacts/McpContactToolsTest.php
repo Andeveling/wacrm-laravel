@@ -243,7 +243,7 @@ it('emits the same Contact keys over Inertia and over MCP', function () {
         ->withSession(['current_account_id' => $account->id])
         ->get(route('contacts'))
         ->assertInertia(function ($page) use (&$inertiaKeys) {
-            $inertiaKeys = array_keys((array) $page->toArray()['props']['contacts'][0]);
+            $inertiaKeys = array_keys((array) $page->toArray()['props']['contacts']['data'][0]);
         });
 
     expect($mcpKeys)->toBe(PUBLIC_CONTACT_KEYS)

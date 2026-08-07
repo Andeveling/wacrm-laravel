@@ -1,3 +1,5 @@
+import type { Paginated } from '@/types/pagination';
+
 /**
  * Mirrors `App\Domain\Contacts\Support\ContactProjection` — the single
  * definition of a Contact's public shape on the backend. Every key is
@@ -50,11 +52,23 @@ export interface ContactNote {
   created_at: string;
 }
 
+export interface ContactsFilters {
+  search: string;
+  tags: string[];
+}
+
 export interface ContactsPageProps {
-  contacts: Contact[];
+  contacts: Paginated<Contact>;
   tags: Tag[];
   customFields: CustomField[];
   canManageCustomFields: boolean;
+  filters: ContactsFilters;
+}
+
+export interface ContactFieldsPageProps {
+  tags: Tag[];
+  customFields: CustomField[];
+  canManage: boolean;
 }
 
 export interface ContactFormValues {

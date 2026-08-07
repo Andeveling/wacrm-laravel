@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Shield, SlidersHorizontal } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +10,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { overview as settingsOverview } from '@/routes/settings';
+import type { ContactFieldsPageProps } from '../contracts';
 import { CustomFieldsPanel } from './custom-fields-panel';
 import { TagManager } from './tag-manager';
 
-export default function Fields() {
+export default function Fields({
+  tags,
+  customFields,
+  canManage,
+}: ContactFieldsPageProps) {
+  function reload(only: string[]) {
+    router.reload({ only });
+  }
+
   return (
     <>
       <Head title="Campos personalizados" />
@@ -24,7 +33,11 @@ export default function Fields() {
           description="Campos extra y etiquetas de contacto para tu cuenta."
         />
 
-        <TagManager />
+        <TagManager
+          tags={tags}
+          canManage={canManage}
+          onChanged={() => reload(['tags'])}
+        />
 
         <Card>
           <CardHeader>
@@ -42,7 +55,11 @@ export default function Fields() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CustomFieldsPanel />
+            <CustomFieldsPanel
+              fields={customFields}
+              canManage={canManage}
+              onChanged={() => reload(['customFields'])}
+            />
           </CardContent>
         </Card>
       </div>

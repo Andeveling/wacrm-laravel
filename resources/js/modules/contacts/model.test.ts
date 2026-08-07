@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Contact } from './contracts';
 import {
   buildContact,
-  deriveContactsList,
+  buildContactsFilterQuery,
   toggleContactSelection,
   togglePageSelection,
 } from './model';
@@ -43,36 +43,28 @@ const contacts: Contact[] = [
   },
 ];
 
-describe('deriveContactsList', () => {
-  it('searches names, phones, and emails without changing the source order', () => {
-    const result = deriveContactsList(contacts, '  BRUNO  ', [], 0, 10);
-
-    expect(result.pageRows.map((contact) => contact.id)).toEqual(['contact-2']);
-    expect(result.totalCount).toBe(1);
-    expect(result.hasActiveFilters).toBe(true);
+describe('buildContactsFilterQuery', () => {
+  it('omits empty search and tag filters', () => {
+    expect(buildContactsFilterQuery('  ', [])).toEqual({});
   });
 
-  it('matches contacts with any selected tag', () => {
-    const result = deriveContactsList(
-      contacts,
-      '',
-      ['tag-lead', 'tag-vip'],
-      0,
-      10,
-    );
-
-    expect(result.pageRows.map((contact) => contact.id)).toEqual([
-      'contact-1',
-      'contact-2',
-    ]);
+  it('trims the search term', () => {
+    expect(buildContactsFilterQuery('  Bruno  ', [])).toEqual({
+      search: 'Bruno',
+    });
   });
 
-  it('returns the requested page and total page count', () => {
-    const result = deriveContactsList(contacts, '', [], 1, 2);
+  it('includes selected tag ids', () => {
+    expect(buildContactsFilterQuery('', ['tag-vip', 'tag-lead'])).toEqual({
+      tags: ['tag-vip', 'tag-lead'],
+    });
+  });
 
-    expect(result.pageRows.map((contact) => contact.id)).toEqual(['contact-3']);
-    expect(result.totalCount).toBe(3);
-    expect(result.totalPages).toBe(2);
+  it('combines search and tag filters', () => {
+    expect(buildContactsFilterQuery('Bruno', ['tag-lead'])).toEqual({
+      search: 'Bruno',
+      tags: ['tag-lead'],
+    });
   });
 });
 

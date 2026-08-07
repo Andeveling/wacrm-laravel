@@ -1,6 +1,5 @@
+import { router } from '@inertiajs/react';
 import {
-  ChevronLeft,
-  ChevronRight,
   Download,
   Filter,
   MoreHorizontal,
@@ -12,7 +11,8 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Pagination } from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -44,18 +44,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Contact, Tag } from '../contracts';
+import { contacts as contactsRoute } from '@/routes';
+import type { Paginated } from '@/types/pagination';
+import type { Contact, ContactsFilters, Tag } from '../contracts';
 import {
-  deriveContactsList,
+  buildContactsFilterQuery,
   toggleContactSelection,
   togglePageSelection,
 } from '../model';
 
-const PAGE_SIZE = 10;
-
 type ContactsListProps = {
-  contacts: Contact[];
+  contacts: Paginated<Contact>;
   tags: Tag[];
+  filters: ContactsFilters;
   onAdd: () => void;
   onImport: () => void;
   onExport: () => void;
@@ -69,6 +70,7 @@ type ContactsListProps = {
 export function ContactsList({
   contacts,
   tags,
+  filters,
   onAdd,
   onImport,
   onExport,
@@ -78,20 +80,39 @@ export function ContactsList({
   onDelete,
   onBulkDelete,
 }: ContactsListProps) {
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [search, setSearch] = useState(filters.search);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(filters.tags);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const isFirstRender = useRef(true);
 
-  const { pageRows, totalCount, totalPages, hasActiveFilters } =
-    deriveContactsList(contacts, search, selectedTagIds, page, PAGE_SIZE);
+  const rows = contacts.data;
+  const hasActiveFilters = Boolean(search.trim()) || selectedTagIds.length > 0;
   const allOnPageSelected =
-    pageRows.length > 0 &&
-    pageRows.every((contact) => selected.has(contact.id));
-  const someOnPageSelected = pageRows.some((contact) =>
-    selected.has(contact.id),
-  );
+    rows.length > 0 && rows.every((contact) => selected.has(contact.id));
+  const someOnPageSelected = rows.some((contact) => selected.has(contact.id));
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const handle = setTimeout(() => {
+      router.get(
+        contactsRoute.url(),
+        buildContactsFilterQuery(search, selectedTagIds),
+        {
+          preserveState: true,
+          preserveScroll: true,
+          replace: true,
+          only: ['contacts', 'filters'],
+        },
+      );
+    }, 300);
+
+    return () => clearTimeout(handle);
+  }, [search, selectedTagIds]);
 
   function toggleTagFilter(tagId: string) {
     setSelectedTagIds((previous) =>
@@ -99,16 +120,14 @@ export function ContactsList({
         ? previous.filter((id) => id !== tagId)
         : [...previous, tagId],
     );
-    setPage(0);
   }
 
   function clearTagFilters() {
     setSelectedTagIds([]);
-    setPage(0);
   }
 
   function handleBulkDelete() {
-    onBulkDelete(contacts.filter((contact) => selected.has(contact.id)));
+    onBulkDelete(rows.filter((contact) => selected.has(contact.id)));
     setSelected(new Set());
     setBulkDeleteOpen(false);
   }
@@ -120,8 +139,8 @@ export function ContactsList({
           <div>
             <h1 className="text-2xl font-bold text-foreground">Contactos</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {totalCount > 0
-                ? `${totalCount} contactos`
+              {contacts.total > 0
+                ? `${contacts.total} contactos`
                 : 'Sin contactos todavía'}
             </p>
           </div>
@@ -149,10 +168,7 @@ export function ContactsList({
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(0);
-              }}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por nombre, teléfono o correo…"
               className="max-w-sm"
             />
@@ -282,10 +298,10 @@ export function ContactsList({
                     }
                     onCheckedChange={() =>
                       setSelected((previous) =>
-                        togglePageSelection(previous, pageRows),
+                        togglePageSelection(previous, rows),
                       )
                     }
-                    disabled={pageRows.length === 0}
+                    disabled={rows.length === 0}
                   />
                 </TableHead>
                 <TableHead>Nombre</TableHead>
@@ -300,7 +316,7 @@ export function ContactsList({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageRows.length === 0 ? (
+              {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
@@ -325,7 +341,7 @@ export function ContactsList({
                   </TableCell>
                 </TableRow>
               ) : (
-                pageRows.map((contact, rowIndex) => (
+                rows.map((contact, rowIndex) => (
                   <TableRow
                     key={contact.id}
                     data-testid={`contact-row-${rowIndex}`}
@@ -437,37 +453,12 @@ export function ContactsList({
           </Table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              Mostrando {page * PAGE_SIZE + 1}–
-              {Math.min((page + 1) * PAGE_SIZE, totalCount)} de {totalCount}
-            </p>
-            <div className="flex items-center gap-1">
-              <Button
-                data-testid="contacts-previous-page"
-                variant="outline"
-                size="icon"
-                disabled={page === 0}
-                onClick={() => setPage((previous) => previous - 1)}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <span className="px-2 text-xs text-muted-foreground">
-                Página {page + 1} de {totalPages}
-              </span>
-              <Button
-                data-testid="contacts-next-page"
-                variant="outline"
-                size="icon"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((previous) => previous + 1)}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          meta={contacts}
+          only={['contacts', 'filters']}
+          previousTestId="contacts-previous-page"
+          nextTestId="contacts-next-page"
+        />
       </div>
 
       <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>

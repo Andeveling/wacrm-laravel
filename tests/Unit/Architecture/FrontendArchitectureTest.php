@@ -124,8 +124,6 @@ test('frontend module UI does not import fixtures', function () {
     // ponytail: allowlist open until #86-93 replace these screens' fixtures
     // with real Account data; each entry drops when its ticket closes.
     $pendingRealData = [
-        'contacts/ui/custom-fields-panel.tsx',
-        'contacts/ui/tag-manager.tsx',
         'automations/ui/automation-logs-screen.tsx',
         'automations/ui/automations-screen.tsx',
         'automations/ui/edit-automation-screen.tsx',

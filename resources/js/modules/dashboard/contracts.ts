@@ -56,3 +56,11 @@ export interface ActivityItem {
   at: string;
   href?: string;
 }
+
+export interface DashboardPageProps {
+  metrics: MetricsBundle;
+  conversationsSeries: Record<'7' | '30' | '90', ConversationsSeriesPoint[]>;
+  pipeline: PipelineDonutData;
+  responseTime: ResponseTimeSummary;
+  activity: ActivityItem[];
+}

@@ -45,10 +45,18 @@ pre-commit:
       exclude: ['original-wacrm/*']
       run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
 
+    # Node tools run from node_modules/.bin, never `pnpm exec`, matching how
+    # pint and phpstan run from vendor/bin. `pnpm exec` first runs a
+    # deps-status check, and when node_modules looks out of sync with the
+    # lockfile it asks to delete node_modules before running anything. The
+    # hook captures that prompt, so the commit hangs on an invisible
+    # question. It goes out of sync easily here: installing inside Sail
+    # writes a container store path and a different pnpm version into
+    # node_modules/.modules.yaml than the host pnpm expects.
     - name: biome
       glob: '*.{ts,tsx,js,jsx,mjs,mts,css,json}'
       exclude: ['original-wacrm/*']
-      run: pnpm exec biome check --write {staged_files}
+      run: node_modules/.bin/biome check --write {staged_files}
       stage_fixed: true
 
     # Deliberately not scoped to resources/js: lefthook's `**` does not match
@@ -64,9 +72,9 @@ pre-commit:
     - name: tsc
       glob: '*.{ts,tsx}'
       exclude: ['original-wacrm/*']
-      run: pnpm exec tsc --noEmit
+      run: node_modules/.bin/tsc --noEmit
 
 commit-msg:
   jobs:
     - name: commitlint
-      run: pnpm exec commitlint --edit {1}
+      run: node_modules/.bin/commitlint --edit {1}

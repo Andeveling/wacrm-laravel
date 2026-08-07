@@ -2,20 +2,33 @@ import { Head } from '@inertiajs/react';
 import { MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { inbox } from '@/routes';
-import type { Conversation, Message } from '../contracts';
-import { mockConversations, mockMessages } from '../fixtures';
+import type { Conversation, InboxPageProps, Message } from '../contracts';
 import { ContactSidebar } from './contact-sidebar';
 import { ConversationList } from './conversation-list';
 import { MessageThread } from './message-thread';
 
-export default function InboxPage() {
-  const [conversations, setConversations] = useState<Conversation[]>(() =>
-    mockConversations(),
+function groupMessages(messages: Message[]): Record<string, Message[]> {
+  return messages.reduce<Record<string, Message[]>>((groups, message) => {
+    groups[message.conversation_id] ??= [];
+    groups[message.conversation_id].push(message);
+
+    return groups;
+  }, {});
+}
+
+export default function InboxPage({
+  conversations: initialConversations,
+  messages: initialMessages,
+}: InboxPageProps) {
+  const [conversations, setConversations] = useState<Conversation[]>(
+    () => initialConversations,
   );
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(
+    () => initialConversations[0]?.id ?? null,
+  );
   const [messagesByConv, setMessagesByConv] = useState<
     Record<string, Message[]>
-  >({});
+  >(() => groupMessages(initialMessages));
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? null;
@@ -27,11 +40,6 @@ export default function InboxPage() {
       prev.map((c) =>
         c.id === conversation.id ? { ...c, unread_count: 0 } : c,
       ),
-    );
-    setMessagesByConv((prev) =>
-      prev[conversation.id]
-        ? prev
-        : { ...prev, [conversation.id]: mockMessages(conversation.id) },
     );
   }
 
@@ -87,7 +95,11 @@ export default function InboxPage() {
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
             <MessageSquare className="size-10" />
-            <p className="text-sm">Selecciona una conversación para empezar.</p>
+            <p className="text-sm">
+              {conversations.length === 0
+                ? 'No hay conversaciones en esta cuenta.'
+                : 'Selecciona una conversación para empezar.'}
+            </p>
           </div>
         )}
       </div>

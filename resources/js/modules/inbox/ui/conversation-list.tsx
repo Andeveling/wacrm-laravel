@@ -2,6 +2,7 @@ import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { Conversation, ConversationStatus } from '../contracts';
 
@@ -94,7 +95,7 @@ export function ConversationList({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="min-h-0 flex-1">
         {filtered.length === 0 ? (
           <p className="p-4 text-center text-sm text-muted-foreground">
             Sin conversaciones.
@@ -149,7 +150,7 @@ export function ConversationList({
             ))}
           </ul>
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Calendar, Check, X } from 'lucide-react';
+import { Calendar, Check, UserRound, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import type { Deal, PipelineStage } from '../contracts';
 
@@ -17,7 +17,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-function initials(name?: string, fallback?: string) {
+function initials(name?: string | null, fallback?: string | null) {
   const source = (name || fallback || '?').trim();
   if (!source) return '?';
   return source.charAt(0).toUpperCase();
@@ -76,7 +76,7 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
 
       <div className="mt-2 flex items-center justify-between">
         <span className="text-sm font-bold text-primary">
-          {formatCurrency(deal.value, deal.currency)}
+          {formatCurrency(Number(deal.value), deal.currency)}
         </span>
         {deal.expected_close_date && (
           <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -84,6 +84,11 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
             {formatDate(deal.expected_close_date)}
           </span>
         )}
+      </div>
+
+      <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+        <UserRound className="h-3 w-3" />
+        <span className="truncate">{deal.assignee?.name ?? 'Sin asignar'}</span>
       </div>
     </button>
   );

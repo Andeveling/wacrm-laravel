@@ -25,6 +25,7 @@ class DealFactory extends Factory
         return [
             'account_id' => Account::factory(),
             'user_id' => User::factory(),
+            'assigned_to' => fn (array $attributes): int => $attributes['user_id'],
             'pipeline_id' => Pipeline::factory(),
             // El closure ve pipeline_id ya resuelto: el stage pertenece al
             // mismo pipeline que el deal (la DB no lo exige, pero los datos

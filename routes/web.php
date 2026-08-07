@@ -18,6 +18,10 @@ use App\Domain\Invitations\Actions\PreviewInvitation;
 use App\Domain\Invitations\Actions\RedeemInvitation;
 use App\Domain\Invitations\Actions\RevokeInvitation;
 use App\Domain\Invitations\Actions\StoreInvitation;
+use App\Domain\Pipelines\Actions\DestroyDeal;
+use App\Domain\Pipelines\Actions\ShowPipelines;
+use App\Domain\Pipelines\Actions\StoreDeal;
+use App\Domain\Pipelines\Actions\UpdateDeal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -54,7 +58,10 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
     Route::post('contacts/tags', StoreTag::class)->name('contacts.tags.store');
     Route::patch('contacts/tags/{tag}', UpdateTag::class)->name('contacts.tags.update');
     Route::delete('contacts/tags/{tag}', DestroyTag::class)->name('contacts.tags.destroy');
-    Route::inertia('pipelines', 'pipelines')->name('pipelines');
+    Route::get('pipelines', ShowPipelines::class)->name('pipelines');
+    Route::post('pipelines/{pipeline}/deals', StoreDeal::class)->name('pipelines.deals.store');
+    Route::patch('pipelines/deals/{deal}', UpdateDeal::class)->name('pipelines.deals.update');
+    Route::delete('pipelines/deals/{deal}', DestroyDeal::class)->name('pipelines.deals.destroy');
     Route::inertia('notifications', 'notifications')->name('notifications');
     Route::inertia('agents', 'agents')->name('agents');
     Route::inertia('broadcasts', 'broadcasts')->name('broadcasts');

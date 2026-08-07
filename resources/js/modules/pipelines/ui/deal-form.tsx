@@ -1,6 +1,10 @@
+import { router, useForm } from '@inertiajs/react';
 import { Check, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import destroyDeal from '@/actions/App/Domain/Pipelines/Actions/DestroyDeal';
+import storeDeal from '@/actions/App/Domain/Pipelines/Actions/StoreDeal';
+import updateDeal from '@/actions/App/Domain/Pipelines/Actions/UpdateDeal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,8 +15,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import type { Deal, DealStatus, PipelineStage } from '../contracts';
-import { mockDealContacts } from '../fixtures';
+import type {
+  Deal,
+  DealContact,
+  DealStatus,
+  PipelineStage,
+} from '../contracts';
 
 interface DealFormProps {
   open: boolean;
@@ -20,12 +28,9 @@ interface DealFormProps {
   deal?: Deal | null;
   pipelineId: string;
   stages: PipelineStage[];
+  contacts: DealContact[];
   defaultStageId?: string;
-  onSaved: (deal: Deal) => void;
-  onDeleted: (dealId: string) => void;
 }
-
-const CONTACTS = mockDealContacts(20);
 
 export function DealForm({
   open,
@@ -33,85 +38,102 @@ export function DealForm({
   deal,
   pipelineId,
   stages,
+  contacts,
   defaultStageId,
-  onSaved,
-  onDeleted,
 }: DealFormProps) {
-  const [title, setTitle] = useState('');
-  const [value, setValue] = useState('');
-  const [contactId, setContactId] = useState('');
-  const [stageId, setStageId] = useState('');
-  const [expectedCloseDate, setExpectedCloseDate] = useState('');
-  const [notes, setNotes] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const form = useForm({
+    title: '',
+    value: '',
+    contact_id: '',
+    stage_id: '',
+    currency: 'COP',
+    expected_close_date: '',
+    notes: '',
+    status: 'open' as DealStatus,
+  });
 
   useEffect(() => {
     if (!open) return;
     setConfirmDelete(false);
-    if (deal) {
-      setTitle(deal.title);
-      setValue(String(deal.value ?? ''));
-      setContactId(deal.contact_id ?? '');
-      setStageId(deal.stage_id);
-      setExpectedCloseDate(deal.expected_close_date ?? '');
-      setNotes(deal.notes ?? '');
-    } else {
-      setTitle('');
-      setValue('');
-      setContactId('');
-      setStageId(defaultStageId || stages[0]?.id || '');
-      setExpectedCloseDate('');
-      setNotes('');
-    }
-  }, [open, deal, defaultStageId, stages]);
 
-  function handleSave() {
-    if (!title.trim() || !contactId || !stageId) {
-      toast.error('Título, contacto y etapa son obligatorios.');
+    if (deal) {
+      form.setData({
+        title: deal.title,
+        value: String(deal.value ?? ''),
+        contact_id: deal.contact_id ?? '',
+        stage_id: deal.stage_id,
+        currency: deal.currency ?? 'COP',
+        expected_close_date: deal.expected_close_date ?? '',
+        notes: deal.notes ?? '',
+        status: deal.status ?? 'open',
+      });
       return;
     }
 
-    const contact = CONTACTS.find((c) => c.id === contactId);
-    const saved: Deal = {
-      id: deal?.id ?? `deal-${Date.now()}`,
-      pipeline_id: pipelineId,
-      stage_id: stageId,
-      contact_id: contactId,
-      contact,
-      title: title.trim(),
-      value: Number.parseFloat(value) || 0,
-      currency: deal?.currency ?? 'COP',
-      notes: notes.trim() || undefined,
-      expected_close_date: expectedCloseDate || undefined,
-      status: deal?.status ?? 'open',
-      created_at: deal?.created_at ?? new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    form.setData({
+      title: '',
+      value: '',
+      contact_id: '',
+      stage_id: defaultStageId || stages[0]?.id || '',
+      currency: 'COP',
+      expected_close_date: '',
+      notes: '',
+      status: 'open',
+    });
+  }, [open, deal, defaultStageId, stages, form.setData]);
 
-    toast.success(deal ? 'Negocio actualizado.' : 'Negocio creado.');
-    onOpenChange(false);
-    onSaved(saved);
+  function handleSave() {
+    if (!form.data.title.trim() || !form.data.stage_id) {
+      toast.error('Título y etapa son obligatorios.');
+      return;
+    }
+
+    form.submit(deal ? updateDeal(deal.id) : storeDeal(pipelineId), {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success(deal ? 'Negocio actualizado.' : 'Negocio creado.');
+        onOpenChange(false);
+      },
+      onError: () => toast.error('No se pudo guardar el negocio.'),
+    });
   }
 
   function handleStatusChange(status: DealStatus) {
     if (!deal) return;
-    onSaved({ ...deal, status, updated_at: new Date().toISOString() });
-    toast.success(
-      status === 'won'
-        ? 'Marcado como ganado.'
-        : status === 'lost'
-          ? 'Marcado como perdido.'
-          : 'Reabierto.',
+
+    router.patch(
+      updateDeal(deal.id),
+      { status },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          toast.success(
+            status === 'won'
+              ? 'Marcado como ganado.'
+              : status === 'lost'
+                ? 'Marcado como perdido.'
+                : 'Reabierto.',
+          );
+          onOpenChange(false);
+        },
+        onError: () => toast.error('No se pudo actualizar el estado.'),
+      },
     );
-    onOpenChange(false);
   }
 
   function handleDelete() {
     if (!deal) return;
-    onDeleted(deal.id);
-    toast.success('Negocio eliminado.');
-    setConfirmDelete(false);
-    onOpenChange(false);
+
+    router.delete(destroyDeal(deal.id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Negocio eliminado.');
+        setConfirmDelete(false);
+        onOpenChange(false);
+      },
+      onError: () => toast.error('No se pudo eliminar el negocio.'),
+    });
   }
 
   return (
@@ -124,25 +146,29 @@ export function DealForm({
 
           <div className="flex-1 space-y-4 overflow-y-auto p-4">
             <div className="grid gap-2">
-              <Label>Título</Label>
+              <Label htmlFor="deal-title">Título</Label>
               <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                id="deal-title"
+                value={form.data.title}
+                onChange={(event) => form.setData('title', event.target.value)}
                 placeholder="Nombre del negocio"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label>Contacto</Label>
+              <Label htmlFor="deal-contact">Contacto</Label>
               <select
-                value={contactId}
-                onChange={(e) => setContactId(e.target.value)}
+                id="deal-contact"
+                value={form.data.contact_id}
+                onChange={(event) =>
+                  form.setData('contact_id', event.target.value)
+                }
                 className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               >
-                <option value="">Selecciona un contacto</option>
-                {CONTACTS.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name || c.phone}
+                <option value="">Sin contacto</option>
+                {contacts.map((contact) => (
+                  <option key={contact.id} value={contact.id}>
+                    {contact.name || contact.phone}
                   </option>
                 ))}
               </select>
@@ -150,24 +176,31 @@ export function DealForm({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label>Valor</Label>
+                <Label htmlFor="deal-value">Valor</Label>
                 <Input
+                  id="deal-value"
                   type="number"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
+                  min="0"
+                  value={form.data.value}
+                  onChange={(event) =>
+                    form.setData('value', event.target.value)
+                  }
                   placeholder="0"
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Etapa</Label>
+                <Label htmlFor="deal-stage">Etapa</Label>
                 <select
-                  value={stageId}
-                  onChange={(e) => setStageId(e.target.value)}
+                  id="deal-stage"
+                  value={form.data.stage_id}
+                  onChange={(event) =>
+                    form.setData('stage_id', event.target.value)
+                  }
                   className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 >
-                  {stages.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
+                  {stages.map((stage) => (
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
                     </option>
                   ))}
                 </select>
@@ -175,19 +208,23 @@ export function DealForm({
             </div>
 
             <div className="grid gap-2">
-              <Label>Fecha estimada de cierre</Label>
+              <Label htmlFor="deal-close-date">Fecha estimada de cierre</Label>
               <Input
+                id="deal-close-date"
                 type="date"
-                value={expectedCloseDate}
-                onChange={(e) => setExpectedCloseDate(e.target.value)}
+                value={form.data.expected_close_date}
+                onChange={(event) =>
+                  form.setData('expected_close_date', event.target.value)
+                }
               />
             </div>
 
             <div className="grid gap-2">
-              <Label>Notas</Label>
+              <Label htmlFor="deal-notes">Notas</Label>
               <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                id="deal-notes"
+                value={form.data.notes}
+                onChange={(event) => form.setData('notes', event.target.value)}
                 rows={4}
                 placeholder="Notas internas…"
               />
@@ -239,8 +276,8 @@ export function DealForm({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>
-              {deal ? 'Actualizar' : 'Crear'}
+            <Button onClick={handleSave} disabled={form.processing}>
+              {form.processing ? 'Guardando…' : deal ? 'Actualizar' : 'Crear'}
             </Button>
           </div>
         </div>

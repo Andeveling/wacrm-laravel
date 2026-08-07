@@ -444,6 +444,7 @@ class DatabaseSeeder extends Seeder
             Deal::create([
                 'account_id' => $team->id,
                 'user_id' => $owner->id,
+                'assigned_to' => $owner->id,
                 'pipeline_id' => $pipeline->id,
                 'stage_id' => $stage->id,
                 'contact_id' => $contact->id,

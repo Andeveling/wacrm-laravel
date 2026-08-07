@@ -24,6 +24,12 @@
         </include>
     </source>
     <php>
+        <!-- Sail's CLI php.ini sets memory_limit=-1. When pest-plugin-browser's
+             read loop spins on a silent websocket it yields forever into
+             iterator_to_array(), so an unbounded process ate 12GB of the host
+             before anyone noticed. The full non-Browser suite peaks well under
+             this, so the cap only ever fires on a runaway. -->
+        <ini name="memory_limit" value="1G"/>
         <!-- compose.yaml hardcodes APP_ENV=local for the app container via
              $_SERVER, which wins over <env>; <server> overrides $_SERVER directly. -->
         <server name="APP_ENV" value="testing"/>

@@ -31,13 +31,16 @@ class InvitationIssuer
 
     /**
      * Issue a new invitation for the account identified by $accountId,
-     * attributed to $inviter. Returns the persisted Invitation
-     * (carrying the hashed token, never the plaintext).
+     * attributed to $inviter. The plaintext token is returned alongside
+     * the persisted Invitation because it exists only in memory — the
+     * row stores just the SHA-256 hash, so this is the caller's only
+     * chance to build a redeemable link.
      *
      * @param  string  $accountId  UUID of the target Account.
      * @param  string  $role  one of admin|member|viewer (validated upstream).
      * @param  string|null  $label  optional human-readable label.
      * @param  int|null  $expiresInDays  overrides the default expiry window.
+     * @return array{invitation: Invitation, token: string}
      */
     public function issue(
         string $accountId,
@@ -45,10 +48,10 @@ class InvitationIssuer
         string $role,
         ?string $label = null,
         ?int $expiresInDays = null,
-    ): Invitation {
+    ): array {
         $token = Str::random(43);
 
-        return Invitation::create([
+        $invitation = Invitation::create([
             'account_id' => $accountId,
             'token_hash' => hash('sha256', $token),
             'role' => $role,
@@ -56,5 +59,7 @@ class InvitationIssuer
             'label' => $label,
             'expires_at' => now()->addDays($expiresInDays ?? self::DEFAULT_EXPIRY_DAYS),
         ]);
+
+        return ['invitation' => $invitation, 'token' => $token];
     }
 }

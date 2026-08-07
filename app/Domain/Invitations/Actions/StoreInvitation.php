@@ -16,11 +16,6 @@ use Illuminate\Http\RedirectResponse;
  * {@see InvitationIssuer} so this Action and the account-scoped
  * {@see InviteMember} share one source of
  * truth.
- *
- * The plaintext token is intentionally not preserved here — this legacy
- * route was already non-functional (it flashed a URL that cannot be
- * reconstructed from the hashed DB row). Behaviour preserved as-is; the
- * account-scoped invite is the supported path.
  */
 final readonly class StoreInvitation
 {
@@ -32,7 +27,7 @@ final readonly class StoreInvitation
     {
         abort_unless($account->isAdmin(), 403);
 
-        $this->issuer->issue(
+        $issued = $this->issuer->issue(
             accountId: $account->id(),
             inviter: $request->user(),
             role: $request->validated('role'),
@@ -40,6 +35,6 @@ final readonly class StoreInvitation
             expiresInDays: $request->validated('expires_in_days'),
         );
 
-        return back();
+        return back()->with('invitation_url', route('invitations.preview', $issued['token']));
     }
 }

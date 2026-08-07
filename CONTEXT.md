@@ -87,6 +87,18 @@ ADR 0004: cada comportamiento se prueba una sola vez, en el seam público más a
 
 Lo hace cumplir `tools/lint/test-layout.php` en el `pre-commit`; las reglas están en `AGENTS.md`.
 
+### Comandos
+
+| Objetivo | Comando |
+| --- | --- |
+| Una prueba enfocada (ciclo red-green) | `sail artisan test --filter=nombre_de_la_prueba` |
+| Una suite | `sail artisan test --testsuite=Feature` (o `Unit`, `Domain`, `Browser`) |
+| Gate rápido completo (estática + Unit + Domain + Feature + Vitest) | `sail composer test` |
+| Gate Browser (Playwright) | `sail composer test:browser` |
+| Vitest solo | `pnpm test` |
+
+`sail composer test` es el mismo comando que corre el job `ci` en CI; `sail composer test:browser`, el job `browser`. Ambos son obligatorios en cada pull request.
+
 ## Términos clave
 
 - **Account** — tenant. Todo está escopeado a uno.

@@ -108,7 +108,91 @@ jobs:
         run: pnpm build
 
       # Static checks, the ADR 0001 layer lint, Vitest, and the PHP suites
-      # minus Browser. ADR 0004 keeps Browser as its own gate; it is not
-      # wired up yet, so Playwright interactions are currently unguarded.
+      # minus Browser. ADR 0004 keeps Browser as its own gate, run by the
+      # `browser` job below.
       - name: Run CI checks
         run: composer ci:check
+
+  browser:
+    runs-on: ubuntu-latest
+
+    # Independent of the `ci` job's service: each job gets its own runner
+    # and network, so it needs its own Postgres+pgvector instance too.
+    services:
+      pgsql:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: wacrm
+          POSTGRES_USER: wacrm
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -q -d wacrm -U wacrm"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: localhost
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pgsql, sockets
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      # pest-plugin-browser drives Chrome through Playwright's own server
+      # (node_modules/.bin/playwright run-server), so only the Chromium
+      # binary + its OS deps need installing — not the full browser matrix.
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Create testing database
+        env:
+          PGPASSWORD: secret
+        run: psql -h localhost -U wacrm -d wacrm -c 'CREATE DATABASE testing'
+
+      - name: Migrate testing database
+        env:
+          DB_DATABASE: testing
+        run: php artisan migrate --force
+
+      # The Browser suite renders the app through Laravel's own kernel
+      # (no `artisan serve`), but still resolves the Vite manifest for
+      # assets — same reason the `ci` job builds before testing.
+      - name: Build assets
+        run: pnpm build
+
+      - name: Run Browser suite
+        run: composer test:browser

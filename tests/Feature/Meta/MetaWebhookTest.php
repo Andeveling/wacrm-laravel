@@ -74,7 +74,10 @@ test('post persists the delivery and returns 200', function () {
     // json_decode round-trip. Key order, whitespace and number
     // formatting are preserved.
     expect($delivery->raw_body)->toBe($body);
-    expect($delivery->raw_payload)->toBe(['object' => 'whatsapp_business_account', 'entry' => []]);
+
+    // raw_payload is jsonb, which Postgres stores key-normalised — key
+    // order is not part of its contract, only the key/value pairs are.
+    expect($delivery->raw_payload)->toEqual(['object' => 'whatsapp_business_account', 'entry' => []]);
     expect($delivery->content_length)->toBe(strlen($body));
     expect($delivery->processing_state)->toBe('received');
     expect($delivery->received_at)->not->toBeNull();
@@ -95,9 +98,9 @@ test('raw body preserves byte exact payload not just decoded array', function ()
     $delivery = WhatsappWebhookDelivery::firstOrFail();
     expect($delivery->raw_body)->toBe($body);
 
-    // The decoded array loses original key order — which is the
-    // reason raw_body exists.
-    expect($delivery->raw_payload)->toBe(['b' => 1, 'a' => 2, 'c' => ['nested' => [1, 2, 3]]]);
+    // The decoded array loses original key order — jsonb doesn't keep
+    // it either, which is the reason raw_body exists.
+    expect($delivery->raw_payload)->toEqual(['b' => 1, 'a' => 2, 'c' => ['nested' => [1, 2, 3]]]);
 });
 test('post returns 401 when signature header is missing', function () {
     $body = json_encode(['object' => 'whatsapp_business_account'], JSON_THROW_ON_ERROR);

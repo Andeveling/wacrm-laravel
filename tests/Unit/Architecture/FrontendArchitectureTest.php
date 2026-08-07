@@ -120,6 +120,50 @@ test('shared frontend code does not import domain modules', function () {
     }
 });
 
+test('frontend module UI does not import fixtures', function () {
+    // ponytail: allowlist open until #86-93 replace these screens' fixtures
+    // with real Account data; each entry drops when its ticket closes.
+    $pendingRealData = [
+        'contacts/ui/custom-fields-panel.tsx',
+        'contacts/ui/tag-manager.tsx',
+        'automations/ui/automation-logs-screen.tsx',
+        'automations/ui/automations-screen.tsx',
+        'automations/ui/edit-automation-screen.tsx',
+        'broadcasts/ui/broadcast-screen.tsx',
+        'broadcasts/ui/broadcasts-screen.tsx',
+        'broadcasts/ui/step1-choose-template.tsx',
+        'broadcasts/ui/step2-select-audience.tsx',
+        'broadcasts/ui/step4-schedule-send.tsx',
+        'broadcasts/ui/templates-screen.tsx',
+        'dashboard/ui/dashboard-screen.tsx',
+        'flows/ui/flow-editor-screen.tsx',
+        'flows/ui/flow-runs-screen.tsx',
+        'flows/ui/flows-screen.tsx',
+        'inbox/ui/inbox-screen.tsx',
+        'pipelines/ui/deal-form.tsx',
+        'pipelines/ui/pipelines-screen.tsx',
+    ];
+
+    foreach (frontendFiles('modules') as $file) {
+        $relativePath = str_replace('\\', '/', $file->getRelativePathname());
+
+        if (str_ends_with($relativePath, '.test.ts') || str_ends_with($relativePath, '.test.tsx')) {
+            continue;
+        }
+
+        if (in_array($relativePath, $pendingRealData, true)) {
+            continue;
+        }
+
+        $fixtureImports = array_filter(
+            frontendImports($file),
+            fn (string $import): bool => $import === 'fixtures' || str_ends_with($import, '/fixtures'),
+        );
+
+        expect($fixtureImports)->toBeEmpty("{$relativePath} imports fixtures outside a test file.");
+    }
+});
+
 test('frontend modules use Wayfinder for application URLs', function () {
     $applicationUrl = "~['\"`](/accounts|/agents|/automations|/broadcasts|/contacts|/dashboard|/flows|/inbox|/notifications|/pipelines|/settings)(?:[/\"'`?])~";
 

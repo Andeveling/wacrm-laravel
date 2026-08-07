@@ -1,13 +1,9 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
   Archive,
-  FileText,
   HelpCircle,
   MessageSquare,
-  Pencil,
   PlayCircle,
-  Plus,
-  Trash2,
   UserPlus,
   Workflow,
 } from 'lucide-react';
@@ -25,88 +21,64 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { flows } from '@/routes';
-import { show } from '@/routes/flows';
+import { flows as flowsRoute } from '@/routes';
+import { runs, show } from '@/routes/flows';
 import type { Flow } from '../contracts';
-import { FLOW_TEMPLATES, mockFlows } from '../fixtures';
+import { FLOW_TEMPLATES } from '../templates';
 
 const STATUS_LABELS: Record<Flow['status'], string> = {
   draft: 'Borrador',
   active: 'Activo',
   archived: 'Archivado',
 };
+
 const STATUS_COLORS: Record<Flow['status'], string> = {
   draft: 'border-border bg-muted text-muted-foreground',
   active: 'border-emerald-600/40 bg-emerald-500/10 text-emerald-300',
   archived: 'border-border bg-muted/50 text-muted-foreground',
 };
 
-const TEMPLATE_ICONS: Record<string, typeof Workflow> = {
-  faq_bot: HelpCircle,
-  lead_capture: UserPlus,
-  appointment: MessageSquare,
-};
-
 function describeTrigger(flow: Flow): string {
   if (flow.trigger_type === 'keyword') {
-    const keywords = Array.isArray(
-      (flow.trigger_config as { keywords?: string[] }).keywords,
-    )
-      ? ((flow.trigger_config as { keywords?: string[] }).keywords ?? [])
-      : [];
+    const config = flow.trigger_config as { keywords?: string[] };
+    const keywords = Array.isArray(config.keywords) ? config.keywords : [];
+
     return keywords.length === 0
       ? 'Sin palabras clave'
       : `Palabras clave: ${keywords.join(', ')}`;
   }
-  if (flow.trigger_type === 'first_inbound_message')
-    return 'Primer mensaje del contacto';
-  return 'Disparo manual';
+
+  return flow.trigger_type === 'first_inbound_message'
+    ? 'Primer mensaje del contacto'
+    : 'Disparo manual';
 }
 
-export default function FlowsPage() {
-  const [flows, setFlows] = useState<Flow[]>(() => mockFlows());
+export default function FlowsPage({ flows }: { flows: Flow[] }) {
+  const [visibleFlows, setVisibleFlows] = useState(flows);
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
 
-  function handleCreate() {
+  function handleCreate(): void {
     if (!newName.trim()) return;
-    const flow: Flow = {
-      id: `flow-${Date.now()}`,
-      name: newName.trim(),
-      description: null,
-      status: 'draft',
-      trigger_type: 'keyword',
-      trigger_config: { keywords: [] },
-      execution_count: 0,
-      last_executed_at: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
     setCreateOpen(false);
     setNewName('');
-    router.visit(show(flow.id));
+    router.visit(show(`new-${Date.now()}`));
   }
 
-  function handleUseTemplate(slug: string) {
-    setCreateOpen(false);
-    router.visit(show(`tpl-${slug}`));
-  }
-
-  function handleDelete(flow: Flow) {
-    setFlows((prev) => prev.filter((f) => f.id !== flow.id));
+  function handleDelete(flow: Flow): void {
+    setVisibleFlows((current) => current.filter((item) => item.id !== flow.id));
     toast.success('Flujo eliminado.');
   }
 
   return (
     <>
       <Head title="Flujos" />
-
       <div className="space-y-6 p-6">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-semibold text-foreground">Flujos</h1>
-              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
                 Beta
               </span>
             </div>
@@ -115,13 +87,50 @@ export default function FlowsPage() {
               clave o mensaje entrante.
             </p>
           </div>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Nuevo flujo
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+              {visibleFlows.length} flujos
+            </div>
+            <Button onClick={() => setCreateOpen(true)}>Nuevo flujo</Button>
+          </div>
         </header>
 
-        {flows.length === 0 ? (
+        <section className="rounded-xl border border-border bg-card p-5">
+          <h2 className="text-sm font-semibold text-foreground">Plantillas</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Catálogo fijo de puntos de partida para nuevos flows.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {FLOW_TEMPLATES.map((template) => {
+              const Icon =
+                template.slug === 'lead_capture'
+                  ? UserPlus
+                  : template.slug === 'appointment'
+                    ? MessageSquare
+                    : HelpCircle;
+
+              return (
+                <div
+                  key={template.slug}
+                  className="flex flex-col gap-2 rounded-lg border border-border bg-background p-4"
+                >
+                  <Icon className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">
+                    {template.name}
+                  </span>
+                  <span className="text-xs leading-relaxed text-muted-foreground">
+                    {template.description}
+                  </span>
+                  <span className="mt-auto border-t border-border pt-2 text-[11px] text-muted-foreground">
+                    {template.nodeCount} nodos
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {visibleFlows.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card/50 px-6 py-16 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
               <Workflow className="h-6 w-6 text-muted-foreground" />
@@ -133,18 +142,13 @@ export default function FlowsPage() {
               Crea tu primer flujo para automatizar conversaciones de varios
               pasos.
             </p>
-            <Button className="mt-5" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Crear el primero
-            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {flows.map((flow) => (
+            {visibleFlows.map((flow) => (
               <FlowCard
                 key={flow.id}
                 flow={flow}
-                onEdit={() => router.visit(show(flow.id))}
                 onDelete={() => handleDelete(flow)}
               />
             ))}
@@ -152,58 +156,38 @@ export default function FlowsPage() {
         )}
 
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent className="sm:max-w-4xl">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Crear flujo</DialogTitle>
               <DialogDescription>
                 Empieza desde una plantilla o crea un flujo en blanco.
               </DialogDescription>
             </DialogHeader>
-
-            <div className="space-y-3">
-              <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                Plantillas
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {FLOW_TEMPLATES.map((template) => {
-                  const Icon = TEMPLATE_ICONS[template.slug] ?? FileText;
-                  return (
-                    <button
-                      key={template.slug}
-                      type="button"
-                      onClick={() => handleUseTemplate(template.slug)}
-                      className="flex flex-col gap-2.5 rounded-lg border border-border bg-background p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted"
-                    >
-                      <Icon className="h-5 w-5 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">
-                        {template.name}
-                      </span>
-                      <span className="text-xs leading-relaxed text-muted-foreground">
-                        {template.description}
-                      </span>
-                      <span className="mt-auto border-t border-border pt-2 text-[11px] text-muted-foreground">
-                        {template.nodeCount} nodos
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {FLOW_TEMPLATES.map((template) => (
+                <button
+                  key={template.slug}
+                  type="button"
+                  onClick={() => router.visit(show(`tpl-${template.slug}`))}
+                  className="rounded-lg border border-border p-3 text-left hover:bg-muted"
+                >
+                  <span className="text-sm font-semibold text-foreground">
+                    {template.name}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {template.nodeCount} nodos
+                  </span>
+                </button>
+              ))}
             </div>
-
-            <div className="space-y-2 border-t border-border pt-4">
-              <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                Empezar en blanco
-              </p>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Nombre del flujo"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreate();
-                }}
-              />
-            </div>
-
+            <Input
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              placeholder="Nombre del flujo"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') handleCreate();
+              }}
+            />
             <DialogFooter>
               <Button variant="ghost" onClick={() => setCreateOpen(false)}>
                 Cancelar
@@ -220,27 +204,15 @@ export default function FlowsPage() {
 }
 
 FlowsPage.layout = {
-  breadcrumbs: [{ title: 'Flujos', href: flows() }],
+  breadcrumbs: [{ title: 'Flujos', href: flowsRoute() }],
 };
 
-function FlowCard({
-  flow,
-  onEdit,
-  onDelete,
-}: {
-  flow: Flow;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const triggerSummary = describeTrigger(flow);
-  const StatusIcon =
-    flow.status === 'active'
-      ? PlayCircle
-      : flow.status === 'archived'
-        ? Archive
-        : PlayCircle;
+function FlowCard({ flow, onDelete }: { flow: Flow; onDelete: () => void }) {
+  const StatusIcon = flow.status === 'archived' ? Archive : PlayCircle;
+  const nodesCount = flow.nodes_count ?? flow.nodes?.length ?? 0;
+
   return (
-    <div className="flex flex-col rounded-lg border border-border bg-card p-4 transition-colors hover:border-border">
+    <div className="flex flex-col rounded-lg border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Workflow className="h-4 w-4 shrink-0 text-primary" />
@@ -259,30 +231,27 @@ function FlowCard({
           {STATUS_LABELS[flow.status]}
         </Badge>
       </div>
-
       <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-        {flow.description || triggerSummary}
+        {flow.description}
       </p>
-
+      <p className="mt-1 text-xs text-muted-foreground">
+        {describeTrigger(flow)}
+      </p>
       <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <MessageSquare className="h-3 w-3" />
           {flow.execution_count} ejecuciones
         </span>
+        <span>{nodesCount} nodos</span>
       </div>
-
       <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-3">
-        <Button variant="ghost" size="sm" onClick={onEdit}>
-          <Pencil className="h-3.5 w-3.5" />
-          Editar
+        <Button variant="ghost" size="sm" asChild>
+          <Link href={runs(flow.id)}>Ejecuciones</Link>
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onDelete}
-          className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
+        <Button variant="outline" size="sm" asChild>
+          <Link href={show(flow.id)}>Abrir editor</Link>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onDelete}>
           Eliminar
         </Button>
       </div>

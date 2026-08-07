@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Contacts\Actions;
 
 use App\Domain\Contacts\Responders\ContactRedirectResponder;
+use App\Domain\Contacts\Support\ContactCsvRow;
+use App\Domain\Contacts\Support\ContactCsvRows;
 use App\Http\Requests\Contacts\ImportContactsRequest;
 use App\Models\Contact;
 use App\Models\Tag;
@@ -20,66 +22,38 @@ final readonly class ImportContacts
         $content = $request->file('file')->get();
         abort_if($content === false, 422, 'No se pudo leer el archivo.');
 
-        $rows = preg_split('/\r\n|\r|\n/', $content) ?: [];
-        $header = null;
+        $rows = ContactCsvRows::parse($content);
 
-        DB::transaction(function () use ($rows, &$header, $request): void {
-            foreach ($rows as $line) {
-                if (trim($line) === '') {
-                    continue;
-                }
-
-                $values = array_map(static fn (?string $value): string => trim((string) $value), str_getcsv($line));
-                $normalizedValues = array_map('strtolower', $values);
-                $header ??= $normalizedValues;
-
-                if ($normalizedValues === $header) {
-                    continue;
-                }
-
-                if (count($values) > count($header)) {
-                    continue;
-                }
-
-                $data = array_combine($header, array_pad($values, count($header), ''));
-                $phone = trim((string) ($data['phone'] ?? ''));
-                $normalizedPhone = preg_replace('/\D+/', '', $phone) ?? '';
-
-                if ($normalizedPhone === '') {
-                    continue;
-                }
-
-                $contact = Contact::query()->where('phone_normalized', $normalizedPhone)->first();
-                if ($contact === null) {
-                    $contact = Contact::create([
-                        'user_id' => $request->user()->id,
-                        'phone' => $phone,
-                        'name' => self::nullableValue($data['name'] ?? null),
-                        'email' => self::nullableValue($data['email'] ?? null),
-                        'company' => self::nullableValue($data['company'] ?? null),
-                    ]);
-                }
-
-                $tagNames = array_filter(array_map('trim', explode(';', (string) ($data['tags'] ?? ''))));
-                if ($tagNames === []) {
-                    continue;
-                }
-
-                $tagIds = collect($tagNames)->map(fn (string $name): string => Tag::firstOrCreate(
-                    ['name' => $name],
-                    ['user_id' => $request->user()->id],
-                )->id)->all();
-                $contact->tags()->syncWithoutDetaching($tagIds);
+        DB::transaction(function () use ($rows, $request): void {
+            foreach ($rows as $row) {
+                $this->persist($row, $request);
             }
         });
 
         return $this->responder->success();
     }
 
-    private static function nullableValue(mixed $value): ?string
+    private function persist(ContactCsvRow $row, ImportContactsRequest $request): void
     {
-        $value = trim((string) $value);
+        $contact = Contact::query()->where('phone_normalized', $row->normalizedPhone)->first();
+        if ($contact === null) {
+            $contact = Contact::create([
+                'user_id' => $request->user()->id,
+                'phone' => $row->phone,
+                'name' => $row->name,
+                'email' => $row->email,
+                'company' => $row->company,
+            ]);
+        }
 
-        return $value === '' ? null : $value;
+        if ($row->tags === []) {
+            return;
+        }
+
+        $tagIds = collect($row->tags)->map(fn (string $name): string => Tag::firstOrCreate(
+            ['name' => $name],
+            ['user_id' => $request->user()->id],
+        )->id)->all();
+        $contact->tags()->syncWithoutDetaching($tagIds);
     }
 }

@@ -1,16 +1,9 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { DollarSign, MessageSquare, Send, UserPlus } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { formatCurrency } from '@/lib/currency';
 import { dashboard } from '@/routes';
 import type { ConversationsSeriesPoint } from '../contracts';
-import {
-  mockActivity,
-  mockConversationsSeries,
-  mockMetrics,
-  mockPipelineDonut,
-  mockResponseTime,
-} from '../fixtures';
 import { ActivityFeed } from './activity-feed';
 import { ConversationsChart } from './conversations-chart';
 import { MetricCard } from './metric-card';
@@ -20,22 +13,52 @@ import { ResponseTimeChart } from './response-time-chart';
 
 type RangeDays = 7 | 30 | 90;
 
-const metrics = mockMetrics();
-const pipeline = mockPipelineDonut();
-const responseTime = mockResponseTime();
-const activity = mockActivity(50);
-
 export default function Dashboard() {
+  const props = usePage().props as unknown as {
+    metrics: {
+      activeConversations: { current: number; previous: number };
+      newContactsToday: { current: number; previous: number };
+      openDealsValue: number;
+      openDealsCount: number;
+      messagesSentToday: { current: number; previous: number };
+    };
+    conversationsSeries: Record<
+      RangeDays,
+      { day: string; incoming: number; outgoing: number }[]
+    >;
+    pipeline: {
+      stages: {
+        id: string;
+        name: string;
+        color: string;
+        dealCount: number;
+        totalValue: number;
+      }[];
+      totalValue: number;
+    };
+    responseTime: {
+      buckets: { dow: number; avgMinutes: number | null; samples: number }[];
+      thisWeekAvg: number | null;
+      lastWeekAvg: number | null;
+    };
+    activity: {
+      id: string;
+      kind: 'message' | 'deal' | 'broadcast' | 'automation' | 'contact';
+      text: string;
+      at: string;
+      href?: string;
+    }[];
+  };
+
+  const { metrics, conversationsSeries, pipeline, responseTime, activity } =
+    props;
+
   const [range, setRange] = useState<RangeDays>(30);
-  // Static mock data — precompute all three ranges once so switching
-  // tabs is instant, same UX shape as the fetch-backed original.
-  const [series] = useState<
-    Record<RangeDays, ConversationsSeriesPoint[] | null>
-  >({
-    7: mockConversationsSeries(7),
-    30: mockConversationsSeries(30),
-    90: mockConversationsSeries(90),
-  });
+  const series = useMemo(
+    (): Record<RangeDays, ConversationsSeriesPoint[] | null> =>
+      conversationsSeries,
+    [conversationsSeries],
+  );
 
   const handleRangeChange = useCallback((r: RangeDays) => setRange(r), []);
 
@@ -57,10 +80,13 @@ export default function Dashboard() {
             value={metrics.activeConversations.current.toLocaleString()}
             icon={MessageSquare}
             delta={{
-              sign: metrics.activeConversations.previous,
-              label: deltaLabel(
+              sign:
+                metrics.activeConversations.current -
                 metrics.activeConversations.previous,
-                'nuevas hoy vs. ayer',
+              label: deltaLabel(
+                metrics.activeConversations.current -
+                  metrics.activeConversations.previous,
+                'activas vs. ayer',
               ),
             }}
           />

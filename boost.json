@@ -1,17 +1,24 @@
 {
-  "agents": ["claude_code", "opencode", "zed", "pi"],
-  "cloud": false,
-  "guidelines": true,
-  "mcp": true,
-  "nightwatch": false,
-  "sail": true,
-  "skills": [
-    "ai-sdk-development",
-    "fortify-development",
-    "laravel-best-practices",
-    "wayfinder-development",
-    "inertia-react-development",
-    "echo-development",
-    "tailwindcss-development"
-  ]
+    "agents": [
+        "claude_code",
+        "opencode",
+        "zed",
+        "pi"
+    ],
+    "cloud": false,
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch": false,
+    "sail": true,
+    "skills": [
+        "ai-sdk-development",
+        "fortify-development",
+        "laravel-best-practices",
+        "mcp-development",
+        "wayfinder-development",
+        "pest-testing",
+        "inertia-react-development",
+        "echo-development",
+        "tailwindcss-development"
+    ]
 }

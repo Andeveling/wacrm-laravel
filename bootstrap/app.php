@@ -12,6 +12,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -52,6 +53,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(
             before: ThrottleRequests::class,
             prepend: AuthenticateApiKey::class,
+        );
+
+        $middleware->prependToPriorityList(
+            before: SubstituteBindings::class,
+            prepend: EnsureCurrentAccount::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

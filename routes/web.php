@@ -2,12 +2,18 @@
 
 use App\Domain\Contacts\Actions\BulkDestroyContacts;
 use App\Domain\Contacts\Actions\DestroyContact;
+use App\Domain\Contacts\Actions\DestroyContactNote;
 use App\Domain\Contacts\Actions\DestroyCustomField;
 use App\Domain\Contacts\Actions\DestroyTag;
 use App\Domain\Contacts\Actions\ExportContacts;
 use App\Domain\Contacts\Actions\ImportContacts;
+use App\Domain\Contacts\Actions\ShowContactCustomValues;
+use App\Domain\Contacts\Actions\ShowContactDeals;
+use App\Domain\Contacts\Actions\ShowContactNotes;
 use App\Domain\Contacts\Actions\ShowContacts;
 use App\Domain\Contacts\Actions\StoreContact;
+use App\Domain\Contacts\Actions\StoreContactCustomValues;
+use App\Domain\Contacts\Actions\StoreContactNote;
 use App\Domain\Contacts\Actions\StoreCustomField;
 use App\Domain\Contacts\Actions\StoreTag;
 use App\Domain\Contacts\Actions\UpdateContact;
@@ -58,6 +64,12 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
     Route::post('contacts/tags', StoreTag::class)->name('contacts.tags.store');
     Route::patch('contacts/tags/{tag}', UpdateTag::class)->name('contacts.tags.update');
     Route::delete('contacts/tags/{tag}', DestroyTag::class)->name('contacts.tags.destroy');
+    Route::get('contacts/{contact}/notes', ShowContactNotes::class)->name('contacts.notes');
+    Route::post('contacts/{contact}/notes', StoreContactNote::class)->name('contacts.notes.store');
+    Route::delete('contacts/notes/{note}', DestroyContactNote::class)->name('contacts.notes.destroy');
+    Route::get('contacts/{contact}/custom-values', ShowContactCustomValues::class)->name('contacts.custom-values');
+    Route::post('contacts/{contact}/custom-values', StoreContactCustomValues::class)->name('contacts.custom-values.store');
+    Route::get('contacts/{contact}/deals', ShowContactDeals::class)->name('contacts.deals');
     Route::get('pipelines', ShowPipelines::class)->name('pipelines');
     Route::post('pipelines/{pipeline}/deals', StoreDeal::class)->name('pipelines.deals.store');
     Route::patch('pipelines/deals/{deal}', UpdateDeal::class)->name('pipelines.deals.update');

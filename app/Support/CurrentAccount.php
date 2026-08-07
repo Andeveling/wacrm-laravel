@@ -30,4 +30,9 @@ final readonly class CurrentAccount
     {
         return $this->role->atLeast(AccountRole::Admin);
     }
+
+    public function isMember(): bool
+    {
+        return $this->role->atLeast(AccountRole::Member);
+    }
 }

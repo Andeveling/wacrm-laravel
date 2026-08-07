@@ -15,12 +15,17 @@ use Inertia\Response;
 
 final class ShowContacts
 {
-    private const PER_PAGE = 10;
+    private const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
     public function __invoke(CurrentAccount $account, Request $request): Response
     {
         $search = trim((string) $request->query('search', ''));
         $tagIds = array_values(array_filter((array) $request->query('tags', [])));
+        $perPage = (int) $request->query('per_page', (string) self::PER_PAGE_OPTIONS[0]);
+
+        if (! in_array($perPage, self::PER_PAGE_OPTIONS, true)) {
+            $perPage = self::PER_PAGE_OPTIONS[0];
+        }
 
         return Inertia::render('contacts', [
             'contacts' => Contact::query()
@@ -34,7 +39,7 @@ final class ShowContacts
                     fn ($query) => $query->whereIn('tags.id', $tagIds),
                 ))
                 ->latest('created_at')
-                ->paginate(self::PER_PAGE, ContactProjection::COLUMNS)
+                ->paginate($perPage, ContactProjection::COLUMNS)
                 ->withQueryString()
                 ->through(ContactProjection::from(...)),
             'tags' => Tag::query()->orderBy('name')->get(['id', 'name', 'color']),

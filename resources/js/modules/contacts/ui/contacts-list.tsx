@@ -85,6 +85,8 @@ export function ContactsList({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const isFirstRender = useRef(true);
+  const perPage = useRef(contacts.per_page);
+  perPage.current = contacts.per_page;
 
   const rows = contacts.data;
   const hasActiveFilters = Boolean(search.trim()) || selectedTagIds.length > 0;
@@ -101,7 +103,10 @@ export function ContactsList({
     const handle = setTimeout(() => {
       router.get(
         contactsRoute.url(),
-        buildContactsFilterQuery(search, selectedTagIds),
+        {
+          ...buildContactsFilterQuery(search, selectedTagIds),
+          per_page: perPage.current,
+        },
         {
           preserveState: true,
           preserveScroll: true,

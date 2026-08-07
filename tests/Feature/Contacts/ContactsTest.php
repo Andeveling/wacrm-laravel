@@ -58,6 +58,33 @@ test('contacts index paginates ten per page server-side', function () {
         ->where('contacts.current_page', 2));
 });
 
+test('contacts index honours the requested per page size', function () {
+    [$owner, $account] = memberWithRole('owner');
+    Contact::factory()->for($account)->count(30)->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('contacts', ['per_page' => 25]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('contacts.data', 25)
+            ->where('contacts.per_page', 25)
+            ->where('contacts.last_page', 2));
+});
+
+test('contacts index falls back to the default page size when per page is not allowed', function () {
+    [$owner, $account] = memberWithRole('owner');
+    Contact::factory()->for($account)->count(15)->create(['user_id' => $owner->id]);
+
+    $this->actingAs($owner)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('contacts', ['per_page' => 5000]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('contacts.data', 10)
+            ->where('contacts.per_page', 10));
+});
+
 test('contacts index filters by search term server-side', function () {
     [$owner, $account] = memberWithRole('owner');
     $match = Contact::factory()->for($account)->create(['user_id' => $owner->id, 'name' => 'Laura Gómez']);

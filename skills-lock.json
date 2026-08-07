@@ -146,9 +146,9 @@
       "computedHash": "2c0d1187398b1b7ebb9902a4c91b24181ee07892f285615b46c59f45e2c4229c"
     },
     "worktree": {
-      "source": "./skills",
+      "source": "./skills/worktree",
       "sourceType": "local",
-      "computedHash": "f60271c646dfb1eb22e03313e589ed9275825dc991d3765af9994da1e247a30a"
+      "computedHash": "4bb9d6b7b5e0d4d9799171810af846e4ec6cfd56f6f731ba5849f8e70cd8c0d2"
     },
     "writing-for-agents": {
       "source": "mattpocock/skills",

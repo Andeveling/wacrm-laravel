@@ -49,7 +49,7 @@ test "${HERDR_ENV:-}" = 1 && \
   <repository-root> <issue-number> <kebab-case-name> "<Short Name>"
 ```
 
-The script creates the Herdr worktree, provisions its local dependencies, writes an isolated Compose project name and ephemeral host ports to its ignored `.env`, starts only `laravel.test` and its database/Redis dependencies, and installs the branch's locked dependencies. Read the Herdr JSON instead of guessing IDs. Do not focus the new workspace unless the user asks.
+The script creates the Herdr worktree, provisions its local dependencies, initializes a private CodeGraph index with `codegraph init -i <worktree-path>`, writes an isolated Compose project name and ephemeral host ports to its ignored `.env`, starts only `laravel.test` and its database/Redis dependencies, and installs the branch's locked dependencies. Read the Herdr JSON instead of guessing IDs. Do not focus the new workspace unless the user asks.
 
 Creation is complete only when all of these are true:
 
@@ -58,6 +58,7 @@ Creation is complete only when all of these are true:
 - The new checkout is clean.
 - The source checkout's pre-existing status is unchanged.
 - Its Compose project, containers, network, volumes, and bind mount belong only to the new path.
+- Its `.codegraph/` index exists inside the new worktree and is not shared with another checkout.
 - Its Sail services are running and ready for tests.
 - The final response includes path, branch, workspace ID, base commit, and clean status.
 

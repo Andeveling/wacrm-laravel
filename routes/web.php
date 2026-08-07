@@ -17,6 +17,7 @@ use App\Domain\Contacts\Actions\UpdateContact;
 use App\Domain\Contacts\Actions\UpdateCustomField;
 use App\Domain\Contacts\Actions\UpdateTag;
 use App\Domain\Dashboard\Actions\ShowDashboard;
+use App\Domain\Inbox\Actions\ShowInbox;
 use App\Domain\Invitations\Actions\PreviewInvitation;
 use App\Domain\Invitations\Actions\RedeemInvitation;
 use App\Domain\Invitations\Actions\RevokeInvitation;
@@ -80,7 +81,7 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
     Route::get('flows/{id}/runs', fn (string $id) => inertia('flows/runs', ['id' => $id]))->name('flows.runs');
     Route::get('flows/{id}', fn (string $id) => inertia('flows/editor', ['id' => $id]))->name('flows.show');
 
-    Route::inertia('inbox', 'inbox')->name('inbox');
+    Route::get('inbox', ShowInbox::class)->name('inbox');
 
     Route::post('invitations', StoreInvitation::class)
         ->name('invitations.store');

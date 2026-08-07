@@ -31,6 +31,7 @@ herdr worktree create \
     --no-focus
 
 "$(dirname "$0")/sail.sh" prepare "$worktree_path" "$repository_root"
+codegraph init -i "$worktree_path"
 keep_running=false
 cleanup() {
     if [[ "$keep_running" == false ]]; then

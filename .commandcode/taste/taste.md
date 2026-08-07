@@ -20,3 +20,6 @@ See [workflow/taste.md](workflow/taste.md)
 - Server-side pagination with Laravel + Inertia, user-configurable per-page, via a reusable pageProps-based component usable by any view. Confidence: 0.75
 - Use Vite for frontend dev tooling (Laravel + Vite, not other bundlers). Confidence: 0.7
 - Apply changes with TDD (tests first) and consult the official Laravel/Inertia docs before implementing. Confidence: 0.8
+
+# testing
+- Test at the highest public seam (Feature HTTP+Inertia: the HTTP route and the Inertia props the page receives), one test file per behavior, replicating the repo's existing prior art (e.g. PipelinesTest.php) rather than inventing new seams (no extra Unit/Browser tests when no new pure rules exist). Confidence: 0.7

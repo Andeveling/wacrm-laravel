@@ -47,6 +47,7 @@ final class ShowContacts
                 ->orderBy('field_name')
                 ->get(['id', 'field_name', 'field_type', 'field_options', 'created_at']),
             'canManageCustomFields' => $account->isAdmin(),
+            'canWrite' => $account->isMember(),
             'filters' => [
                 'search' => $search,
                 'tags' => $tagIds,

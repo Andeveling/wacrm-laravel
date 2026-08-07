@@ -27,7 +27,11 @@ export function ContactsScreen({
   tags,
   customFields,
   canManageCustomFields,
+  canWrite,
   filters,
+  notes,
+  customValues,
+  contactDeals,
 }: ContactsPageProps) {
   const [contacts, setContacts] = useState<Paginated<Contact>>(initialContacts);
   const [formOpen, setFormOpen] = useState(false);
@@ -134,10 +138,16 @@ export function ContactsScreen({
 
       {detailContact && (
         <ContactDetailView
+          key={detailContact.id}
           open={detailOpen}
           onOpenChange={setDetailOpen}
           contact={detailContact}
           tags={tags}
+          customFields={customFields}
+          notes={notes}
+          customValues={customValues}
+          contactDeals={contactDeals}
+          canWrite={canWrite}
           onUpdated={upsertContact}
         />
       )}

@@ -122,9 +122,11 @@ jobs:
 
   browser:
     runs-on: ubuntu-latest
-    # The suite hangs entering MembersInteractionsTest (run 31146187705 sat
-    # there for 6h). Until that is fixed, cap the job so a wedged run fails
-    # with a readable log instead of burning the 6h default budget.
+    # The suite used to wedge instead of finishing (run 31146187705 sat there
+    # for 6h). The trigger is fixed (#97) and the suite now runs in ~1min, but
+    # the cap stays: a browser action that misses its 1s attempt makes
+    # pest-plugin-browser's websocket client wait forever, so this is the only
+    # thing that turns a future wedge into a readable log.
     timeout-minutes: 20
 
     # Independent of the `ci` job's service: each job gets its own runner

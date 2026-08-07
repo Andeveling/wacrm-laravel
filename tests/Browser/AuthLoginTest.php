@@ -34,7 +34,7 @@ test('failed login shows error message', function () {
         ->type('input#email', $this->user->email)
         ->type('input#password', 'wrong-password')
         ->press('button[type="submit"]')
-        ->assertSee('email');
+        ->assertSee('Estas credenciales no coinciden con nuestros registros.');
 });
 
 test('forgot password link is visible', function () {

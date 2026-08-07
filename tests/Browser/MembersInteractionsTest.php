@@ -4,6 +4,7 @@ use App\Models\Account;
 use App\Models\AccountUser;
 use App\Models\Enums\AccountRole;
 use App\Models\Enums\AccountType;
+use App\Models\Invitation;
 use App\Models\User;
 
 function createSimpleAccount(): array
@@ -29,6 +30,13 @@ test('invite member shows success feedback', function () {
         ->type('input#invite-email', 'nuevo@gmail.com')
         ->click('[data-testid="invite-member-submit"]')
         ->assertSee('Invitación creada');
+
+    // `account_invitations` keeps no email column and InviteMember passes no
+    // label, so the row can only be matched by account and role.
+    $invitations = Invitation::withoutGlobalScopes()->where('account_id', $data['account']->id)->get();
+
+    expect($invitations)->toHaveCount(1);
+    expect($invitations->first()->role)->toBe(AccountRole::Member->value);
 });
 
 test('change member role persists the change', function () {

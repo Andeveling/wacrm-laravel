@@ -10,22 +10,14 @@ beforeEach(function () {
     ]);
 });
 
-/**
+/*
  * Fortify only serves /two-factor-challenge while the session carries the
- * pending login, so the challenge has to be reached through a real sign-in
- * rather than by visiting the URL.
+ * pending login, so every test here signs in first: visiting the URL cold
+ * redirects to /login and the challenge never renders.
  */
-function submitTwoFactorLogin(): void
-{
-    test()->visit('/login')
-        ->type('input#email', test()->user->email)
-        ->type('input#password', test()->password)
-        ->press('button[type="submit"]')
-        ->assertPathIs('/two-factor-challenge');
-}
 
 test('two factor challenge page renders with OTP input', function () {
-    submitTwoFactorLogin();
+    signIn($this->user, $this->password);
 
     $this->visit('/two-factor-challenge')
         ->assertNoSmoke()
@@ -34,7 +26,7 @@ test('two factor challenge page renders with OTP input', function () {
 });
 
 test('two factor toggle switches to recovery code mode', function () {
-    submitTwoFactorLogin();
+    signIn($this->user, $this->password);
 
     $this->visit('/two-factor-challenge')
         ->assertSee('iniciar sesión con un código de recuperación')
@@ -44,7 +36,7 @@ test('two factor toggle switches to recovery code mode', function () {
 });
 
 test('invalid code shows error and stays on page', function () {
-    submitTwoFactorLogin();
+    signIn($this->user, $this->password);
 
     $this->visit('/two-factor-challenge')
         ->type('input[name="code"]', '000000')

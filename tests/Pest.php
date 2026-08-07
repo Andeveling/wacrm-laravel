@@ -13,21 +13,31 @@ pest()->extend(BrowserTestCase::class)->in('Browser');
 pest()->browser()->timeout(15_000);
 
 /**
- * Signs the user in through the browser and puts `current_account_id` in the
- * session by picking their account in the switcher.
- *
- * Every route behind `ensure.current-account` redirects to the switcher until
- * that session key exists. A Browser test that logs in and jumps straight to
- * such a route therefore renders the switcher, so every selector it looks for
- * misses — and a Playwright locator call against a selector that never matches
- * never returns (see #97).
+ * Submits the login form in the browser. Stops there: where the app sends the
+ * user next depends on the account and on two-factor, so each caller asserts
+ * its own landing page.
  */
-function signInAndSelectAccount(User $user, string $password = 'password'): void
+function signIn(User $user, string $password = 'password'): void
 {
     test()->visit('/login')
         ->type('input#email', $user->email)
         ->type('input#password', $password)
         ->press('button[type="submit"]');
+}
+
+/**
+ * Signs the user in and puts `current_account_id` in the session by picking
+ * their account in the switcher.
+ *
+ * Every route behind `ensure.current-account` redirects to the switcher until
+ * that session key exists. A Browser test that logs in and jumps straight to
+ * such a route therefore renders the switcher, so every selector it looks for
+ * misses — and a browser action against a selector that never matches was
+ * measured waiting over 400s without returning (see #97).
+ */
+function signInAndSelectAccount(User $user, string $password = 'password'): void
+{
+    signIn($user, $password);
 
     test()->visit('/accounts/switch')
         ->click('[data-testid="accounts-switcher"] button')

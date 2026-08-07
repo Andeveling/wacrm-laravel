@@ -9,7 +9,7 @@ use App\Models\Enums\AccountType;
 use App\Models\Tag;
 use App\Models\User;
 
-const CONTACTS_SEARCH = 'input[placeholder="Buscar por nombre, teléfono o correo…"]';
+const CONTACTS_SEARCH_INPUT = 'input[placeholder="Buscar por nombre, teléfono o correo…"]';
 
 beforeEach(function () {
     $this->password = 'password';
@@ -52,7 +52,7 @@ test('contacts list filters through the page seam', function () {
     $this->visit('/contacts')
         ->assertNoSmoke()
         ->assertSee('Contactos')
-        ->type(CONTACTS_SEARCH, 'Laura Gómez')
+        ->type(CONTACTS_SEARCH_INPUT, 'Laura Gómez')
         ->assertSee('3 contactos')
         ->assertSee('Laura Gómez');
 });
@@ -93,7 +93,7 @@ test('contacts page edits through the page seam', function () {
     signInAndSelectAccount($this->owner);
 
     $this->visit('/contacts')
-        ->type(CONTACTS_SEARCH, 'Laura Gómez')
+        ->type(CONTACTS_SEARCH_INPUT, 'Laura Gómez')
         ->click('[data-testid="contact-actions-row-0"]')
         ->assertVisible('[data-testid="contact-edit-row-0"]')
         ->click('[data-testid="contact-edit-row-0"]')
@@ -105,12 +105,14 @@ test('contacts page edits through the page seam', function () {
     expect(Contact::query()->where('name', 'Laura Gómez editado')->exists())->toBeTrue();
 });
 
+// Deleting redirects to the unfiltered index, so the roster comes back whole
+// while the search box still shows the term that was typed.
 test('contacts page deletes a contact through the page seam', function () {
     signInAndSelectAccount($this->owner);
 
     $this->visit('/contacts')
         ->assertNoSmoke()
-        ->type(CONTACTS_SEARCH, 'Contacto 5')
+        ->type(CONTACTS_SEARCH_INPUT, 'Contacto 5')
         ->assertSee('1 contactos')
         ->click('[data-testid="contact-actions-row-0"]')
         ->assertVisible('[data-testid="contact-delete-row-0"]')
@@ -119,9 +121,6 @@ test('contacts page deletes a contact through the page seam', function () {
         ->assertVisible('[data-testid="contacts-delete-confirm"]')
         ->click('[data-testid="contacts-delete-confirm"]')
         ->assertSee('Contacto eliminado.')
-        // Deleting redirects to the unfiltered index, so the roster comes back
-        // with every remaining contact even though the search box still holds
-        // the term that was typed.
         ->assertSee('23 contactos')
         ->assertDontSee('Contacto 5');
 

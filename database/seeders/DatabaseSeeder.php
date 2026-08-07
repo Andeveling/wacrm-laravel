@@ -252,8 +252,9 @@ class DatabaseSeeder extends Seeder
             ]);
             $contacts->push($contact);
 
-            // Tags: 0-2 aleatorios + "VIP" para los últimos 3.
-            $tagIds = $tags->shuffle()->take(fake()->numberBetween(0, 2))->pluck('id')->all();
+            // Tags: 1-2 aleatorios + "VIP" para los últimos 3. Todo contacto
+            // demo lleva al menos uno; uno sin etiquetas no muestra nada.
+            $tagIds = $tags->shuffle()->take(fake()->numberBetween(1, 2))->pluck('id')->all();
 
             if ($i >= count($spanishNames) - 3) {
                 $vipId = $tags->firstWhere('name', 'VIP')->id;

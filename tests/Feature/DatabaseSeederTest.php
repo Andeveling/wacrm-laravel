@@ -85,10 +85,10 @@ test('demo contacts have tags and custom values', function () {
     $contacts = Contact::where('account_id', $team->id)->get();
     expect($contacts->count())->toBeGreaterThanOrEqual(10);
 
-    // La mayoría llevan al menos un tag; todos llevan custom values para los 3 sembrados.
+    // Todos llevan al menos un tag y custom values para los 3 sembrados.
     $taggedCount = ContactTag::whereIn('contact_id', $contacts->pluck('id'))
         ->distinct('contact_id')->count();
-    expect($taggedCount)->toBeGreaterThan($contacts->count() / 2);
+    expect($taggedCount)->toBe($contacts->count());
 
     $valuedCount = ContactCustomValue::whereIn('contact_id', $contacts->pluck('id'))
         ->distinct('contact_id')->count();

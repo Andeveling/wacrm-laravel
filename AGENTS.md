@@ -1,113 +1,25 @@
-# Laravel app — skill index
+# wacrm
 
-Laravel 13 + Inertia v3 + React 19 + Tailwind v4, running under Sail. Package versions and framework conventions are injected automatically by Laravel Boost — do not duplicate them here.
+Multi-tenant WhatsApp CRM. Every operational record belongs to an `Account` (the tenant). Laravel 13 + Inertia v3 + React 19 + Tailwind v4, under Sail.
 
-`original-wacrm/` is the archived Next.js + Supabase app this project migrates away from. It is reference material only: read it to check original behaviour, never edit it, and never wire the two together.
+`original-wacrm/` is the archived Next.js + Supabase app this project migrates away from. Reference material only: read it to check original behaviour, never edit it, never wire the two together.
 
-**Rule: activate the matching skill BEFORE writing code in its domain — not when stuck.** A task spanning several domains activates each skill as you enter it. Why: these stacks (Laravel 13, Inertia v3, Tailwind v4, Wayfinder) have breaking changes vs. training data; the skills carry the current APIs.
+Activate the matching skill before writing code in its domain — not when stuck.
 
-| Skill | When | Why it matters |
-| --- | --- | --- |
-| `laravel-best-practices` | Any backend PHP: controllers, models, migrations, form requests, policies, jobs, Eloquent queries | Catches N+1s, authz gaps, and Laravel-13-specific patterns |
-| `fortify-development` | Anything auth: login, register, 2FA, passkeys, password reset, `app/Actions/Fortify/` | Fortify owns all auth routes/controllers here. NOT for Passport or Socialite |
-| `inertia-react-development` | React pages, forms, navigation in `resources/js/` | Inertia v3 removed axios and `Inertia::lazy()`; hooks like `useHttp` are new |
-| `wayfinder-development` | Any time frontend code calls a backend route or controller | Use generated `@/actions` / `@/routes` functions, never hardcoded URLs |
-| `tailwindcss-development` | Writing or fixing utility classes in JSX/Blade | Tailwind v4 syntax differs from v3 |
-| `echo-development` | Broadcasting, WebSockets, Reverb, presence channels, `ShouldBroadcast` | Channel auth and Echo config are easy to get subtly wrong |
-| `ai-sdk-development` | `Laravel\Ai\` namespace or any AI feature of this app | First-party SDK, v0 — API not in training data |
+Answer structural questions (repo map, call flow, dependencies, impact) with CodeGraph before broad Glob/Grep. Run `codegraph init` once if `.codegraph/` is missing rather than falling back.
 
-## Git hooks — the standard is enforced, not requested
+Commits run Lefthook and commitlint. Never `--no-verify` or `LEFTHOOK=0` — it only moves the failure to CI.
 
-**Lefthook** runs them; `pnpm install` and `composer install` both arm it. Config is `lefthook.yml` — edit that, never `.git/hooks/`.
+## Where to look
 
-`pre-commit`, on staged files only, all jobs in parallel (~1.5–3s):
-
-| Job | Files | Behaviour |
-| --- | --- | --- |
-| `pint` | `*.php` | **fixes and re-stages** |
-| `biome` | `*.{ts,tsx,js,jsx,mjs,mts,css,json}` | **fixes and re-stages** |
-| `no-inline-fqcn` | `*.php` | blocks |
-| `adr-layers` | `*.php` | blocks |
-| `test-layout` | `*.php` | blocks |
-| `phpstan` | `*.php` | blocks |
-| `tsc --noEmit` | `*.{ts,tsx}` | blocks |
-| `check-ui-language` | `*.{ts,tsx}` | blocks |
-
-`commit-msg` runs **commitlint** (`commitlint.config.mjs`): Conventional Commits, subject ≤72 chars, English imperative. Merge and revert subjects pass through.
-
-Formatting never costs a round trip — Pint and Biome repair the staged content in place. The other six report and block; fix the cause and re-commit.
-
-**Do not use `--no-verify` or `LEFTHOOK=0`.** Bypassing only moves the failure to CI, which runs the full suite anyway.
-
-Four jobs read the working tree rather than the index, because none has a per-file mode that still resolves the project as a whole: `adr-layers`, `test-layout`, `phpstan` and `tsc`. A commit built with `git add -p` is therefore checked against unstaged changes too.
-
-`adr-layers` (`tools/lint/adr-layers.php`, also `composer lint:adr-layers`) is what makes ADR 0001 binding rather than advisory — read that table below as enforced, not aspirational. It boots the framework to read the real route table, touches no database, and costs ~0.2s:
-
-1. No class under `app/` is named `*Controller`.
-2. Every route handled by app code points at `App\Domain\<Contexto>\Actions\<X>` — a `Class@method` reference fails too.
-3. Actions are `final` and expose only `__invoke`.
-4. Responders are `final`, named `*Responder`, and import neither `App\Models` nor `Illuminate\Database`.
-5. Results are `final readonly`, named `*Result`, and import neither `Illuminate\Http` nor `Inertia`.
-6. A bounded context contains only `Actions`, `Responders`, `Results`, `Services`, `Support`. A new layer needs an ADR first.
-
-`test-layout` (`tools/lint/test-layout.php`, also `composer lint:test-layout`) does the same for ADR 0004. Pure filesystem plus `phpunit.xml` — no framework boot:
-
-1. Every directory under `tests/` is a testsuite registered in `phpunit.xml` or a support directory (`Concerns`, `Fixtures`). A stray one holds tests nobody runs.
-2. Every file inside a suite is named `*Test.php` — Pest skips the rest silently.
-3. `Domain` and `Unit` never touch the database: no `RefreshDatabase` and friends, no `::factory()`, no `assertDatabase*`.
-4. No `*ControllerTest` — app/ has no controllers, so the name is stale.
-5. `tests/Feature/<X>` and `tests/Domain/<X>` name a real bounded context under `app/Domain`, or one of the cross-cutting seams `Api`, `Auth`, `Concerns`, `Jobs`.
-
-Rule 3 stops one degree short of ADR 0004, which also asks that `Domain` and `Unit` not boot Laravel. `Domain` already meets that — `tests/Pest.php` binds `TestCase` to `Feature` and `Unit` only — but several `Unit` tests do need the container (config, `resource_path()`), so the enforced line is the database. Tightening it means moving those first.
-
-If the hooks stop firing, run `pnpm exec lefthook install`.
-
-## JS/TS tooling
-
-Linter + formatter: **Biome 2.5** (`@biomejs/biome`). Single config at `biome.json`. ESLint and Prettier are gone — do not reintroduce them.
-
-Scripts (run via `pnpm`):
-
-- `pnpm lint:check` — `biome check` (lint + format check). CI gate. Exits non-zero on errors, warnings are informational.
-- `pnpm lint` — `biome check --write` (apply safe autofixes).
-- `pnpm format:check` — `biome format` (no writes).
-- `pnpm format` — `biome format --write` (apply formatting).
-- `pnpm types:check` — `tsc --noEmit` (type check, separate tool).
-
-Ignored paths (consistent with the old ESLint config):
-`vendor`, `node_modules`, `public`, `bootstrap/ssr`, `public/favicon.svg`, `tailwind.config.js`, `vite.config.ts`, `resources/js/actions/**`, `resources/js/components/ui/*`, `resources/js/routes/**`, `resources/js/wayfinder/**`.
-
-Excluded from formatter but linted: `resources/js/components/ui/*` (shadcn-style scaffold) and `resources/views/mail/*` (blade templates).
-
-Rules disabled in `biome.json` match the baseline the previous ESLint config enforced (no false positives on the Laravel starter scaffold): `noExplicitAny`, `noArrayIndexKey`, `noSvgWithoutTitle`, `useSemanticElements`, `useButtonType`, `useAriaPropsSupportedByRole`, `noDangerouslySetInnerHtml`, `noBlankTarget`. Re-enable per-file when the underlying pattern is fixed.
-
-Tailwind v4 `@source` / `@theme` / `@apply` directives in `resources/css/app.css` are recognized via `css.parser.tailwindDirectives`.
-
-## Workflow references
-
-- **Issues**: GitHub Issues on `github.com/Andeveling/wacrm-laravel` — see `docs/agents/issue-tracker.md`.
-- **Triage labels**: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix` — see `docs/agents/triage-labels.md`.
-- **Domain docs**: single `CONTEXT.md` + `docs/adr/` — see `docs/agents/domain.md`.
-
-## CodeGraph
-
-When answering structural or codebase questions, use CodeGraph before broad filesystem searches. This is a hard ordering rule for repo maps, architecture, call flow, dependencies, symbol references, impact analysis, and “how does X work” questions.
-
-Required order for structural/codebase questions:
-
-1. Resolve the project root with `git rev-parse --show-toplevel || pwd`.
-2. Confirm the root is a real project/workspace. Do not initialize CodeGraph in `$HOME`, temporary directories, or non-project folders.
-3. Check for `<project-root>/.codegraph/` before any broad Read/Glob/Grep filesystem exploration.
-4. If `.codegraph/` is missing and CodeGraph is enabled/available, immediately run `codegraph init <project-root>` once, then use the `codegraph_explore` MCP tool or `codegraph explore "..."`.
-5. Do not fall back just because `.codegraph/` is missing; a missing index is the trigger to lazy-initialize, not a reason to skip CodeGraph.
-6. Only fall back to normal filesystem tools after CodeGraph init or CodeGraph use fails, and briefly explain the fallback.
-
-Broad Read/Glob/Grep exploration before this CodeGraph check is explicitly discouraged for structural/codebase questions.
-
-## Rules
-
-- Never use imports inline \App\Http\Controllers\Invitations\StoreInvitationController::class.
-- Allway use import using use
+| Topic | File |
+| --- | --- |
+| Which skills exist, where they live, how they are vendored | `docs/agents/skills.md` |
+| Commit hooks, blocking lints, ADR 0001 and 0004 enforcement | `docs/agents/git-hooks.md` |
+| Biome config, ignored paths, disabled rules | `docs/agents/js-tooling.md` |
+| Issue tracker | `docs/agents/issue-tracker.md` |
+| Triage labels | `docs/agents/triage-labels.md` |
+| Domain glossary and ADRs | `CONTEXT.md`, `docs/adr/`, `docs/agents/domain.md` |
 
 ===
 

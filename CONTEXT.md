@@ -85,7 +85,7 @@ ADR 0004: cada comportamiento se prueba una sola vez, en el seam público más a
 
 `tests/Feature/` y `tests/Domain/` espejan los contextos de `app/Domain/` — `Accounts`, `Contacts`, `Dashboard`, `Invitations`, `Meta`, `Settings` — más los seams transversales `Api`, `Auth`, `Concerns` y `Jobs`, que no pertenecen a un solo contexto. Los helpers compartidos viven en `tests/Concerns/` y `tests/Fixtures/`, fuera de las suites, porque Pest solo recoge `*Test.php`.
 
-Lo hace cumplir `tools/lint/test-layout.php` en el `pre-commit`; las reglas están en `AGENTS.md`.
+Lo hace cumplir `tools/lint/test-layout.php` en el `pre-commit`; las reglas están en `docs/agents/git-hooks.md`.
 
 ### Comandos
 

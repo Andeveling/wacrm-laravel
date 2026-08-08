@@ -23,13 +23,13 @@ test('submit forgot password shows success message', function () {
     $this->visit('/forgot-password')
         ->type('input#email', $this->user->email)
         ->click('[data-test="email-password-reset-link-button"]')
-        ->assertSee('Se ha enviado un nuevo enlace');
+        ->assertSee(trans('passwords.sent'));
 });
 
 test('reset password page renders with email prefilled and readonly', function () {
     $token = Password::createToken($this->user);
 
-    $this->visit('/reset-password/'.$token)
+    $this->visit('/reset-password/'.$token.'?email='.urlencode($this->user->email))
         ->assertNoSmoke()
         ->assertSee('Restablecer contraseña')
         ->assertSee('Contraseña')
@@ -39,13 +39,17 @@ test('reset password page renders with email prefilled and readonly', function (
 test('reset with valid token redirects to login', function () {
     $token = Password::createToken($this->user);
 
-    $this->visit('/reset-password/'.$token)
+    $this->visit('/reset-password/'.$token.'?email='.urlencode($this->user->email))
         ->type('input#password', 'new-password-123')
         ->type('input#password_confirmation', 'new-password-123')
-        ->click('[data-test="reset-password-button"]');
+        ->click('[data-test="reset-password-button"]')
+        ->assertPathIs('/login');
 });
 
 test('reset with invalid token shows error', function () {
-    $this->visit('/reset-password/invalid-token')
-        ->assertSee('email');
+    $this->visit('/reset-password/invalid-token?email='.urlencode($this->user->email))
+        ->type('input#password', 'new-password-123')
+        ->type('input#password_confirmation', 'new-password-123')
+        ->click('[data-test="reset-password-button"]')
+        ->assertSee(trans('passwords.token'));
 });

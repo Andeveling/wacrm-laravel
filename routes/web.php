@@ -3,6 +3,8 @@
 use App\Domain\Automations\Actions\EditAutomation;
 use App\Domain\Automations\Actions\ShowAutomationLogs;
 use App\Domain\Automations\Actions\ShowAutomations;
+use App\Domain\Broadcasts\Actions\ShowBroadcast;
+use App\Domain\Broadcasts\Actions\ShowBroadcasts;
 use App\Domain\Contacts\Actions\BulkDestroyContacts;
 use App\Domain\Contacts\Actions\DestroyContact;
 use App\Domain\Contacts\Actions\DestroyContactNote;
@@ -23,6 +25,9 @@ use App\Domain\Contacts\Actions\UpdateContact;
 use App\Domain\Contacts\Actions\UpdateCustomField;
 use App\Domain\Contacts\Actions\UpdateTag;
 use App\Domain\Dashboard\Actions\ShowDashboard;
+use App\Domain\Flows\Actions\ShowFlowEditor;
+use App\Domain\Flows\Actions\ShowFlowRuns;
+use App\Domain\Flows\Actions\ShowFlows;
 use App\Domain\Inbox\Actions\ShowInbox;
 use App\Domain\Invitations\Actions\PreviewInvitation;
 use App\Domain\Invitations\Actions\RedeemInvitation;
@@ -80,18 +85,18 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
     Route::delete('pipelines/deals/{deal}', DestroyDeal::class)->name('pipelines.deals.destroy');
     Route::inertia('notifications', 'notifications')->name('notifications');
     Route::inertia('agents', 'agents')->name('agents');
-    Route::inertia('broadcasts', 'broadcasts')->name('broadcasts');
+    Route::get('broadcasts', ShowBroadcasts::class)->name('broadcasts');
     Route::inertia('broadcasts/new', 'broadcasts/new')->name('broadcasts.new');
-    Route::get('broadcasts/{id}', fn (string $id) => inertia('broadcasts/show', ['id' => $id]))->name('broadcasts.show');
+    Route::get('broadcasts/{id}', ShowBroadcast::class)->name('broadcasts.show');
 
     Route::get('automations', ShowAutomations::class)->name('automations');
     Route::inertia('automations/new', 'automations/new')->name('automations.new');
     Route::get('automations/{automation}/edit', EditAutomation::class)->name('automations.edit');
     Route::get('automations/{automation}/logs', ShowAutomationLogs::class)->name('automations.logs');
 
-    Route::inertia('flows', 'flows')->name('flows');
-    Route::get('flows/{id}/runs', fn (string $id) => inertia('flows/runs', ['id' => $id]))->name('flows.runs');
-    Route::get('flows/{id}', fn (string $id) => inertia('flows/editor', ['id' => $id]))->name('flows.show');
+    Route::get('flows', ShowFlows::class)->name('flows');
+    Route::get('flows/{id}/runs', ShowFlowRuns::class)->name('flows.runs');
+    Route::get('flows/{id}', ShowFlowEditor::class)->name('flows.show');
 
     Route::get('inbox', ShowInbox::class)->name('inbox');
 

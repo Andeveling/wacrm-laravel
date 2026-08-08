@@ -1,6 +1,15 @@
 export type FlowStatus = 'draft' | 'active' | 'archived';
 export type FlowTriggerType = 'keyword' | 'first_inbound_message' | 'manual';
 
+export interface FlowNode {
+  id: string;
+  node_key: string;
+  node_type: string;
+  config: Record<string, unknown>;
+  position_x: number;
+  position_y: number;
+}
+
 export interface Flow {
   id: string;
   name: string;
@@ -12,6 +21,8 @@ export interface Flow {
   last_executed_at: string | null;
   created_at: string;
   updated_at: string;
+  nodes_count?: number;
+  nodes?: FlowNode[];
 }
 
 export type FlowRunStatus =
@@ -29,6 +40,7 @@ export interface FlowRun {
   started_at: string;
   ended_at: string | null;
   reprompt_count: number;
+  vars: Record<string, unknown>;
   contact: { id: string; name: string | null; phone: string } | null;
 }
 

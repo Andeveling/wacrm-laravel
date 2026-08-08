@@ -19,8 +19,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { broadcasts } from '@/routes';
-import type { RecipientStatus } from '../contracts';
-import { mockBroadcasts, mockRecipients } from '../fixtures';
+import type {
+  Broadcast,
+  BroadcastRecipient,
+  RecipientStatus,
+} from '../contracts';
 import { getBroadcastStatus, getRecipientStatus } from '../status';
 
 const RECIPIENT_STATUSES: readonly RecipientStatus[] = [
@@ -122,11 +125,13 @@ function downloadBlob(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function BroadcastDetailPage({ id }: { id: string }) {
-  const [broadcast] = useState(
-    () => mockBroadcasts().find((b) => b.id === id) ?? mockBroadcasts()[0],
-  );
-  const [recipients] = useState(() => mockRecipients(broadcast.id));
+export default function BroadcastDetailPage({
+  broadcast,
+  recipients,
+}: {
+  broadcast: Broadcast;
+  recipients: BroadcastRecipient[];
+}) {
   const [statusFilter, setStatusFilter] = useState<RecipientStatus | 'all'>(
     'all',
   );

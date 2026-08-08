@@ -188,7 +188,11 @@ export function MemberActionsCell({
           </SelectTrigger>
           <SelectContent>
             {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem
+                key={option.value}
+                value={option.value}
+                data-testid={`member-role-option-${member.id}-${option.value}`}
+              >
                 {option.label}
               </SelectItem>
             ))}

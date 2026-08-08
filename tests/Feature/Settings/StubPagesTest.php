@@ -57,14 +57,16 @@ test('whatsapp stub page is displayed', function () {
         );
 });
 
-test('templates stub page is displayed', function () {
-    $user = User::factory()->create();
+test('templates page is displayed for the current account', function () {
+    [$user, $account] = memberWithRole('admin');
 
     $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
         ->get(route('settings.templates'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/templates'),
+            ->component('settings/templates')
+            ->has('templates', 0),
         );
 });
 

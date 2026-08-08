@@ -5,6 +5,7 @@ namespace App\Domain\Accounts\Actions;
 use App\Models\Account;
 use App\Models\AccountUser;
 use App\Models\Enums\AccountRole;
+use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -33,13 +34,14 @@ final readonly class ListMembers
         abort_if($viewerRole === null, 403);
 
         $viewerId = (int) $user->id;
+        $isAdmin = $viewerRole->atLeast(AccountRole::Admin);
         $members = $account->users()
             ->orderBy('users.name')
             ->get()
             ->map(fn (User $member): array => $this->row($member, $viewerId))
             ->all();
 
-        return Inertia::render('accounts/members', [
+        $props = [
             'account' => [
                 'id' => $account->id,
                 'name' => $account->name,
@@ -47,8 +49,22 @@ final readonly class ListMembers
             ],
             'members' => $members,
             'is_owner' => $viewerRole === AccountRole::Owner,
-            'is_admin' => $viewerRole->atLeast(AccountRole::Admin),
-        ]);
+            'is_admin' => $isAdmin,
+        ];
+
+        if ($isAdmin) {
+            $props['invitations'] = Invitation::query()
+                ->with('inviter:id,name')
+                ->where('account_id', $account->id)
+                ->whereNull('accepted_at')
+                ->whereNull('revoked_at')
+                ->orderByDesc('expires_at')
+                ->get()
+                ->map(fn (Invitation $invitation): array => $this->invitationRow($invitation))
+                ->all();
+        }
+
+        return Inertia::render('accounts/members', $props);
     }
 
     /**
@@ -73,6 +89,24 @@ final readonly class ListMembers
                 : (string) $pivot->role,
             'joined_at' => optional($pivot->joined_at)->toIso8601String(),
             'is_you' => (int) $member->id === $viewerId,
+        ];
+    }
+
+    /**
+     * @return array{id: string, email: string|null, role: string, inviter: string, created_at: string|null, expires_at: string, status: string}
+     */
+    private function invitationRow(Invitation $invitation): array
+    {
+        $inviter = $invitation->getRelation('inviter');
+
+        return [
+            'id' => $invitation->id,
+            'email' => $invitation->email,
+            'role' => $invitation->role,
+            'inviter' => $inviter instanceof User ? $inviter->name : 'Unknown',
+            'created_at' => $invitation->created_at?->toIso8601String(),
+            'expires_at' => $invitation->expires_at->toIso8601String(),
+            'status' => $invitation->expires_at->isFuture() ? 'Active' : 'Expired',
         ];
     }
 }

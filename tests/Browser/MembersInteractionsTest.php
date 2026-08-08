@@ -31,12 +31,36 @@ test('invite member shows success feedback', function () {
         ->click('[data-testid="invite-member-submit"]')
         ->assertSee('Invitación creada');
 
-    // `account_invitations` keeps no email column and InviteMember passes no
-    // label, so the row can only be matched by account and role.
     $invitations = Invitation::withoutGlobalScopes()->where('account_id', $data['account']->id)->get();
 
     expect($invitations)->toHaveCount(1);
     expect($invitations->first()->role)->toBe(AccountRole::Member->value);
+    expect($invitations->first()->email)->toBe('nuevo@gmail.com');
+
+    $this->visit('/accounts/'.$data['account']->id.'/members')
+        ->assertNoSmoke()
+        ->assertSee('Invitaciones pendientes')
+        ->assertSee('nuevo@gmail.com')
+        ->assertSee('Activa');
+});
+
+test('pending invitations show expired legacy rows with their details', function () {
+    $data = createSimpleAccount();
+    Invitation::factory()
+        ->for($data['account'])
+        ->for($data['owner'], 'inviter')
+        ->expired()
+        ->create(['email' => null]);
+
+    signInAndSelectAccount($data['owner']);
+
+    $this->visit('/accounts/'.$data['account']->id.'/members')
+        ->assertNoSmoke()
+        ->assertSee('Sin email')
+        ->assertSee('Member por')
+        ->assertSee('Creada')
+        ->assertSee('Expira')
+        ->assertSee('Expirada');
 });
 
 test('change member role persists the change', function () {

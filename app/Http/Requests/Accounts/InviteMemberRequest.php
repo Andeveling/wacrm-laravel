@@ -6,9 +6,12 @@ namespace App\Http\Requests\Accounts;
 
 use App\Models\Account;
 use App\Models\Enums\AccountRole;
+use App\Models\Invitation;
 use App\Rules\NotMemberOfAccount;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Input boundary for the POST /accounts/{account}/members endpoint
@@ -30,6 +33,13 @@ final class InviteMemberRequest extends FormRequest
     public function authorize(): bool
     {
         return true; // gated by the Action (AccountPolicy::manageMembers).
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => Str::lower(trim($this->input('email')))]);
+        }
     }
 
     /**
@@ -54,6 +64,36 @@ final class InviteMemberRequest extends FormRequest
                 Rule::enum(AccountRole::class),
             ],
         ];
+    }
+
+    /**
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if ($validator->errors()->has('email')) {
+                return;
+            }
+
+            $account = $this->route('account');
+
+            if (! $account instanceof Account) {
+                return;
+            }
+
+            $exists = Invitation::withoutGlobalScopes()
+                ->where('account_id', $account->id)
+                ->where('email', $this->validated('email'))
+                ->whereNull('accepted_at')
+                ->whereNull('revoked_at')
+                ->where('expires_at', '>', now())
+                ->exists();
+
+            if ($exists) {
+                $validator->errors()->add('email', 'This email already has an active invitation for this account.');
+            }
+        }];
     }
 
     /**

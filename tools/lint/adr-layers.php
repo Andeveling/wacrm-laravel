@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 /**
  * ADR 0001 enforced by the toolchain instead of by documentation.
  *
- * AGENTS.md and docs/adr/0001-adopt-adr-pattern.md describe the pattern;
+ * docs/adr/0001-adopt-adr-pattern.md describes the pattern;
  * until this script existed, nothing but goodwill made anyone follow
  * them. Every convention below is now a failing commit, so the
  * architecture holds whether the next change comes from a human, an

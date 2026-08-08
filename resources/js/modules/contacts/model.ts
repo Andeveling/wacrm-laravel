@@ -1,29 +1,4 @@
-import type { Contact, ContactFormValues, Tag } from './contracts';
-
-export function buildContact(
-  values: ContactFormValues,
-  existing: Contact | null,
-  tags: readonly Tag[],
-  updatedAt: string,
-  generatedId: string,
-): Contact {
-  const name = values.name.trim();
-  const phone = values.phone.trim();
-  const email = values.email.trim();
-  const company = values.company.trim();
-
-  return {
-    id: existing?.id ?? generatedId,
-    name: name || null,
-    phone,
-    email: email || null,
-    company: company || null,
-    avatar_url: existing?.avatar_url ?? null,
-    created_at: existing?.created_at ?? updatedAt,
-    updated_at: updatedAt,
-    tags: tags.filter((tag) => values.tagIds.includes(tag.id)),
-  };
-}
+import type { Contact } from './contracts';
 
 export interface ContactsFilterQuery {
   [key: string]: string | string[] | undefined;

@@ -15,14 +15,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ContactFormProps } from '../contracts';
-import { buildContact } from '../model';
 
 export function ContactForm({
   open,
   onOpenChange,
   contact,
   tags,
-  onUpdated,
 }: ContactFormProps) {
   const isEdit = !!contact;
   const form = useForm({
@@ -64,31 +62,16 @@ export function ContactForm({
 
     form.submit(isEdit ? update(contact.id) : store(), {
       preserveScroll: true,
+      preserveUrl: isEdit,
       onSuccess: () => {
-        toast.success(isEdit ? 'Contacto actualizado.' : 'Contacto creado.');
         onOpenChange(false);
-
-        if (!isEdit) {
-          router.reload({ only: ['contacts', 'tags'] });
-          return;
-        }
-        if (!contact) return;
-
-        onUpdated(
-          buildContact(
-            {
-              name: form.data.name,
-              phone: form.data.phone,
-              email: form.data.email,
-              company: form.data.company,
-              tagIds: form.data.tag_ids,
-            },
-            contact,
-            tags,
-            new Date().toISOString(),
-            contact.id,
-          ),
-        );
+        router.reload({
+          only: ['contacts', 'filters', 'tags'],
+          onSuccess: () =>
+            toast.success(
+              isEdit ? 'Contacto actualizado.' : 'Contacto creado.',
+            ),
+        });
       },
       onError: () => toast.error('No se pudo guardar el contacto.'),
     });

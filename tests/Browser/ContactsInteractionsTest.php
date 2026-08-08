@@ -105,6 +105,46 @@ test('contacts page edits through the page seam', function () {
     expect(Contact::query()->where('name', 'Laura Gómez editado')->exists())->toBeTrue();
 });
 
+test('contacts detail edit preserves the filtered page and page size', function () {
+    $target = Contact::factory()->create([
+        'account_id' => $this->account->id,
+        'user_id' => $this->owner->id,
+        'name' => 'Contacto objetivo',
+        'created_at' => now()->addDay(),
+    ]);
+
+    for ($index = 0; $index < 10; $index++) {
+        Contact::factory()->create([
+            'account_id' => $this->account->id,
+            'user_id' => $this->owner->id,
+            'name' => "Contacto posterior {$index}",
+            'created_at' => now()->addDays(2)->addSeconds($index),
+        ]);
+    }
+
+    signInAndSelectAccount($this->owner);
+
+    $this->visit('/contacts?search=Contacto&per_page=10&page=2')
+        ->assertNoSmoke()
+        ->assertSee('Mostrando 11–20 de 32')
+        ->assertSee('Página 2 de 4')
+        ->assertSeeIn('[data-testid="contact-row-0"]', 'Contacto objetivo')
+        ->click('[data-testid="contact-row-0"]')
+        ->assertSee('Detalles del contacto')
+        ->fill('[data-testid="contact-detail-name"]', '  Contacto actualizado  ')
+        ->press('Guardar cambios')
+        ->assertSee('Contacto actualizado.')
+        ->assertSeeIn('[data-testid="contact-row-0"]', 'Contacto actualizado')
+        ->assertSeeIn('[data-testid="contact-detail-title"]', 'Contacto actualizado')
+        ->assertQueryStringHas('search', 'Contacto')
+        ->assertQueryStringHas('per_page', '10')
+        ->assertQueryStringHas('page', '2')
+        ->assertSee('Mostrando 11–20 de 32')
+        ->assertSee('Página 2 de 4');
+
+    expect($target->fresh()->name)->toBe('Contacto actualizado');
+});
+
 // Deleting redirects to the unfiltered index, so the roster comes back whole
 // while the search box still shows the term that was typed.
 test('contacts page deletes a contact through the page seam', function () {

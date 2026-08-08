@@ -77,18 +77,9 @@ export interface ContactFieldsPageProps {
   canManage: boolean;
 }
 
-export interface ContactFormValues {
-  name: string;
-  phone: string;
-  email: string;
-  company: string;
-  tagIds: string[];
-}
-
 export interface ContactFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contact?: Contact | null;
   tags: Tag[];
-  onUpdated: (contact: Contact) => void;
 }

@@ -52,7 +52,6 @@ interface ContactDetailViewProps {
   customValues?: Record<string, string | null>;
   contactDeals?: ContactDeal[];
   canWrite: boolean;
-  onUpdated: (contact: Contact) => void;
 }
 
 function formatDate(dateStr: string) {
@@ -81,7 +80,6 @@ export function ContactDetailView({
   customValues,
   contactDeals,
   canWrite,
-  onUpdated,
 }: ContactDetailViewProps) {
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [readyTabs, setReadyTabs] = useState<Set<string>>(new Set());
@@ -140,10 +138,8 @@ export function ContactDetailView({
     });
   }
 
-  const selectedContact = contact;
-
   function copyPhone() {
-    void navigator.clipboard.writeText(selectedContact.phone);
+    void navigator.clipboard.writeText(contact.phone);
     setCopiedPhone(true);
   }
 
@@ -153,19 +149,14 @@ export function ContactDetailView({
       return;
     }
 
-    form.submit(update(selectedContact.id), {
+    form.submit(update(contact.id), {
       preserveScroll: true,
+      preserveUrl: true,
       onSuccess: () => {
-        onUpdated({
-          ...selectedContact,
-          name: form.data.name.trim() || null,
-          phone: form.data.phone.trim(),
-          email: form.data.email.trim() || null,
-          company: form.data.company.trim() || null,
-          tags: tags.filter((tag) => form.data.tag_ids.includes(tag.id)),
-          updated_at: new Date().toISOString(),
+        router.reload({
+          only: ['contacts', 'filters', 'tags'],
+          onSuccess: () => toast.success('Contacto actualizado.'),
         });
-        toast.success('Contacto actualizado.');
       },
       onError: () => toast.error('No se pudo actualizar el contacto.'),
     });
@@ -244,7 +235,10 @@ export function ContactDetailView({
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="truncate">
+                <SheetTitle
+                  data-testid="contact-detail-title"
+                  className="truncate"
+                >
                   {contact.name || 'Sin nombre'}
                 </SheetTitle>
                 <SheetDescription className="mt-0.5 text-xs">
@@ -306,6 +300,7 @@ export function ContactDetailView({
                 <div className="space-y-1.5">
                   <Label className="text-xs">Nombre</Label>
                   <Input
+                    data-testid="contact-detail-name"
                     value={form.data.name}
                     onChange={(event) =>
                       form.setData('name', event.target.value)

@@ -45,12 +45,15 @@ export interface ContactNote {
   user: { id: number; name: string | null };
 }
 
+/** Mirrors `App\Models\Enums\DealStatus`. */
+export type DealStatus = 'open' | 'won' | 'lost';
+
 export interface ContactDeal {
   id: string;
   title: string;
   value: string;
   currency: string | null;
-  status: string | null;
+  status: DealStatus | null;
   stage: { id: string; name: string; color: string } | null;
 }
 

@@ -1,6 +1,6 @@
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import destroyCustomField from '@/actions/App/Domain/Contacts/Actions/DestroyCustomField';
 import storeCustomField from '@/actions/App/Domain/Contacts/Actions/StoreCustomField';
@@ -21,6 +21,7 @@ export function CustomFieldsPanel({
   canManage,
   onChanged,
 }: CustomFieldsPanelProps) {
+  const fieldId = useId();
   const [editingId, setEditingId] = useState<string | null>(null);
   const form = useForm({
     field_name: '',
@@ -68,7 +69,7 @@ export function CustomFieldsPanel({
   }
 
   function removeField(field: CustomField) {
-    form.submit(destroyCustomField(field.id), {
+    router.delete(destroyCustomField(field.id), {
       preserveScroll: true,
       onSuccess: () => {
         toast.success(`Campo «${field.field_name}» eliminado.`);
@@ -93,7 +94,7 @@ export function CustomFieldsPanel({
                   Tipo: {field.field_type}
                 </p>
               </div>
-              {canManage && (
+              {canManage ? (
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
@@ -110,7 +111,7 @@ export function CustomFieldsPanel({
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
-              )}
+              ) : null}
             </div>
           ))}
         </div>
@@ -120,14 +121,14 @@ export function CustomFieldsPanel({
         </p>
       )}
 
-      {canManage && (
+      {canManage ? (
         <form onSubmit={saveField} className="space-y-3 border-t pt-4">
           <div className="space-y-2">
-            <Label htmlFor="custom-field-name">
+            <Label htmlFor={`${fieldId}-name`}>
               {editingId ? 'Renombrar campo' : 'Nuevo campo'}
             </Label>
             <Input
-              id="custom-field-name"
+              id={`${fieldId}-name`}
               value={form.data.field_name}
               onChange={(event) =>
                 form.setData('field_name', event.target.value)
@@ -136,9 +137,9 @@ export function CustomFieldsPanel({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="custom-field-type">Tipo</Label>
+            <Label htmlFor={`${fieldId}-type`}>Tipo</Label>
             <select
-              id="custom-field-type"
+              id={`${fieldId}-type`}
               value={form.data.field_type}
               onChange={(event) =>
                 form.setData('field_type', event.target.value)
@@ -153,18 +154,18 @@ export function CustomFieldsPanel({
             </select>
           </div>
           <div className="flex justify-end gap-2">
-            {editingId && (
+            {editingId ? (
               <Button type="button" variant="outline" onClick={resetForm}>
                 Cancelar edición
               </Button>
-            )}
+            ) : null}
             <Button type="submit" disabled={form.processing}>
               <Plus className="size-4" />
               {editingId ? 'Guardar' : 'Agregar campo'}
             </Button>
           </div>
         </form>
-      )}
+      ) : null}
     </div>
   );
 }

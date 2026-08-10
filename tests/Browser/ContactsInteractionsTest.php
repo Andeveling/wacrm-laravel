@@ -80,9 +80,9 @@ test('contacts page creates through the page seam', function () {
     $this->visit('/contacts')
         ->click('[data-testid="contacts-add"]')
         ->assertSee('Nuevo contacto')
-        ->type('#cf-name', 'Sofía Méndez')
-        ->type('#cf-phone', '+57 300 999 9999')
-        ->type('#cf-email', 'sofia@example.com')
+        ->type('[data-testid="contact-form-name"]', 'Sofía Méndez')
+        ->type('[data-testid="contact-form-phone"]', '+57 300 999 9999')
+        ->type('[data-testid="contact-form-email"]', 'sofia@example.com')
         ->press('button[type="submit"]')
         ->assertSee('Sofía Méndez');
 
@@ -98,7 +98,7 @@ test('contacts page edits through the page seam', function () {
         ->assertVisible('[data-testid="contact-edit-row-0"]')
         ->click('[data-testid="contact-edit-row-0"]')
         ->assertSee('Editar contacto')
-        ->type('#cf-name', 'Laura Gómez editado')
+        ->type('[data-testid="contact-form-name"]', 'Laura Gómez editado')
         ->press('button[type="submit"]')
         ->assertSee('Laura Gómez editado');
 

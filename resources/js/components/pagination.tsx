@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import type { Paginated } from '@/types/pagination';
 
-export const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
 type PaginationMeta = Pick<
   Paginated<unknown>,

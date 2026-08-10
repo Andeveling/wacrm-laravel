@@ -69,6 +69,7 @@ export interface ContactsPageProps {
   canManageCustomFields: boolean;
   canWrite: boolean;
   filters: ContactsFilters;
+  detailContact?: Contact | null;
   notes?: ContactNote[];
   customValues?: Record<string, string | null>;
   contactDeals?: ContactDeal[];

@@ -126,6 +126,7 @@ export function ContactDetailView({
     form.submit(update(contact.id), {
       preserveScroll: true,
       preserveUrl: true,
+      preserveState: true,
       onSuccess: () => {
         router.reload({
           only: ['contacts', 'filters', 'tags'],

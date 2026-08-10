@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import bulkDestroy from '@/actions/App/Domain/Contacts/Actions/BulkDestroyContacts';
 import destroy from '@/actions/App/Domain/Contacts/Actions/DestroyContact';
@@ -28,6 +29,7 @@ export function ContactsScreen({
   canManageCustomFields,
   canWrite,
   filters,
+  detailContact: refreshedDetailContact,
   notes,
   customValues,
   contactDeals,
@@ -41,9 +43,25 @@ export function ContactsScreen({
   const detail = useDialog<string>();
   const importer = useDialog();
   const fieldsManager = useDialog();
+  const [detailClosed, setDetailClosed] = useState(false);
+
+  useEffect(() => {
+    if (refreshedDetailContact && detail.target === null) {
+      detail.show(refreshedDetailContact.id);
+    }
+  }, [detail.show, detail.target, refreshedDetailContact]);
 
   const detailContact =
-    contacts.data.find((contact) => contact.id === detail.target) ?? null;
+    (refreshedDetailContact?.id === detail.target
+      ? refreshedDetailContact
+      : contacts.data.find((contact) => contact.id === detail.target)) ??
+    refreshedDetailContact ??
+    null;
+
+  function handleDetailOpenChange(open: boolean): void {
+    detail.setOpen(open);
+    setDetailClosed(!open);
+  }
 
   function handleDelete() {
     if (!remove.target) {
@@ -86,7 +104,10 @@ export function ContactsScreen({
         onImport={() => importer.show()}
         onExport={() => window.location.assign(exportContacts.url())}
         onManageCustomFields={() => fieldsManager.show()}
-        onOpenDetail={(contact) => detail.show(contact.id)}
+        onOpenDetail={(contact) => {
+          setDetailClosed(false);
+          detail.show(contact.id);
+        }}
         onEdit={(contact) => form.show(contact)}
         onDelete={(contact) => remove.show(contact)}
         onBulkDelete={handleBulkDelete}
@@ -103,8 +124,11 @@ export function ContactsScreen({
       {detailContact ? (
         <ContactDetailView
           key={detail.key}
-          open={detail.open}
-          onOpenChange={detail.setOpen}
+          open={
+            !detailClosed &&
+            (detail.open || refreshedDetailContact?.id === detail.target)
+          }
+          onOpenChange={handleDetailOpenChange}
           contact={detailContact}
           tags={tags}
           customFields={customFields}

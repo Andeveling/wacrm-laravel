@@ -145,6 +145,21 @@ test('contacts detail edit preserves the filtered page and page size', function 
     expect($target->fresh()->name)->toBe('Contacto actualizado');
 });
 
+test('contacts detail stays open when an edit removes the contact from the filter', function () {
+    signInAndSelectAccount($this->owner);
+
+    $this->visit('/contacts?search=Laura%20G%C3%B3mez')
+        ->type(CONTACTS_SEARCH_INPUT, 'Laura Gómez')
+        ->click('[data-testid="contact-row-0"]')
+        ->fill('[data-testid="contact-detail-name"]', 'Nombre fuera del filtro')
+        ->press('Guardar cambios')
+        ->assertSee('Contacto actualizado.')
+        ->assertSee('2 contactos')
+        ->assertSeeIn('[data-testid="contact-detail-title"]', 'Nombre fuera del filtro');
+
+    expect(Contact::query()->where('name', 'Nombre fuera del filtro')->exists())->toBeTrue();
+});
+
 // Deleting redirects to the unfiltered index, so the roster comes back whole
 // while the search box still shows the term that was typed.
 test('contacts page deletes a contact through the page seam', function () {

@@ -45,6 +45,7 @@ test('admin sees full management UI', function () {
         ->assertNoSmoke()
         ->assertSee('Members of')
         ->assertSee('Invitar miembro')
+        ->assertSee('No hay invitaciones pendientes.')
         ->assertPresent('#invite-role')
         ->assertPresent('[data-testid="remove-member-'.$data['member']->id.'"]');
 });

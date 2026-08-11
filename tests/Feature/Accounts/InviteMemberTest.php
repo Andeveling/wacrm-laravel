@@ -28,10 +28,36 @@ test('admin can invite a new email and invitation row is created with hashed tok
     expect($invitation)->not->toBeNull('Expected an invitation row to be persisted.');
     expect($invitation->account_id)->toBe($account->id);
     expect($invitation->role)->toBe(AccountRole::Member->value);
+    expect($invitation->email)->toBe('newhire@gmail.com');
     expect($invitation->invited_by)->toBe($admin->id);
 
     // SHA-256 hex digest is always 64 lowercase hex chars.
     expect($invitation->token_hash)->toMatch('/^[a-f0-9]{64}$/');
+});
+
+test('active invitations for the same normalized email are rejected', function () {
+    $account = Account::factory()->create();
+    $admin = User::factory()->create();
+    $account->users()->attach($admin->id, ['role' => AccountRole::Admin->value, 'joined_at' => now()]);
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('accounts.members.store', $account), [
+            'email' => 'Pending@Gmail.com',
+            'role' => AccountRole::Member->value,
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('accounts.members.store', $account), [
+            'email' => 'pending@gmail.com',
+            'role' => AccountRole::Member->value,
+        ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('email');
+
+    expect(Invitation::withoutGlobalScopes()->count())->toBe(1);
 });
 
 test('viewer cannot invite', function () {

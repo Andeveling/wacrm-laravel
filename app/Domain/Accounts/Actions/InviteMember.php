@@ -12,6 +12,9 @@ use App\Domain\Invitations\Services\InvitationIssuer;
 use App\Http\Requests\Accounts\InviteMemberRequest;
 use App\Models\Account;
 use App\Models\Enums\AccountRole;
+use App\Models\Invitation;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -59,11 +62,28 @@ final readonly class InviteMember
         );
 
         if ($actor !== null && $status === MemberActionStatus::Success) {
-            $this->issuer->issue(
-                accountId: $account->id,
-                inviter: $actor,
-                role: $validated['role'],
-            );
+            DB::transaction(function () use ($account, $actor, $validated): void {
+                Account::query()->whereKey($account->id)->lockForUpdate()->firstOrFail();
+
+                if (Invitation::withoutGlobalScopes()
+                    ->where('account_id', $account->id)
+                    ->where('email', $validated['email'])
+                    ->whereNull('accepted_at')
+                    ->whereNull('revoked_at')
+                    ->where('expires_at', '>', now())
+                    ->exists()) {
+                    throw ValidationException::withMessages([
+                        'email' => 'This email already has an active invitation for this account.',
+                    ]);
+                }
+
+                $this->issuer->issue(
+                    accountId: $account->id,
+                    inviter: $actor,
+                    role: $validated['role'],
+                    email: $validated['email'],
+                );
+            });
         }
 
         return ($this->responder)(

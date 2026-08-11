@@ -2,6 +2,7 @@
 
 use App\Models\Account;
 use App\Models\Enums\AccountRole;
+use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
@@ -38,6 +39,32 @@ test('admin gets member management ui contract without owner privileges', functi
         );
 });
 
+test('admins receive active and expired invitations for their account only', function () {
+    [$account, $admin] = accountViewedBy(AccountRole::Admin);
+    $otherAccount = Account::factory()->create();
+
+    $active = Invitation::factory()->for($account)->for($admin, 'inviter')->create([
+        'email' => 'active@example.com',
+        'expires_at' => now()->addDay(),
+    ]);
+    $expired = Invitation::factory()->for($account)->for($admin, 'inviter')->expired()->create([
+        'email' => 'expired@example.com',
+    ]);
+    Invitation::factory()->for($otherAccount)->create(['email' => 'other@example.com']);
+    Invitation::factory()->for($account)->accepted()->create(['email' => 'used@example.com']);
+
+    getMembersPage($admin, $account)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('invitations', 2)
+            ->where('invitations.0.id', $active->id)
+            ->where('invitations.0.email', 'active@example.com')
+            ->where('invitations.0.status', 'Active')
+            ->where('invitations.1.id', $expired->id)
+            ->where('invitations.1.status', 'Expired')
+        );
+});
+
 test('member gets read only ui contract', function () {
     [$account, $member] = accountViewedBy(AccountRole::Member);
 
@@ -47,6 +74,7 @@ test('member gets read only ui contract', function () {
             ->component('accounts/members')
             ->where('is_owner', false)
             ->where('is_admin', false)
+            ->missing('invitations')
         );
 });
 

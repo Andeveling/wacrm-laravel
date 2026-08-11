@@ -6,6 +6,8 @@ use App\Domain\Accounts\Results\MemberActionResult;
 use App\Domain\Accounts\Support\MemberActionStatus;
 use App\Models\Account;
 
+covers(MemberActionResult::class);
+
 it('carries the status and the Account a redirect may target', function (): void {
     $account = new Account(['name' => 'Acme Co']);
 

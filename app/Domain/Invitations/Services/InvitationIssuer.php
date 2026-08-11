@@ -38,6 +38,7 @@ class InvitationIssuer
      *
      * @param  string  $accountId  UUID of the target Account.
      * @param  string  $role  one of admin|member|viewer (validated upstream).
+     * @param  string|null  $email  normalized recipient email when known.
      * @param  string|null  $label  optional human-readable label.
      * @param  int|null  $expiresInDays  overrides the default expiry window.
      * @return array{invitation: Invitation, token: string}
@@ -46,6 +47,7 @@ class InvitationIssuer
         string $accountId,
         User $inviter,
         string $role,
+        ?string $email = null,
         ?string $label = null,
         ?int $expiresInDays = null,
     ): array {
@@ -55,6 +57,7 @@ class InvitationIssuer
             'account_id' => $accountId,
             'token_hash' => hash('sha256', $token),
             'role' => $role,
+            'email' => $email,
             'invited_by' => $inviter->id,
             'label' => $label,
             'expires_at' => now()->addDays($expiresInDays ?? self::DEFAULT_EXPIRY_DAYS),

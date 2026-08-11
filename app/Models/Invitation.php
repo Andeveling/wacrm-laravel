@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property string $account_id
  * @property string $token_hash
  * @property string $role
+ * @property string|null $email
  * @property int|null $invited_by
  * @property string|null $label
  * @property Carbon $expires_at
@@ -26,7 +27,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['account_id', 'token_hash', 'role', 'invited_by', 'label', 'expires_at', 'accepted_at', 'accepted_by', 'revoked_at'])]
+#[Fillable(['account_id', 'token_hash', 'role', 'email', 'invited_by', 'label', 'expires_at', 'accepted_at', 'accepted_by', 'revoked_at'])]
 class Invitation extends Model
 {
     protected $table = 'account_invitations';

@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { AlertCircle, Users } from 'lucide-react';
+import { AlertCircle, Clock3, Users } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -27,6 +27,17 @@ type PageProps = {
   members: AccountMember[];
   is_owner: boolean;
   is_admin: boolean;
+  invitations?: PendingInvitation[];
+};
+
+type PendingInvitation = {
+  id: string;
+  email: string | null;
+  role: MemberRole;
+  inviter: string;
+  created_at: string | null;
+  expires_at: string;
+  status: 'Active' | 'Expired';
 };
 
 function initials(name: string, email: string): string {
@@ -49,11 +60,16 @@ function formatJoinedAt(iso: string | null): string {
   });
 }
 
+function formatDate(iso: string | null): string {
+  return iso ? new Date(iso).toLocaleDateString() : 'Sin fecha';
+}
+
 export default function Members({
   account,
   members,
   is_owner,
   is_admin,
+  invitations,
 }: PageProps) {
   const { errors } = usePage<PageProps>().props;
   const {
@@ -181,6 +197,43 @@ export default function Members({
             </ul>
           </CardContent>
         </Card>
+
+        {is_admin && (
+          <Card data-testid="pending-invitations">
+            <CardContent className="p-0">
+              <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+                <Clock3 className="size-4 text-muted-foreground" />
+                <h2 className="text-sm font-medium">Invitaciones pendientes</h2>
+              </div>
+              <ul className="divide-y divide-border">
+                {invitations?.length === 0 && (
+                  <li className="px-4 py-6 text-sm text-muted-foreground">
+                    No hay invitaciones pendientes.
+                  </li>
+                )}
+                {invitations?.map((invitation) => (
+                  <li
+                    key={invitation.id}
+                    className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-3"
+                    data-testid={`invitation-row-${invitation.id}`}
+                  >
+                    <span className="truncate font-medium">
+                      {invitation.email ?? 'Sin email'}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {ROLE_LABEL[invitation.role]} por {invitation.inviter}
+                    </span>
+                    <span className="text-muted-foreground sm:text-right">
+                      Creada {formatDate(invitation.created_at)} · Expira{' '}
+                      {formatDate(invitation.expires_at)} ·{' '}
+                      {invitation.status === 'Active' ? 'Activa' : 'Expirada'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         <p className="text-xs text-muted-foreground" data-testid="viewer-flags">
           Tu rol actual es {ROLE_LABEL[account.role]}.

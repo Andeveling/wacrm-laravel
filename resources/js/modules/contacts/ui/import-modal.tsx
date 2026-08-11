@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { FileUp } from 'lucide-react';
-import { useRef } from 'react';
+import { useId } from 'react';
 import { toast } from 'sonner';
 import importMethod from '@/actions/App/Domain/Contacts/Actions/ImportContacts';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ export function ImportModal({
   onOpenChange,
   onImported,
 }: ImportModalProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const fileId = useId();
   const form = useForm<{ file: File | null }>({ file: null });
 
   function submit(event: React.FormEvent) {
@@ -41,8 +41,6 @@ export function ImportModal({
       preserveScroll: true,
       onSuccess: () => {
         toast.success('Contactos importados.');
-        form.reset();
-        if (inputRef.current) inputRef.current.value = '';
         onOpenChange(false);
         onImported();
       },
@@ -62,10 +60,9 @@ export function ImportModal({
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="contacts-file">Archivo CSV</Label>
+            <Label htmlFor={fileId}>Archivo CSV</Label>
             <input
-              ref={inputRef}
-              id="contacts-file"
+              id={fileId}
               type="file"
               accept=".csv,.txt,text/csv,text/plain"
               onChange={(event) =>

@@ -80,9 +80,9 @@ test('contacts page creates through the page seam', function () {
     $this->visit('/contacts')
         ->click('[data-testid="contacts-add"]')
         ->assertSee('Nuevo contacto')
-        ->type('#cf-name', 'Sofía Méndez')
-        ->type('#cf-phone', '+57 300 999 9999')
-        ->type('#cf-email', 'sofia@example.com')
+        ->type('[data-testid="contact-form-name"]', 'Sofía Méndez')
+        ->type('[data-testid="contact-form-phone"]', '+57 300 999 9999')
+        ->type('[data-testid="contact-form-email"]', 'sofia@example.com')
         ->press('button[type="submit"]')
         ->assertSee('Sofía Méndez');
 
@@ -98,7 +98,7 @@ test('contacts page edits through the page seam', function () {
         ->assertVisible('[data-testid="contact-edit-row-0"]')
         ->click('[data-testid="contact-edit-row-0"]')
         ->assertSee('Editar contacto')
-        ->type('#cf-name', 'Laura Gómez editado')
+        ->type('[data-testid="contact-form-name"]', 'Laura Gómez editado')
         ->press('button[type="submit"]')
         ->assertSee('Laura Gómez editado');
 
@@ -143,6 +143,21 @@ test('contacts detail edit preserves the filtered page and page size', function 
         ->assertSee('Página 2 de 4');
 
     expect($target->fresh()->name)->toBe('Contacto actualizado');
+});
+
+test('contacts detail stays open when an edit removes the contact from the filter', function () {
+    signInAndSelectAccount($this->owner);
+
+    $this->visit('/contacts?search=Laura%20G%C3%B3mez')
+        ->type(CONTACTS_SEARCH_INPUT, 'Laura Gómez')
+        ->click('[data-testid="contact-row-0"]')
+        ->fill('[data-testid="contact-detail-name"]', 'Nombre fuera del filtro')
+        ->press('Guardar cambios')
+        ->assertSee('Contacto actualizado.')
+        ->assertSee('2 contactos')
+        ->assertSeeIn('[data-testid="contact-detail-title"]', 'Nombre fuera del filtro');
+
+    expect(Contact::query()->where('name', 'Nombre fuera del filtro')->exists())->toBeTrue();
 });
 
 // Deleting redirects to the unfiltered index, so the roster comes back whole

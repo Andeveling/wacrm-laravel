@@ -25,6 +25,6 @@ final readonly class UpdateContact
             $this->tags->sync($contact, $request->validated('tag_ids'));
         }
 
-        return $this->responder->success();
+        return $this->responder->success()->with('detail_contact_id', $contact->id);
     }
 }

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Contact } from './contracts';
 import {
-  buildContact,
   buildContactsFilterQuery,
   toggleContactSelection,
   togglePageSelection,
@@ -85,39 +84,5 @@ describe('contact selection', () => {
 
     expect([...selected]).toEqual(['contact-3', 'contact-1', 'contact-2']);
     expect([...cleared]).toEqual(['contact-3']);
-  });
-});
-
-describe('buildContact', () => {
-  it('normalizes form values while preserving identity and creation time', () => {
-    const existing = contacts[0];
-    const result = buildContact(
-      {
-        name: '  Ana Pérez actualizada  ',
-        phone: ' +57 300 999 0000 ',
-        email: ' ',
-        company: '  Acme SAS  ',
-        tagIds: ['tag-lead'],
-      },
-      existing,
-      [
-        { id: 'tag-lead', name: 'Prospecto', color: '#3b82f6' },
-        { id: 'tag-unknown', name: 'No visible', color: '#000000' },
-      ],
-      '2026-01-05T00:00:00Z',
-      'contact-generated',
-    );
-
-    expect(result).toEqual({
-      id: existing.id,
-      name: 'Ana Pérez actualizada',
-      phone: '+57 300 999 0000',
-      email: null,
-      company: 'Acme SAS',
-      avatar_url: null,
-      created_at: existing.created_at,
-      updated_at: '2026-01-05T00:00:00Z',
-      tags: [{ id: 'tag-lead', name: 'Prospecto', color: '#3b82f6' }],
-    });
   });
 });

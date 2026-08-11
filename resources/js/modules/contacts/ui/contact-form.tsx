@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useId } from 'react';
 import { toast } from 'sonner';
 import store from '@/actions/App/Domain/Contacts/Actions/StoreContact';
 import update from '@/actions/App/Domain/Contacts/Actions/UpdateContact';
@@ -15,44 +15,23 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ContactFormProps } from '../contracts';
-import { buildContact } from '../model';
+import { TagPicker } from './tag-picker';
 
 export function ContactForm({
   open,
   onOpenChange,
   contact,
   tags,
-  onUpdated,
 }: ContactFormProps) {
   const isEdit = !!contact;
+  const fieldId = useId();
   const form = useForm({
-    name: '',
-    phone: '',
-    email: '',
-    company: '',
-    tag_ids: [] as string[],
+    name: contact?.name ?? '',
+    phone: contact?.phone ?? '',
+    email: contact?.email ?? '',
+    company: contact?.company ?? '',
+    tag_ids: contact?.tags.map((tag) => tag.id) ?? [],
   });
-
-  useEffect(() => {
-    if (!open) return;
-
-    form.setData({
-      name: contact?.name ?? '',
-      phone: contact?.phone ?? '',
-      email: contact?.email ?? '',
-      company: contact?.company ?? '',
-      tag_ids: contact?.tags?.map((tag) => tag.id) ?? [],
-    });
-  }, [open, contact, form.setData]);
-
-  function toggleTag(tagId: string) {
-    form.setData(
-      'tag_ids',
-      form.data.tag_ids.includes(tagId)
-        ? form.data.tag_ids.filter((id) => id !== tagId)
-        : [...form.data.tag_ids, tagId],
-    );
-  }
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -64,31 +43,16 @@ export function ContactForm({
 
     form.submit(isEdit ? update(contact.id) : store(), {
       preserveScroll: true,
+      preserveUrl: isEdit,
       onSuccess: () => {
-        toast.success(isEdit ? 'Contacto actualizado.' : 'Contacto creado.');
         onOpenChange(false);
-
-        if (!isEdit) {
-          router.reload({ only: ['contacts', 'tags'] });
-          return;
-        }
-        if (!contact) return;
-
-        onUpdated(
-          buildContact(
-            {
-              name: form.data.name,
-              phone: form.data.phone,
-              email: form.data.email,
-              company: form.data.company,
-              tagIds: form.data.tag_ids,
-            },
-            contact,
-            tags,
-            new Date().toISOString(),
-            contact.id,
-          ),
-        );
+        router.reload({
+          only: ['contacts', 'filters', 'tags'],
+          onSuccess: () =>
+            toast.success(
+              isEdit ? 'Contacto actualizado.' : 'Contacto creado.',
+            ),
+        });
       },
       onError: () => toast.error('No se pudo guardar el contacto.'),
     });
@@ -110,9 +74,10 @@ export function ContactForm({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="cf-name">Nombre</Label>
+            <Label htmlFor={`${fieldId}-name`}>Nombre</Label>
             <Input
-              id="cf-name"
+              id={`${fieldId}-name`}
+              data-testid="contact-form-name"
               value={form.data.name}
               onChange={(event) => form.setData('name', event.target.value)}
               placeholder="Nombre completo"
@@ -120,11 +85,12 @@ export function ContactForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cf-phone">
+            <Label htmlFor={`${fieldId}-phone`}>
               Teléfono <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="cf-phone"
+              id={`${fieldId}-phone`}
+              data-testid="contact-form-phone"
               value={form.data.phone}
               onChange={(event) => form.setData('phone', event.target.value)}
               placeholder="+57 300 000 0000"
@@ -132,9 +98,10 @@ export function ContactForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cf-email">Correo</Label>
+            <Label htmlFor={`${fieldId}-email`}>Correo</Label>
             <Input
-              id="cf-email"
+              id={`${fieldId}-email`}
+              data-testid="contact-form-email"
               type="email"
               value={form.data.email}
               onChange={(event) => form.setData('email', event.target.value)}
@@ -143,9 +110,10 @@ export function ContactForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cf-company">Empresa</Label>
+            <Label htmlFor={`${fieldId}-company`}>Empresa</Label>
             <Input
-              id="cf-company"
+              id={`${fieldId}-company`}
+              data-testid="contact-form-company"
               value={form.data.company}
               onChange={(event) => form.setData('company', event.target.value)}
               placeholder="Nombre de la empresa"
@@ -154,30 +122,11 @@ export function ContactForm({
 
           <div className="space-y-2">
             <Label>Etiquetas</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {tags.map((tag) => {
-                const selected = form.data.tag_ids.includes(tag.id);
-
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    className={`cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-medium transition-opacity ${
-                      selected
-                        ? 'ring-2 ring-primary ring-offset-1'
-                        : 'opacity-60 hover:opacity-100'
-                    }`}
-                    style={{
-                      backgroundColor: `${tag.color}20`,
-                      color: tag.color,
-                    }}
-                  >
-                    {tag.name}
-                  </button>
-                );
-              })}
-            </div>
+            <TagPicker
+              tags={tags}
+              selectedIds={form.data.tag_ids}
+              onChange={(tagIds) => form.setData('tag_ids', tagIds)}
+            />
           </div>
 
           <DialogFooter>

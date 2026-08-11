@@ -13,8 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useDialog } from '@/hooks/use-dialog';
 import { contacts } from '@/routes';
-import type { Paginated } from '@/types/pagination';
 import type { Contact, ContactsPageProps } from '../contracts';
 import { ContactDetailView } from './contact-detail-view';
 import { ContactForm } from './contact-form';
@@ -23,83 +23,65 @@ import { CustomFieldsManager } from './custom-fields-manager';
 import { ImportModal } from './import-modal';
 
 export function ContactsScreen({
-  contacts: initialContacts,
+  contacts,
   tags,
   customFields,
   canManageCustomFields,
   canWrite,
   filters,
+  detailContact: refreshedDetailContact,
   notes,
   customValues,
   contactDeals,
 }: ContactsPageProps) {
-  const [contacts, setContacts] = useState<Paginated<Contact>>(initialContacts);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editContact, setEditContact] = useState<Contact | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailContact, setDetailContact] = useState<Contact | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-  const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
+  // The edit and delete dialogs hold the record they were opened on, so
+  // a filter or pagination reload cannot pull it out from under them.
+  // The detail sheet stays open across saves, so it follows the server
+  // copy by id instead.
+  const form = useDialog<Contact>();
+  const remove = useDialog<Contact>();
+  const detail = useDialog<string>();
+  const importer = useDialog();
+  const fieldsManager = useDialog();
+  const [detailClosed, setDetailClosed] = useState(false);
 
   useEffect(() => {
-    setContacts(initialContacts);
-    setDetailContact((current) =>
-      current
-        ? (initialContacts.data.find((contact) => contact.id === current.id) ??
-          null)
-        : null,
-    );
-  }, [initialContacts]);
+    if (refreshedDetailContact && detail.target === null) {
+      detail.show(refreshedDetailContact.id);
+    }
+  }, [detail.show, detail.target, refreshedDetailContact]);
 
-  function openAddForm() {
-    setEditContact(null);
-    setFormOpen(true);
-  }
+  const detailContact =
+    (refreshedDetailContact?.id === detail.target
+      ? refreshedDetailContact
+      : contacts.data.find((contact) => contact.id === detail.target)) ??
+    refreshedDetailContact ??
+    null;
 
-  function openEditForm(contact: Contact) {
-    setEditContact(contact);
-    setFormOpen(true);
-  }
-
-  function openDetail(contact: Contact) {
-    setDetailContact(contact);
-    setDetailOpen(true);
-  }
-
-  function upsertContact(contact: Contact) {
-    setContacts((previous) => {
-      const exists = previous.data.some((item) => item.id === contact.id);
-
-      return {
-        ...previous,
-        data: exists
-          ? previous.data.map((item) =>
-              item.id === contact.id ? contact : item,
-            )
-          : [contact, ...previous.data],
-      };
-    });
-    setDetailContact((previous) =>
-      previous && previous.id === contact.id ? contact : previous,
-    );
+  function handleDetailOpenChange(open: boolean): void {
+    detail.setOpen(open);
+    setDetailClosed(!open);
   }
 
   function handleDelete() {
-    if (!deleteTarget) return;
+    if (!remove.target) {
+      return;
+    }
 
-    router.delete(destroy(deleteTarget.id), {
+    router.delete(destroy(remove.target.id), {
       preserveScroll: true,
       onSuccess: () => {
         toast.success('Contacto eliminado.');
-        setDeleteTarget(null);
+        remove.setOpen(false);
       },
       onError: () => toast.error('No se pudo eliminar el contacto.'),
     });
   }
 
   function handleBulkDelete(selectedContacts: Contact[]) {
-    if (selectedContacts.length === 0) return;
+    if (selectedContacts.length === 0) {
+      return;
+    }
 
     router.delete(bulkDestroy(), {
       data: { ids: selectedContacts.map((contact) => contact.id) },
@@ -118,29 +100,35 @@ export function ContactsScreen({
         contacts={contacts}
         tags={tags}
         filters={filters}
-        onAdd={openAddForm}
-        onImport={() => setImportOpen(true)}
+        onAdd={() => form.show()}
+        onImport={() => importer.show()}
         onExport={() => window.location.assign(exportContacts.url())}
-        onManageCustomFields={() => setCustomFieldsOpen(true)}
-        onOpenDetail={openDetail}
-        onEdit={openEditForm}
-        onDelete={setDeleteTarget}
+        onManageCustomFields={() => fieldsManager.show()}
+        onOpenDetail={(contact) => {
+          setDetailClosed(false);
+          detail.show(contact.id);
+        }}
+        onEdit={(contact) => form.show(contact)}
+        onDelete={(contact) => remove.show(contact)}
         onBulkDelete={handleBulkDelete}
       />
 
       <ContactForm
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        contact={editContact}
+        key={form.key}
+        open={form.open}
+        onOpenChange={form.setOpen}
+        contact={form.target}
         tags={tags}
-        onUpdated={upsertContact}
       />
 
-      {detailContact && (
+      {detailContact ? (
         <ContactDetailView
-          key={detailContact.id}
-          open={detailOpen}
-          onOpenChange={setDetailOpen}
+          key={detail.key}
+          open={
+            !detailClosed &&
+            (detail.open || refreshedDetailContact?.id === detail.target)
+          }
+          onOpenChange={handleDetailOpenChange}
           contact={detailContact}
           tags={tags}
           customFields={customFields}
@@ -148,38 +136,35 @@ export function ContactsScreen({
           customValues={customValues}
           contactDeals={contactDeals}
           canWrite={canWrite}
-          onUpdated={upsertContact}
         />
-      )}
+      ) : null}
 
       <ImportModal
-        open={importOpen}
-        onOpenChange={setImportOpen}
+        key={importer.key}
+        open={importer.open}
+        onOpenChange={importer.setOpen}
         onImported={() => router.reload({ only: ['contacts', 'tags'] })}
       />
 
       <CustomFieldsManager
-        open={customFieldsOpen}
-        onOpenChange={setCustomFieldsOpen}
+        open={fieldsManager.open}
+        onOpenChange={fieldsManager.setOpen}
         fields={customFields}
         canManage={canManageCustomFields}
         onChanged={() => router.reload({ only: ['customFields'] })}
       />
 
-      <Dialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
+      <Dialog open={remove.open} onOpenChange={remove.setOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Eliminar contacto</DialogTitle>
             <DialogDescription>
-              ¿Eliminar a {deleteTarget?.name || deleteTarget?.phone}? Esta
+              ¿Eliminar a {remove.target?.name || remove.target?.phone}? Esta
               acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+            <Button variant="outline" onClick={() => remove.setOpen(false)}>
               Cancelar
             </Button>
             <Button

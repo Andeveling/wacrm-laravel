@@ -100,6 +100,47 @@ test('contacts index filters by search term server-side', function () {
         ->where('filters.search', 'Laura'));
 });
 
+test('contacts index includes the flashed detail contact outside the active filter', function () {
+    [$owner, $account] = memberWithRole('owner');
+    $contact = Contact::factory()->for($account)->create([
+        'user_id' => $owner->id,
+        'name' => 'Nombre actualizado',
+    ]);
+
+    $this->actingAs($owner)
+        ->withSession([
+            'current_account_id' => $account->id,
+            'detail_contact_id' => $contact->id,
+        ])
+        ->get(route('contacts', ['search' => 'sin coincidencias']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('contacts.total', 0)
+            ->where('detailContact.id', $contact->id)
+            ->where('detailContact.name', 'Nombre actualizado'));
+});
+
+test('updating a contact flashes its detail projection for the redirect', function () {
+    [$owner, $account] = memberWithRole('owner');
+    $contact = Contact::factory()->for($account)->create([
+        'user_id' => $owner->id,
+        'name' => 'Antes',
+    ]);
+
+    $this->actingAs($owner)
+        ->withSession(['current_account_id' => $account->id])
+        ->patch(route('contacts.update', $contact), [
+            'name' => 'Después',
+            'phone' => $contact->phone,
+        ])
+        ->assertRedirect(route('contacts'));
+
+    $this->get(route('contacts', ['search' => 'sin coincidencias']))
+        ->assertInertia(fn ($page) => $page
+            ->where('detailContact.id', $contact->id)
+            ->where('detailContact.name', 'Después'));
+});
+
 test('contacts index filters by tag server-side', function () {
     [$owner, $account] = memberWithRole('owner');
     $vip = Tag::factory()->for($account)->create(['name' => 'VIP']);

@@ -84,9 +84,7 @@ export function ContactsList({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(filters.tags);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  const isFirstRender = useRef(true);
-  const perPage = useRef(contacts.per_page);
-  perPage.current = contacts.per_page;
+  const searchDebounce = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const rows = contacts.data;
   const hasActiveFilters = Boolean(search.trim()) || selectedTagIds.length > 0;
@@ -94,18 +92,20 @@ export function ContactsList({
     rows.length > 0 && rows.every((contact) => selected.has(contact.id));
   const someOnPageSelected = rows.some((contact) => selected.has(contact.id));
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+  // The only reason for an effect here: the pending timer is an external
+  // resource that must not outlive the component, or it navigates back to
+  // contacts after the user has already left the page.
+  useEffect(() => () => clearTimeout(searchDebounce.current), []);
 
-    const handle = setTimeout(() => {
+  function applyFilters(nextSearch: string, nextTagIds: string[]) {
+    clearTimeout(searchDebounce.current);
+
+    searchDebounce.current = setTimeout(() => {
       router.get(
         contactsRoute.url(),
         {
-          ...buildContactsFilterQuery(search, selectedTagIds),
-          per_page: perPage.current,
+          ...buildContactsFilterQuery(nextSearch, nextTagIds),
+          per_page: contacts.per_page,
         },
         {
           preserveState: true,
@@ -115,20 +115,25 @@ export function ContactsList({
         },
       );
     }, 300);
+  }
 
-    return () => clearTimeout(handle);
-  }, [search, selectedTagIds]);
+  function changeSearch(term: string) {
+    setSearch(term);
+    applyFilters(term, selectedTagIds);
+  }
 
   function toggleTagFilter(tagId: string) {
-    setSelectedTagIds((previous) =>
-      previous.includes(tagId)
-        ? previous.filter((id) => id !== tagId)
-        : [...previous, tagId],
-    );
+    const nextTagIds = selectedTagIds.includes(tagId)
+      ? selectedTagIds.filter((id) => id !== tagId)
+      : [...selectedTagIds, tagId];
+
+    setSelectedTagIds(nextTagIds);
+    applyFilters(search, nextTagIds);
   }
 
   function clearTagFilters() {
     setSelectedTagIds([]);
+    applyFilters(search, []);
   }
 
   function handleBulkDelete() {
@@ -173,7 +178,7 @@ export function ContactsList({
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => changeSearch(event.target.value)}
               placeholder="Buscar por nombre, teléfono o correo…"
               className="max-w-sm"
             />
@@ -187,17 +192,17 @@ export function ContactsList({
                 >
                   <Filter className="size-4" />
                   Filtrar por etiqueta
-                  {selectedTagIds.length > 0 && (
+                  {selectedTagIds.length > 0 ? (
                     <span className="ml-1 inline-flex items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
                       {selectedTagIds.length}
                     </span>
-                  )}
+                  ) : null}
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="start" className="w-64 p-0">
                 <div className="flex items-center justify-between border-b px-3 py-2">
                   <span className="text-sm font-medium">Etiquetas</span>
-                  {selectedTagIds.length > 0 && (
+                  {selectedTagIds.length > 0 ? (
                     <button
                       type="button"
                       onClick={clearTagFilters}
@@ -205,7 +210,7 @@ export function ContactsList({
                     >
                       Limpiar
                     </button>
-                  )}
+                  ) : null}
                 </div>
                 <div className="max-h-64 overflow-y-auto py-1">
                   {tags.map((tag) => (
@@ -232,7 +237,7 @@ export function ContactsList({
             </Popover>
           </div>
 
-          {selectedTagIds.length > 0 && (
+          {selectedTagIds.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1.5">
               {selectedTagIds.map((id) => {
                 const tag = tags.find((candidate) => candidate.id === id);
@@ -259,10 +264,10 @@ export function ContactsList({
                 );
               })}
             </div>
-          )}
+          ) : null}
         </div>
 
-        {selected.size > 0 && (
+        {selected.size > 0 ? (
           <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 px-4 py-2">
             <p className="text-sm text-foreground">
               {selected.size} seleccionados
@@ -286,7 +291,7 @@ export function ContactsList({
               </Button>
             </div>
           </div>
-        )}
+        ) : null}
 
         <div className="overflow-hidden rounded-lg border">
           <Table>
@@ -331,7 +336,7 @@ export function ContactsList({
                           ? 'Ningún contacto coincide con el filtro.'
                           : 'Todavía no hay contactos.'}
                       </p>
-                      {!hasActiveFilters && (
+                      {hasActiveFilters ? null : (
                         <Button
                           variant="outline"
                           size="sm"
@@ -381,8 +386,8 @@ export function ContactsList({
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
-                        {(contact.tags ?? []).length > 0 ? (
-                          contact.tags?.slice(0, 3).map((tag) => (
+                        {contact.tags.length > 0 ? (
+                          contact.tags.slice(0, 3).map((tag) => (
                             <span
                               key={tag.id}
                               className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"

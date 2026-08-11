@@ -22,10 +22,15 @@ final class ShowContacts
         $search = trim((string) $request->query('search', ''));
         $tagIds = array_values(array_filter((array) $request->query('tags', [])));
         $perPage = (int) $request->query('per_page', (string) self::PER_PAGE_OPTIONS[0]);
+        $detailId = $request->query('detail') ?? $request->session()->pull('detail_contact_id');
 
         if (! in_array($perPage, self::PER_PAGE_OPTIONS, true)) {
             $perPage = self::PER_PAGE_OPTIONS[0];
         }
+
+        $detailContact = is_string($detailId)
+            ? Contact::query()->with(ContactProjection::RELATIONS)->find($detailId)
+            : null;
 
         return Inertia::render('contacts', [
             'contacts' => Contact::query()
@@ -52,6 +57,9 @@ final class ShowContacts
                 'search' => $search,
                 'tags' => $tagIds,
             ],
+            'detailContact' => $detailContact !== null
+                ? ContactProjection::from($detailContact)
+                : null,
         ]);
     }
 }

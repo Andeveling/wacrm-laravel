@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Tag as TagIcon, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -94,7 +94,7 @@ export function TagManager({ tags, canManage, onChanged }: TagManagerProps) {
   function handleDelete() {
     if (!tagToDelete) return;
 
-    form.submit(destroyTag(tagToDelete.id), {
+    router.delete(destroyTag(tagToDelete.id), {
       preserveScroll: true,
       onSuccess: () => {
         toast.success('Etiqueta eliminada.');
@@ -135,7 +135,7 @@ export function TagManager({ tags, canManage, onChanged }: TagManagerProps) {
                   style={{ backgroundColor: tag.color }}
                 />
                 {tag.name}
-                {canManage && (
+                {canManage ? (
                   <>
                     <button
                       type="button"
@@ -154,7 +154,7 @@ export function TagManager({ tags, canManage, onChanged }: TagManagerProps) {
                       <X className="size-3" />
                     </button>
                   </>
-                )}
+                ) : null}
               </span>
             ))}
           </div>
@@ -164,7 +164,7 @@ export function TagManager({ tags, canManage, onChanged }: TagManagerProps) {
           </p>
         )}
 
-        {canManage && (
+        {canManage ? (
           <form
             onSubmit={saveTag}
             className="flex flex-wrap items-center gap-2.5"
@@ -194,7 +194,7 @@ export function TagManager({ tags, canManage, onChanged }: TagManagerProps) {
                 />
               ))}
             </div>
-            {editingId && (
+            {editingId ? (
               <Button
                 type="button"
                 variant="outline"
@@ -203,7 +203,7 @@ export function TagManager({ tags, canManage, onChanged }: TagManagerProps) {
               >
                 Cancelar edición
               </Button>
-            )}
+            ) : null}
             <Button
               type="submit"
               variant="outline"
@@ -214,7 +214,7 @@ export function TagManager({ tags, canManage, onChanged }: TagManagerProps) {
               {editingId ? 'Guardar' : 'Agregar etiqueta'}
             </Button>
           </form>
-        )}
+        ) : null}
       </CardContent>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -78,16 +78,16 @@ export function ContactsScreen({
     });
   }
 
-  function handleBulkDelete(selectedContacts: Contact[]) {
-    if (selectedContacts.length === 0) {
+  function handleBulkDelete(selectedContactIds: string[]) {
+    if (selectedContactIds.length === 0) {
       return;
     }
 
     router.delete(bulkDestroy(), {
-      data: { ids: selectedContacts.map((contact) => contact.id) },
+      data: { ids: selectedContactIds },
       preserveScroll: true,
       onSuccess: () =>
-        toast.success(`${selectedContacts.length} contactos eliminados.`),
+        toast.success(`${selectedContactIds.length} contactos eliminados.`),
       onError: () => toast.error('No se pudieron eliminar los contactos.'),
     });
   }

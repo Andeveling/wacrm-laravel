@@ -199,3 +199,21 @@ test('contacts page bulk deletes the selected rows through the page seam', funct
 
     expect(Contact::query()->count())->toBe(14);
 });
+
+test('contacts page bulk deletes selections retained across pagination', function () {
+    signInAndSelectAccount($this->owner);
+
+    $this->visit('/contacts')
+        ->click('thead [data-slot="checkbox"]')
+        ->assertSee('10 seleccionados')
+        ->click('[data-testid="contacts-next-page"]')
+        ->assertSee('Página 2 de 3')
+        ->click('[data-testid="contacts-bulk-delete"]')
+        ->assertSee('¿Eliminar 10 contactos seleccionados?')
+        ->click('[data-testid="contacts-bulk-delete-confirm"]')
+        ->assertSee('10 contactos eliminados.')
+        ->assertSee('14 contactos')
+        ->assertDontSee('seleccionados');
+
+    expect(Contact::query()->count())->toBe(14);
+});

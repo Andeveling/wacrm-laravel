@@ -123,6 +123,25 @@ test('admin can revoke a pending invitation', function () {
     expect($invitation->fresh()->revoked_at)->not->toBeNull();
 });
 
+test('revoked invitation token cannot be previewed', function () {
+    [$admin, $account] = memberWithRole('admin');
+    $token = 'known-invitation-token';
+    $invitation = Invitation::factory()->for($account)->create([
+        'token_hash' => hash('sha256', $token),
+    ]);
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->delete(route('invitations.revoke', $invitation))
+        ->assertRedirect();
+
+    $this->get(route('invitations.preview', ['token' => $token]))
+        ->assertInertia(fn ($page) => $page
+            ->component('invitations/preview')
+            ->where('status', 'invalid')
+        );
+});
+
 test('revoke is scoped to the current account', function () {
     [$admin, $account] = memberWithRole('admin');
     $otherAccount = Account::factory()->create();

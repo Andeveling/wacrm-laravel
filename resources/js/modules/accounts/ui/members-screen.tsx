@@ -1,11 +1,23 @@
-import { Head, usePage } from '@inertiajs/react';
-import { AlertCircle, Clock3, Users } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { AlertCircle, Clock3, Loader2, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import RevokeInvitation from '@/actions/App/Domain/Invitations/Actions/RevokeInvitation';
 import Heading from '@/components/heading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ROLE_BADGE, ROLE_LABEL } from '../roles';
 import { useAccountMembership } from '../use-account-membership';
 import {
@@ -85,6 +97,11 @@ export default function Members({
   const [memberToRemove, setMemberToRemove] = useState<AccountMember | null>(
     null,
   );
+  const [invitationToRevoke, setInvitationToRevoke] =
+    useState<PendingInvitation | null>(null);
+  const [revokingInvitationId, setRevokingInvitationId] = useState<
+    string | null
+  >(null);
 
   const lastOwnerError = errors.last_owner_blocked;
 
@@ -93,6 +110,20 @@ export default function Members({
       return;
     }
     removeMember(memberToRemove, () => setMemberToRemove(null));
+  }
+
+  function confirmRevokeInvitation() {
+    if (!invitationToRevoke) {
+      return;
+    }
+
+    setRevokingInvitationId(invitationToRevoke.id);
+    router.delete(RevokeInvitation(invitationToRevoke.id), {
+      preserveScroll: true,
+      onSuccess: () => setInvitationToRevoke(null),
+      onError: () => toast.error('No se pudo revocar la invitación.'),
+      onFinish: () => setRevokingInvitationId(null),
+    });
   }
 
   return (
@@ -214,20 +245,40 @@ export default function Members({
                 {invitations?.map((invitation) => (
                   <li
                     key={invitation.id}
-                    className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-3"
+                    className="flex flex-col gap-3 px-4 py-3 text-sm sm:flex-row sm:items-center"
                     data-testid={`invitation-row-${invitation.id}`}
                   >
-                    <span className="truncate font-medium">
-                      {invitation.email ?? 'Sin email'}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {ROLE_LABEL[invitation.role]} por {invitation.inviter}
-                    </span>
-                    <span className="text-muted-foreground sm:text-right">
-                      Creada {formatDate(invitation.created_at)} · Expira{' '}
-                      {formatDate(invitation.expires_at)} ·{' '}
-                      {invitation.status === 'Active' ? 'Activa' : 'Expirada'}
-                    </span>
+                    <div className="grid min-w-0 flex-1 gap-1 sm:grid-cols-3">
+                      <span className="truncate font-medium">
+                        {invitation.email ?? 'Sin email'}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {ROLE_LABEL[invitation.role]} por {invitation.inviter}
+                      </span>
+                      <span className="text-muted-foreground sm:text-right">
+                        Creada {formatDate(invitation.created_at)} · Expira{' '}
+                        {formatDate(invitation.expires_at)} ·{' '}
+                        {invitation.status === 'Active' ? 'Activa' : 'Expirada'}
+                      </span>
+                    </div>
+                    {invitation.status === 'Active' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setInvitationToRevoke(invitation)}
+                        disabled={revokingInvitationId === invitation.id}
+                        className="self-start border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:self-auto"
+                        data-testid={`revoke-invitation-${invitation.id}`}
+                      >
+                        {revokingInvitationId === invitation.id ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <Trash2 />
+                        )}
+                        Revocar
+                      </Button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -248,6 +299,41 @@ export default function Members({
           onClose={() => setMemberToRemove(null)}
           onConfirm={confirmRemove}
         />
+
+        <Dialog
+          open={invitationToRevoke !== null}
+          onOpenChange={(open) => !open && setInvitationToRevoke(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>¿Revocar invitación?</DialogTitle>
+              <DialogDescription>
+                La invitación para{' '}
+                {invitationToRevoke?.email ?? 'este destinatario'} dejará de
+                funcionar inmediatamente.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={confirmRevokeInvitation}
+                disabled={
+                  invitationToRevoke !== null &&
+                  revokingInvitationId === invitationToRevoke.id
+                }
+                data-testid="confirm-revoke-invitation"
+              >
+                Revocar invitación
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );

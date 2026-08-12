@@ -63,6 +63,42 @@ test('pending invitations show expired legacy rows with their details', function
         ->assertSee('Expirada');
 });
 
+test('admin revokes an active invitation after confirmation', function () {
+    $data = createSimpleAccount();
+    $invitation = Invitation::factory()
+        ->for($data['account'])
+        ->for($data['owner'], 'inviter')
+        ->create(['email' => 'pending@example.com']);
+
+    signInAndSelectAccount($data['owner']);
+
+    $this->visit('/accounts/'.$data['account']->id.'/members')
+        ->assertNoSmoke()
+        ->click('[data-testid="revoke-invitation-'.$invitation->id.'"]')
+        ->assertSee('¿Revocar invitación?')
+        ->assertSee('pending@example.com')
+        ->click('[data-testid="confirm-revoke-invitation"]')
+        ->assertNotPresent('[data-testid="invitation-row-'.$invitation->id.'"]');
+
+    expect($invitation->fresh()->revoked_at)->not->toBeNull();
+});
+
+test('expired invitations cannot be revoked from the list', function () {
+    $data = createSimpleAccount();
+    $invitation = Invitation::factory()
+        ->for($data['account'])
+        ->for($data['owner'], 'inviter')
+        ->expired()
+        ->create();
+
+    signInAndSelectAccount($data['owner']);
+
+    $this->visit('/accounts/'.$data['account']->id.'/members')
+        ->assertNoSmoke()
+        ->assertPresent('[data-testid="invitation-row-'.$invitation->id.'"]')
+        ->assertNotPresent('[data-testid="revoke-invitation-'.$invitation->id.'"]');
+});
+
 test('change member role persists the change', function () {
     $data = createSimpleAccount();
 

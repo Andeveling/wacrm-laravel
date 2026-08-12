@@ -1,11 +1,23 @@
-import { Head, usePage } from '@inertiajs/react';
-import { AlertCircle, Clock3, Users } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { AlertCircle, Clock3, RefreshCw, Users } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useClipboard } from '@/hooks/use-clipboard';
 import { ROLE_BADGE, ROLE_LABEL } from '../roles';
 import { useAccountMembership } from '../use-account-membership';
 import {
@@ -28,6 +40,7 @@ type PageProps = {
   is_owner: boolean;
   is_admin: boolean;
   invitations?: PendingInvitation[];
+  invitation_url: string | null;
 };
 
 type PendingInvitation = {
@@ -70,21 +83,27 @@ export default function Members({
   is_owner,
   is_admin,
   invitations,
+  invitation_url,
 }: PageProps) {
   const { errors } = usePage<PageProps>().props;
   const {
     members: enrichedMembers,
     busyMemberId,
+    busyInvitationId,
     inviteState,
     inviteMember,
     changeRole,
     removeMember,
+    regenerateInvitation,
     roleOptions,
   } = useAccountMembership(account.id, members);
 
   const [memberToRemove, setMemberToRemove] = useState<AccountMember | null>(
     null,
   );
+  const [invitationToRegenerate, setInvitationToRegenerate] =
+    useState<PendingInvitation | null>(null);
+  const [, copy] = useClipboard();
 
   const lastOwnerError = errors.last_owner_blocked;
 
@@ -93,6 +112,21 @@ export default function Members({
       return;
     }
     removeMember(memberToRemove, () => setMemberToRemove(null));
+  }
+
+  function confirmRegenerate() {
+    if (!invitationToRegenerate) {
+      return;
+    }
+    regenerateInvitation(invitationToRegenerate.id, () =>
+      setInvitationToRegenerate(null),
+    );
+  }
+
+  async function copyInvitationUrl() {
+    if (invitation_url && (await copy(invitation_url))) {
+      toast.success('Enlace copiado.');
+    }
   }
 
   return (
@@ -228,6 +262,19 @@ export default function Members({
                       {formatDate(invitation.expires_at)} ·{' '}
                       {invitation.status === 'Active' ? 'Activa' : 'Expirada'}
                     </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setInvitationToRegenerate(invitation)}
+                      disabled={busyInvitationId === invitation.id}
+                      data-testid={`regenerate-invitation-${invitation.id}`}
+                    >
+                      <RefreshCw />
+                      {busyInvitationId === invitation.id
+                        ? 'Regenerando…'
+                        : 'Regenerar'}
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -248,6 +295,70 @@ export default function Members({
           onClose={() => setMemberToRemove(null)}
           onConfirm={confirmRemove}
         />
+        <Dialog
+          open={invitationToRegenerate !== null}
+          onOpenChange={(open) => !open && setInvitationToRegenerate(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>¿Regenerar enlace de invitación?</DialogTitle>
+              <DialogDescription>
+                El enlace anterior dejará de funcionar. Se creará un enlace
+                nuevo para {invitationToRegenerate?.email ?? 'esta invitación'}{' '}
+                con siete días de vigencia.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button
+                type="button"
+                onClick={confirmRegenerate}
+                disabled={
+                  invitationToRegenerate !== null &&
+                  busyInvitationId === invitationToRegenerate.id
+                }
+                data-testid="confirm-regenerate-invitation"
+              >
+                <RefreshCw />
+                {invitationToRegenerate !== null &&
+                busyInvitationId === invitationToRegenerate.id
+                  ? 'Regenerando…'
+                  : 'Regenerar enlace'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={invitation_url !== null}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Enlace de invitación nuevo</DialogTitle>
+              <DialogDescription>
+                Compártelo con la persona invitada. Solo se muestra una vez.
+              </DialogDescription>
+            </DialogHeader>
+            <p className="break-all rounded-md bg-muted p-3 font-mono text-xs">
+              {invitation_url}
+            </p>
+            <DialogFooter>
+              <Button type="button" onClick={copyInvitationUrl}>
+                Copiar enlace
+              </Button>
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => router.reload()}
+                >
+                  Cerrar
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );

@@ -18,7 +18,6 @@ test('admin can send an invitation and sees the link once', function () {
 
     $response->assertRedirect();
     $response->assertSessionHas('invitation_url');
-
     $this->assertDatabaseHas('account_invitations', [
         'account_id' => $account->id,
         'role' => 'member',
@@ -121,6 +120,108 @@ test('admin can revoke a pending invitation', function () {
         ->assertRedirect();
 
     expect($invitation->fresh()->revoked_at)->not->toBeNull();
+});
+
+test('admin can regenerate an active invitation, retaining its audit row', function () {
+    [$admin, $account] = memberWithRole('admin');
+    $invitation = Invitation::factory()
+        ->for($account)
+        ->for($admin, 'inviter')
+        ->create(['email' => 'persona@example.com', 'role' => 'viewer', 'label' => 'Equipo soporte']);
+
+    $response = $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('invitations.regenerate', $invitation));
+
+    $response->assertRedirect();
+    $response->assertSessionHas('invitation_url');
+    $original = $invitation->fresh();
+    expect($original->revoked_at)->not->toBeNull();
+
+    $replacement = Invitation::withoutGlobalScopes()
+        ->where('account_id', $account->id)
+        ->where('id', '!=', $invitation->id)
+        ->sole();
+
+    expect($replacement->email)->toBe('persona@example.com')
+        ->and($replacement->role)->toBe('viewer')
+        ->and($replacement->label)->toBe('Equipo soporte')
+        ->and($replacement->token_hash)->not->toBe($original->token_hash)
+        ->and($replacement->expires_at->isSameDay(now()->addDays(7)))->toBeTrue();
+});
+
+test('admin can regenerate an expired invitation', function () {
+    [$admin, $account] = memberWithRole('admin');
+    $invitation = Invitation::factory()
+        ->for($account)
+        ->for($admin, 'inviter')
+        ->expired()
+        ->create(['email' => 'persona@example.com']);
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('invitations.regenerate', $invitation))
+        ->assertRedirect();
+
+    expect($invitation->fresh()->revoked_at)->not->toBeNull();
+    $this->assertDatabaseCount('account_invitations', 2);
+});
+
+test('expired invitation cannot be regenerated when its recipient already has an active invitation', function () {
+    [$admin, $account] = memberWithRole('admin');
+    $expired = Invitation::factory()
+        ->for($account)
+        ->for($admin, 'inviter')
+        ->expired()
+        ->create(['email' => 'persona@example.com']);
+    Invitation::factory()->for($account)->for($admin, 'inviter')->create(['email' => 'persona@example.com']);
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('invitations.regenerate', $expired))
+        ->assertSessionHasErrors('email');
+
+    expect($expired->fresh()->revoked_at)->toBeNull();
+    $this->assertDatabaseCount('account_invitations', 2);
+});
+
+test('member cannot regenerate invitations', function () {
+    [$member, $account] = memberWithRole('member');
+    $invitation = Invitation::factory()->for($account)->create();
+
+    $this->actingAs($member)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('invitations.regenerate', $invitation))
+        ->assertForbidden();
+
+    expect($invitation->fresh()->revoked_at)->toBeNull();
+});
+
+test('regenerate is scoped to the current account', function () {
+    [$admin, $account] = memberWithRole('admin');
+
+    $otherAccount = Account::factory()->create();
+    $foreign = Invitation::factory()->for($otherAccount)->create();
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('invitations.regenerate', $foreign))
+        ->assertNotFound();
+
+    expect($foreign->fresh()->revoked_at)->toBeNull();
+});
+
+test('revoked and accepted invitations cannot be regenerated', function () {
+    [$admin, $account] = memberWithRole('admin');
+
+    foreach ([Invitation::factory()->for($account)->revoked()->create(), Invitation::factory()->for($account)->accepted()->create()] as $invitation) {
+        $this->actingAs($admin)
+            ->withSession(['current_account_id' => $account->id])
+            ->post(route('invitations.regenerate', $invitation))
+            ->assertNotFound();
+    }
+
+    $this->assertDatabaseCount('account_invitations', 2);
 });
 
 test('revoke is scoped to the current account', function () {

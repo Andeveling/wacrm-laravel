@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { destroy, store, update } from '@/routes/accounts/members';
+import { regenerate } from '@/routes/invitations';
 import type { AccountMember, MemberRole } from './contracts';
 import {
   roleOptions as buildRoleOptions,
@@ -41,6 +42,7 @@ export function useAccountMembership(
   );
 
   const [busyMemberId, setBusyMemberId] = useState<number | null>(null);
+  const [busyInvitationId, setBusyInvitationId] = useState<string | null>(null);
 
   const surfaceError = useCallback(
     (context: MembershipMutation, status: number | null) => {
@@ -119,13 +121,43 @@ export function useAccountMembership(
     [accountId, surfaceError],
   );
 
+  const regenerateInvitation = useCallback(
+    (invitationId: string, onSuccess?: () => void) => {
+      setBusyInvitationId(invitationId);
+      router.post(
+        regenerate(invitationId),
+        {},
+        {
+          preserveScroll: true,
+          onSuccess: () => {
+            setBusyInvitationId(null);
+            router.flash({
+              toast: {
+                type: 'success',
+                message: 'Invitación regenerada.',
+              },
+            });
+            onSuccess?.();
+          },
+          onHttpException: (response) =>
+            surfaceError('regenerate-invitation', response.status),
+          onNetworkError: () => surfaceError('regenerate-invitation', null),
+          onFinish: () => setBusyInvitationId(null),
+        },
+      );
+    },
+    [surfaceError],
+  );
+
   return {
     members: enrichedMembers,
     busyMemberId,
+    busyInvitationId,
     inviteState,
     inviteMember,
     changeRole,
     removeMember,
+    regenerateInvitation,
     roleOptions: buildRoleOptions,
   };
 }

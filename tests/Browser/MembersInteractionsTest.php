@@ -63,6 +63,32 @@ test('pending invitations show expired legacy rows with their details', function
         ->assertSee('Expirada');
 });
 
+test('admin regenerates a pending invitation after confirming the old link is invalidated', function () {
+    $data = createSimpleAccount();
+    $invitation = Invitation::factory()
+        ->for($data['account'])
+        ->for($data['owner'], 'inviter')
+        ->create(['email' => 'persona@example.com', 'role' => AccountRole::Viewer]);
+
+    signInAndSelectAccount($data['owner']);
+
+    $this->visit('/accounts/'.$data['account']->id.'/members')
+        ->assertNoSmoke()
+        ->click('[data-testid="regenerate-invitation-'.$invitation->id.'"]')
+        ->assertSee('¿Regenerar enlace de invitación?')
+        ->assertSee('El enlace anterior dejará de funcionar.')
+        ->click('[data-testid="confirm-regenerate-invitation"]')
+        ->assertSee('Invitación regenerada.');
+
+    expect($invitation->fresh()->revoked_at)->not->toBeNull();
+    $this->assertDatabaseCount('account_invitations', 2);
+
+    $this->visit('/accounts/'.$data['account']->id.'/members')
+        ->assertNoSmoke()
+        ->assertSee('persona@example.com')
+        ->assertSee('Activa');
+});
+
 test('change member role persists the change', function () {
     $data = createSimpleAccount();
 

@@ -31,6 +31,7 @@ use App\Domain\Flows\Actions\ShowFlows;
 use App\Domain\Inbox\Actions\ShowInbox;
 use App\Domain\Invitations\Actions\PreviewInvitation;
 use App\Domain\Invitations\Actions\RedeemInvitation;
+use App\Domain\Invitations\Actions\RegenerateInvitation;
 use App\Domain\Invitations\Actions\RevokeInvitation;
 use App\Domain\Invitations\Actions\StoreInvitation;
 use App\Domain\Pipelines\Actions\DestroyDeal;
@@ -104,6 +105,8 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
         ->name('invitations.store');
     Route::delete('invitations/{invitation}', RevokeInvitation::class)
         ->name('invitations.revoke');
+    Route::post('invitations/{invitation}/regenerate', RegenerateInvitation::class)
+        ->name('invitations.regenerate');
 });
 
 require __DIR__.'/settings.php';

@@ -50,6 +50,7 @@ final readonly class ListMembers
             'members' => $members,
             'is_owner' => $viewerRole === AccountRole::Owner,
             'is_admin' => $isAdmin,
+            'invitation_url' => $request->session()->get('invitation_url'),
         ];
 
         if ($isAdmin) {

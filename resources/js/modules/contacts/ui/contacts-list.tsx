@@ -64,7 +64,7 @@ type ContactsListProps = {
   onOpenDetail: (contact: Contact) => void;
   onEdit: (contact: Contact) => void;
   onDelete: (contact: Contact) => void;
-  onBulkDelete: (contacts: Contact[]) => void;
+  onBulkDelete: (contactIds: string[]) => void;
 };
 
 export function ContactsList({
@@ -137,7 +137,7 @@ export function ContactsList({
   }
 
   function handleBulkDelete() {
-    onBulkDelete(rows.filter((contact) => selected.has(contact.id)));
+    onBulkDelete([...selected]);
     setSelected(new Set());
     setBulkDeleteOpen(false);
   }

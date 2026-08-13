@@ -6,6 +6,8 @@ use App\Domain\Accounts\Support\MemberActionStatus;
 use App\Domain\Accounts\Support\MembershipRules;
 use App\Models\Enums\AccountRole;
 
+covers(MembershipRules::class);
+
 /**
  * The membership matrix, exhaustively.
  *

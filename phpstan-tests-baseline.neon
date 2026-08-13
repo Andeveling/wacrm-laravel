@@ -1,0 +1,221 @@
+# Reason: Pest static analysis starts with the diagnostics already present in
+# tests/; new diagnostics still fail the quality gate.
+# Tracking: #127 will move these entries to the central quality allowlist.
+# Expires: when #127 is merged.
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: tests/Browser/AuthLoginTest.php
+
+		-
+			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: tests/Browser/AuthPasswordResetTest.php
+
+		-
+			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Browser/AuthTwoFactorTest.php
+
+		-
+			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
+			identifier: method.notFound
+			count: 8
+			path: tests/Browser/ContactsInteractionsTest.php
+
+		-
+			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: tests/Browser/MembersInteractionsTest.php
+
+		-
+			message: '#^Function createSimpleAccount\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: tests/Browser/MembersInteractionsTest.php
+
+		-
+			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: tests/Browser/MembersVisualContractTest.php
+
+		-
+			message: '#^Function createAccountWithUsers\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: tests/Browser/MembersVisualContractTest.php
+
+		-
+			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
+			identifier: method.notFound
+			count: 9
+			path: tests/Browser/SmokeTest.php
+
+		-
+			message: '#^Trait Tests\\Concerns\\AssertsTenantIsolation is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: tests/Concerns/AssertsTenantIsolation.php
+
+		-
+			message: '#^Trait Tests\\Concerns\\InteractsWithApiKeys is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: tests/Concerns/InteractsWithApiKeys.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 7
+			path: tests/Domain/Accounts/MembershipRulesTest.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 5
+			path: tests/Domain/Accounts/MembershipRulesTest.php
+
+		-
+			message: '#^Calling toBeInstanceOf\(\) on Expectation\<App\\Domain\\Contacts\\Support\\ContactCsvRow\>; assertion is redundant\.$#'
+			identifier: pest.expectation.redundant
+			count: 1
+			path: tests/Domain/Contacts/ContactCsvRowsTest.php
+
+		-
+			message: '#^Function contactFixture\(\) has parameter \$attributes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: tests/Domain/Contacts/ContactProjectionTest.php
+
+		-
+			message: '#^Function contactFixture\(\) has parameter \$tags with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: tests/Domain/Contacts/ContactProjectionTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy\:\:actingAs\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Accounts/MembersUITest.php
+
+		-
+			message: '#^Function getMembersPage\(\) return type with generic class Illuminate\\Testing\\TestResponse does not specify its types\: TResponse$#'
+			identifier: missingType.generics
+			count: 1
+			path: tests/Feature/Accounts/MembersUITest.php
+
+		-
+			message: '#^Cannot call method assertFailed\(\) on Illuminate\\Testing\\PendingCommand\|int\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Feature/Api/AuditLogTest.php
+
+		-
+			message: '#^Cannot call method expectsOutputToContain\(\) on Illuminate\\Testing\\PendingCommand\|int\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: tests/Feature/Api/AuditLogTest.php
+
+		-
+			message: '#^Calling toBeInstanceOf\(\) on Expectation\<App\\Models\\AccountUser\>; assertion is redundant\.$#'
+			identifier: pest.expectation.redundant
+			count: 1
+			path: tests/Feature/Auth/AccountUserTest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function expect$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Feature/Auth/AuthenticateApiKeyMiddlewareTest.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Account\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Feature/Auth/MultiAccountTest.php
+
+		-
+			message: '#^Access to an undefined property Tests\\Fixtures\\TenantScopedFixture\:\:\$account_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: tests/Feature/Auth/TenantScopeTest.php
+
+		-
+			message: '#^Access to an undefined property Tests\\Fixtures\\TenantScopedFixture\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Feature/Auth/TenantScopeTest.php
+
+		-
+			message: '#^Calling toBeInstanceOf\(\) on Expectation\<App\\Models\\AccountUser\>; assertion is redundant\.$#'
+			identifier: pest.expectation.redundant
+			count: 1
+			path: tests/Feature/Auth/TenantScopeTest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function expect$#'
+			identifier: argument.templateType
+			count: 3
+			path: tests/Feature/Auth/TenantScopeTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy\:\:withHeader\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Contacts/McpContactToolsTest.php
+
+		-
+			message: '#^Function mcpTool\(\) return type with generic class Illuminate\\Testing\\TestResponse does not specify its types\: TResponse$#'
+			identifier: missingType.generics
+			count: 1
+			path: tests/Feature/Contacts/McpContactToolsTest.php
+
+		-
+			message: '#^Parameter \#1 \$modelClass of method Tests\\Concerns\\AssertsTenantIsolation\:\:assertTenantIsolation\(\) expects class\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Feature/CoreDomainTenantIsolationTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy\:\:seed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/DatabaseSeederTest.php
+
+		-
+			message: '#^Parameter \#1 \$modelClass of method Tests\\Concerns\\AssertsTenantIsolation\:\:assertTenantIsolation\(\) expects class\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Feature/EngineDomainTenantIsolationTest.php
+
+		-
+			message: '#^Parameter \#1 \$path of function basename expects string, string\|false\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Feature/Invitations/InvitationManagementTest.php
+
+		-
+			message: '#^Access to an undefined property Tests\\Fixtures\\TenantScopedFixture\:\:\$account_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Feature/Jobs/TenantAwareTest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function expect$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Feature/Jobs/TenantAwareTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy\:\:visit\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Pest.php

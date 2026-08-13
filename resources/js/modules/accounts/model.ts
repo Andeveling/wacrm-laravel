@@ -8,18 +8,21 @@ export const NETWORK_ERROR_MESSAGE = 'No se pudo conectar con el servidor.';
 export type MembershipMutation =
   | 'change-role'
   | 'remove-member'
-  | 'invite-member';
+  | 'invite-member'
+  | 'regenerate-invitation';
 
 const FORBIDDEN_MESSAGE: Record<MembershipMutation, string> = {
   'change-role': 'No tienes permiso para cambiar roles.',
   'remove-member': 'No tienes permiso para remover miembros.',
   'invite-member': 'No tienes permiso para invitar miembros.',
+  'regenerate-invitation': 'No tienes permiso para regenerar invitaciones.',
 };
 
 const GENERIC_MESSAGE: Record<MembershipMutation, string> = {
   'change-role': 'No se pudo cambiar el rol.',
   'remove-member': 'No se pudo remover el miembro.',
   'invite-member': 'No se pudo crear la invitación.',
+  'regenerate-invitation': 'No se pudo regenerar la invitación.',
 };
 
 /** Maps an HTTP status (or `null` for network) to the user-facing toast per mutation context. */

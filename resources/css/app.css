@@ -190,7 +190,7 @@ html[data-theme="rose"] {
   --sidebar-ring: oklch(0.645 0.22 16);
 }
 
-@layer components {
+@layer utilities {
   .auth-form-panel {
     @apply w-full max-w-md;
   }

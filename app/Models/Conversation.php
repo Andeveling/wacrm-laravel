@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property string $account_id
  * @property string $contact_id
+ * @property string|null $connection_id
  * @property ConversationStatus $status
  * @property int|null $assigned_agent_id
  * @property string|null $last_message_text
@@ -33,7 +34,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'user_id', 'account_id', 'contact_id', 'status', 'assigned_agent_id',
+    'user_id', 'account_id', 'contact_id', 'connection_id', 'status', 'assigned_agent_id',
     'last_message_text', 'last_message_at', 'unread_count',
     'ai_autoreply_disabled', 'ai_handoff_summary',
 ])]
@@ -66,6 +67,14 @@ class Conversation extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * @return BelongsTo<WhatsappPhoneNumberConnection, $this>
+     */
+    public function whatsappPhoneNumberConnection(): BelongsTo
+    {
+        return $this->belongsTo(WhatsappPhoneNumberConnection::class, 'connection_id');
     }
 
     /**

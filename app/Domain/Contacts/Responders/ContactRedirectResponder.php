@@ -8,8 +8,11 @@ use Illuminate\Http\RedirectResponse;
 
 final readonly class ContactRedirectResponder
 {
-    public function success(): RedirectResponse
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    public function success(array $query = []): RedirectResponse
     {
-        return to_route('contacts');
+        return to_route('contacts', $query);
     }
 }

@@ -17,6 +17,6 @@ final readonly class BulkDestroyContacts
     {
         Contact::query()->whereKey($request->validated('ids'))->get()->each->delete();
 
-        return $this->responder->success();
+        return $this->responder->success($request->query());
     }
 }

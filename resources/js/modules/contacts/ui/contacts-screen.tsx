@@ -68,7 +68,7 @@ export function ContactsScreen({
       return;
     }
 
-    router.delete(destroy(remove.target.id), {
+    router.delete(destroy(remove.target.id, { mergeQuery: {} }), {
       preserveScroll: true,
       onSuccess: () => {
         toast.success('Contacto eliminado.');
@@ -83,7 +83,7 @@ export function ContactsScreen({
       return;
     }
 
-    router.delete(bulkDestroy(), {
+    router.delete(bulkDestroy({ mergeQuery: {} }), {
       data: { ids: selectedContactIds },
       preserveScroll: true,
       onSuccess: () =>

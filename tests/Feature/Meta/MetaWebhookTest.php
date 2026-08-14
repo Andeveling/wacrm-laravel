@@ -5,7 +5,10 @@ declare(strict_types=1);
 use App\Jobs\ProcessWhatsappWebhookDelivery;
 use App\Models\WhatsappWebhookDelivery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use RuntimeException;
 
 uses(RefreshDatabase::class);
 
@@ -280,4 +283,21 @@ test('post queues the delivery after the persistence transaction commits', funct
     });
 
     expect($delivery->processed_at)->toBeNull();
+});
+
+test('post returns 503 without logging the signed payload when persistence fails', function () {
+    $body = '{"sensitive":"webhook payload"}';
+
+    DB::shouldReceive('transaction')
+        ->once()
+        ->andThrow(new RuntimeException($body));
+
+    Log::shouldReceive('error')
+        ->once()
+        ->with('Meta webhook delivery could not be persisted.');
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
+        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'CONTENT_TYPE' => 'application/json',
+    ], $body)->assertServiceUnavailable();
 });

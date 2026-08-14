@@ -100,13 +100,15 @@ final readonly class ReceiveMetaWebhook
 
                 return $delivery;
             });
-        } catch (Throwable $e) {
-            report($e);
+        } catch (Throwable) {
+            logger()->error('Meta webhook delivery could not be persisted.');
 
             // We could not persist — Meta should retry. We deliberately
             // do not record a `persistence_failed` row because that
-            // would itself require a DB write. The webhook returns
-            // 503 so the operator's Meta delivery dashboard flags it.
+            // would itself require a DB write. Do not report the caught
+            // exception: database exceptions can contain the raw signed
+            // payload as a query binding. The webhook returns 503 so the
+            // operator's Meta delivery dashboard flags it.
             return ($this->responder)(WebhookDeliveryResult::persistenceFailed());
         }
 

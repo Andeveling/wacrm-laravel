@@ -7,18 +7,19 @@ namespace App\Domain\Meta\Actions;
 use App\Domain\Meta\Responders\WebhookDeliveryResponder;
 use App\Domain\Meta\Results\WebhookDeliveryResult;
 use App\Domain\Meta\Support\VerifyMetaWebhookSignature;
+use App\Jobs\ProcessWhatsappWebhookDelivery;
 use App\Models\WhatsappWebhookDelivery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use JsonException;
 use RuntimeException;
 use Throwable;
 
 /**
- * POST /api/whatsapp/webhook — HMAC verification plus persistence of the
- * delivery BEFORE replying `200`. A later worker failure is resolved
- * with internal retries and a dead-letter queue, never by asking Meta
- * for a redelivery.
+ * POST /api/whatsapp/webhook — HMAC verification plus persistence and
+ * after-commit queue handoff BEFORE replying `200`. Later processing is
+ * deliberately decoupled from Meta's acknowledgement path.
  *
  * The Action never touches `$request->json()` before verifying the
  * signature: that re-encodes the payload and breaks the HMAC. It reads
@@ -32,9 +33,9 @@ final readonly class ReceiveMetaWebhook
     /**
      * Maximum body size we accept on the webhook. Meta deliveries are
      * small JSON envelopes — images / videos / documents arrive as
-     * media_ids the worker fetches later, so 1 MB is generous.
+     * media_ids the worker fetches later. Meta documents a 3 MB limit.
      */
-    private const MAX_BODY_BYTES = 1_048_576;
+    private const MAX_BODY_BYTES = 3_145_728;
 
     public function __construct(
         private WebhookDeliveryResponder $responder,
@@ -62,33 +63,43 @@ final readonly class ReceiveMetaWebhook
 
         $rawBody = $request->getContent();
 
+        // Content-Length is only an early rejection hint. The actual body
+        // size is authoritative because clients can omit or falsify it.
+        if (strlen($rawBody) > self::MAX_BODY_BYTES) {
+            return ($this->responder)(WebhookDeliveryResult::payloadTooLarge());
+        }
+
         if (! $verifier->isValid($rawBody, $signatureHeader)) {
             return ($this->responder)(WebhookDeliveryResult::signatureInvalid());
         }
 
-        // After signature validation we can decode safely. An empty body
-        // is a 400 — there is nothing to persist as a delivery, since
-        // the contract is "raw_payload must be JSON".
-        if ($rawBody === '') {
-            return ($this->responder)(WebhookDeliveryResult::invalidBody());
-        }
-
+        // Decode only after authenticating the exact bytes. A malformed
+        // signed body is still retained for asynchronous classification and
+        // diagnostics; rejecting it here would make Meta retry it forever.
+        $decoded = null;
         try {
-            $decoded = json_decode($rawBody, true, 16, JSON_THROW_ON_ERROR);
+            if ($rawBody !== '') {
+                $decoded = json_decode($rawBody, true, 16, JSON_THROW_ON_ERROR);
+            }
         } catch (JsonException) {
-            return ($this->responder)(WebhookDeliveryResult::invalidBody());
+            $decoded = null;
         }
 
         try {
-            $delivery = WhatsappWebhookDelivery::create([
-                'signature_header' => $signatureHeader,
-                'raw_body' => $rawBody,
-                'raw_payload' => $decoded,
-                'content_length' => strlen($rawBody),
-                'received_at' => now(),
-                'processed_at' => now(),
-                'processing_state' => WhatsappWebhookDelivery::STATE_RECEIVED,
-            ]);
+            $delivery = DB::transaction(function () use ($signatureHeader, $rawBody, $decoded): WhatsappWebhookDelivery {
+                $delivery = WhatsappWebhookDelivery::create([
+                    'signature_header' => $signatureHeader,
+                    'raw_body' => $rawBody,
+                    'raw_payload' => $decoded,
+                    'content_length' => strlen($rawBody),
+                    'received_at' => now(),
+                    'processing_state' => WhatsappWebhookDelivery::STATE_RECEIVED,
+                ]);
+
+                ProcessWhatsappWebhookDelivery::dispatch($delivery->id)->afterCommit();
+
+                return $delivery;
+            });
         } catch (Throwable $e) {
             report($e);
 

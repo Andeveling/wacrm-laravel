@@ -1,8 +1,11 @@
 <?php
 
 declare(strict_types=1);
+
+use App\Jobs\ProcessWhatsappWebhookDelivery;
 use App\Models\WhatsappWebhookDelivery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -79,9 +82,9 @@ test('post persists the delivery and returns 200', function () {
     // order is not part of its contract, only the key/value pairs are.
     expect($delivery->raw_payload)->toEqual(['object' => 'whatsapp_business_account', 'entry' => []]);
     expect($delivery->content_length)->toBe(strlen($body));
-    expect($delivery->processing_state)->toBe('received');
+    expect($delivery->processing_state)->toBe('queued');
     expect($delivery->received_at)->not->toBeNull();
-    expect($delivery->processed_at)->not->toBeNull();
+    expect($delivery->processed_at)->toBeNull();
 });
 test('raw body preserves byte exact payload not just decoded array', function () {
     // Use deliberately non-canonical JSON formatting (extra spaces,
@@ -175,26 +178,32 @@ test('post returns 401 when meta app secret is missing even with a valid signatu
 
     $this->assertDatabaseCount('whatsapp_webhook_deliveries', 0);
 });
-test('post returns 400 when body is empty even with a valid signature', function () {
+test('post retains an empty signed body for asynchronous classification', function () {
     $header = sign('');
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
         'CONTENT_TYPE' => 'application/json',
-    ], '')->assertBadRequest();
+    ], '')->assertOk();
 
-    $this->assertDatabaseCount('whatsapp_webhook_deliveries', 0);
+    $this->assertDatabaseCount('whatsapp_webhook_deliveries', 1);
+
+    expect(WhatsappWebhookDelivery::firstOrFail()->raw_payload)->toBeNull();
 });
-test('post returns 400 when body is not valid json', function () {
+test('post retains a signed body that is not valid json for asynchronous classification', function () {
     $body = 'not-json-at-all';
     $header = sign($body);
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
         'CONTENT_TYPE' => 'application/json',
-    ], $body)->assertBadRequest();
+    ], $body)->assertOk();
 
-    $this->assertDatabaseCount('whatsapp_webhook_deliveries', 0);
+    $this->assertDatabaseCount('whatsapp_webhook_deliveries', 1);
+
+    $delivery = WhatsappWebhookDelivery::firstOrFail();
+    expect($delivery->raw_body)->toBe($body);
+    expect($delivery->raw_payload)->toBeNull();
 });
 test('post returns 413 when content length exceeds the limit', function () {
     $body = json_encode(['object' => 'whatsapp_business_account'], JSON_THROW_ON_ERROR);
@@ -203,7 +212,7 @@ test('post returns 413 when content length exceeds the limit', function () {
     $response = $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
         'CONTENT_TYPE' => 'application/json',
-        'HTTP_CONTENT_LENGTH' => (string) (1_048_576 + 1),
+        'HTTP_CONTENT_LENGTH' => (string) (3_145_728 + 1),
     ], $body);
 
     $response->assertStatus(413);
@@ -226,4 +235,49 @@ test('duplicate signed deliveries each persist as a new row for idempotency in f
     ], $body)->assertOk();
 
     expect(WhatsappWebhookDelivery::count())->toBe(2);
+});
+
+test('post rejects a body over 3 MB using actual bytes even without content length', function () {
+    $body = str_repeat('x', 3_145_729);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
+        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'CONTENT_TYPE' => 'application/json',
+    ], $body)->assertStatus(413);
+
+    expect(WhatsappWebhookDelivery::query()->count())->toBe(0);
+});
+
+test('post accepts a signed body exactly at the 3 MB limit', function () {
+    $prefix = '{"payload":"';
+    $suffix = '"}';
+    $body = $prefix.str_repeat('a', 3_145_728 - strlen($prefix) - strlen($suffix)).$suffix;
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
+        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'CONTENT_TYPE' => 'application/json',
+    ], $body)->assertOk();
+
+    $delivery = WhatsappWebhookDelivery::firstOrFail();
+    expect($delivery->content_length)->toBe(3_145_728);
+    expect($delivery->raw_body)->toBe($body);
+});
+
+test('post queues the delivery after the persistence transaction commits', function () {
+    Queue::fake();
+
+    $body = json_encode(['object' => 'whatsapp_business_account'], JSON_THROW_ON_ERROR);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
+        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'CONTENT_TYPE' => 'application/json',
+    ], $body)->assertOk();
+
+    $delivery = WhatsappWebhookDelivery::firstOrFail();
+
+    Queue::assertPushed(ProcessWhatsappWebhookDelivery::class, function (ProcessWhatsappWebhookDelivery $job) use ($delivery): bool {
+        return $job->deliveryId === $delivery->id;
+    });
+
+    expect($delivery->processed_at)->toBeNull();
 });

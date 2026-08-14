@@ -92,6 +92,13 @@ server {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
+    # Meta documents a 3 MB webhook payload limit. Keep the proxy boundary
+    # aligned with the byte-exact application check for this public endpoint.
+    location = /api/whatsapp/webhook {
+        client_max_body_size 3M;
+        try_files /__wacrm_webhook_never_exists__ /index.php?$query_string;
+    }
+
     location = /favicon.ico { access_log off; log_not_found off; }
     location = /robots.txt  { access_log off; log_not_found off; }
 

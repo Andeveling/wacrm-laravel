@@ -24,7 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property string|null $signature_header
  * @property string $raw_body
- * @property array<string, mixed> $raw_payload
+ * @property array<string, mixed>|null $raw_payload
  * @property int $content_length
  * @property Carbon $received_at
  * @property Carbon|null $processed_at
@@ -43,6 +43,8 @@ class WhatsappWebhookDelivery extends Model
     public const UPDATED_AT = null;
 
     public const STATE_RECEIVED = 'received';
+
+    public const STATE_QUEUED = 'queued';
 
     /**
      * @var array<string, mixed>

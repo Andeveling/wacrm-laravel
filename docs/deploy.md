@@ -30,6 +30,14 @@ Acceso demo (siembra del primer deploy): `test@example.com` / `password`.
 
 ## Ops
 
+### Meta webhook ingress
+
+Meta webhook requests are accepted up to 3 MiB (3,145,728 bytes). The
+application checks the exact received byte count and the versioned VPS
+provisioning keeps nginx's `/api/whatsapp/webhook` boundary aligned with it;
+do not raise that location's `client_max_body_size` without changing the
+application contract and tests together.
+
 ```bash
 # logs
 journalctl -u nginx -f

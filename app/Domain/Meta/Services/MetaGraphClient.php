@@ -6,11 +6,8 @@ namespace App\Domain\Meta\Services;
 
 use App\Domain\Meta\Support\MetaGraphException;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-use Throwable;
 
 /**
  * Narrow boundary around the Meta Graph calls needed by the connection wizard.
@@ -44,28 +41,6 @@ final class MetaGraphClient implements MetaGraphClientContract
         }
 
         $this->get($wabaId, $token, ['fields' => 'id'], 'permissions');
-        $phoneNumbers = $this->get(
-            $wabaId.'/phone_numbers',
-            $token,
-            ['fields' => 'id', 'limit' => 100],
-            'permissions',
-        );
-
-        $phoneRows = data_get($phoneNumbers, 'data', []);
-        $belongsToWaba = is_array($phoneRows) && array_any(
-            $phoneRows,
-            static fn (mixed $phone): bool => is_array($phone)
-                && isset($phone['id'])
-                && is_string($phone['id'])
-                && hash_equals($phoneNumberId, $phone['id']),
-        );
-
-        if (! $belongsToWaba) {
-            throw new MetaGraphException(
-                'membership',
-                'Meta no confirmó que el número pertenezca al WABA indicado.',
-            );
-        }
 
         return [
             'id' => (string) ($phone['id'] ?? $phoneNumberId),
@@ -128,10 +103,7 @@ final class MetaGraphClient implements MetaGraphClientContract
                 ->acceptJson()
                 ->connectTimeout(5)
                 ->timeout(10)
-                ->retry(2, 200, function (Throwable $exception, PendingRequest $request): bool {
-                    return $exception instanceof ConnectionException
-                        || ($exception instanceof RequestException && $exception->response->serverError());
-                }, throw: false)
+                ->retry(2, 200, throw: false)
                 ->get($this->url($resource), $query);
         } catch (ConnectionException) {
             throw new MetaGraphException(
@@ -159,10 +131,7 @@ final class MetaGraphClient implements MetaGraphClientContract
                 ->acceptJson()
                 ->connectTimeout(5)
                 ->timeout(10)
-                ->retry(2, 200, function (Throwable $exception, PendingRequest $request): bool {
-                    return $exception instanceof ConnectionException
-                        || ($exception instanceof RequestException && $exception->response->serverError());
-                }, throw: false)
+                ->retry(2, 200, throw: false)
                 ->post($this->url($resource), $payload);
         } catch (ConnectionException) {
             throw new MetaGraphException(
@@ -194,7 +163,12 @@ final class MetaGraphClient implements MetaGraphClientContract
                 default => 'Meta no permitió consultar el WABA. Revisa los permisos del token.',
             },
             'subscription' => 'Meta no pudo suscribir el WABA a los webhooks. Revisa los permisos del token.',
-            'registration' => 'Meta no pudo registrar el número. Revisa el PIN de verificación en dos pasos.',
+            'registration' => match ($code) {
+                190 => 'El token de Meta es inválido o expiró.',
+                10, 200, 2000 => 'El token de Meta no tiene permisos para registrar el número.',
+                100 => 'Meta no pudo registrar el número. Revisa el PIN de verificación en dos pasos.',
+                default => 'Meta no pudo registrar el número. Revisa la configuración e intenta de nuevo.',
+            },
             default => 'Meta no pudo completar la operación.',
         };
 

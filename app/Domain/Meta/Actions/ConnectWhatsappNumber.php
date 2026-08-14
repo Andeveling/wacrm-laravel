@@ -102,7 +102,6 @@ final class ConnectWhatsappNumber
                 $meta->subscribeWaba($wabaId, $token);
             } catch (MetaGraphException $exception) {
                 $connection->readiness = WhatsappConnectionReadiness::CredentialsVerified;
-                $connection->last_registration_error = $exception->getMessage();
                 $connection->save();
                 $this->logFailure($exception, $account, $phoneNumberId, $wabaId);
 

@@ -13,20 +13,20 @@ use Illuminate\Support\Facades\Route;
  * Public webhook ingress for the Meta WhatsApp Business Platform
  * (#64). This file is mounted by `bootstrap/app.php` via the routing
  * `then:` callback so it does NOT inherit the `web` middleware group —
- * no session, no CSRF, no cookie encryption. The route still applies a
- * per-IP throttle so a misconfigured client cannot flood the endpoint.
+ * no session, no CSRF, no cookie encryption. Authentication is provided by
+ * Meta's HMAC signature; the body limit and infrastructure controls are the
+ * abuse boundary rather than a per-IP limit that could reject shared Meta
+ * delivery infrastructure.
  */
 
 RateLimiter::for('meta-webhook', function (Request $request): Limit {
-    $key = $request->ip() ?? 'unknown';
-
-    // Generous ceiling. Meta delivers bursts of small messages per
-    // minute; anything beyond 600/min from a single IP is anomalous and
-    // worth rejecting fast.
-    return Limit::perMinute(600)->by('meta-webhook:'.$key);
+    // Emergency backstop only. HMAC and the body limit remain the real
+    // admission controls; the ceiling is intentionally high for Meta's
+    // shared delivery infrastructure.
+    return Limit::perMinute(10_000)->by('meta-webhook:'.($request->ip() ?? 'unknown'));
 });
 
-Route::match(['get', 'post'], 'api/whatsapp/webhook', VerifyMetaWebhook::class)
+Route::get('api/whatsapp/webhook', VerifyMetaWebhook::class)
     ->middleware('throttle:meta-webhook')
     ->name('meta.webhook.verify');
 

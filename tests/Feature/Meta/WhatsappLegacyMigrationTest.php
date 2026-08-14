@@ -63,6 +63,32 @@ test('preserves a legacy configuration in encrypted integration records and maps
         ->and(WhatsappConfig::withoutGlobalScopes()->find($legacy->id))->not->toBeNull();
 });
 
+test('copies legacy credentials into an existing integration without storing plaintext', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+    WhatsappIntegration::factory()->create([
+        'account_id' => $account->id,
+        'access_token' => 'previous-token',
+    ]);
+    $legacy = WhatsappConfig::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $user->id,
+        'access_token' => 'legacy-token-to-copy',
+    ]);
+
+    app(LegacyWhatsappConfigurationMigrator::class)->run();
+
+    $integration = WhatsappIntegration::withoutGlobalScopes()
+        ->where('legacy_config_id', $legacy->id)
+        ->firstOrFail();
+
+    expect($integration->access_token)->toBe('legacy-token-to-copy')
+        ->and(DB::table((new WhatsappIntegration)->getTable())
+            ->where('id', $integration->id)
+            ->value('access_token'))->not->toBe('legacy-token-to-copy');
+});
+
 test('reports a conversation that has no legacy connection instead of assigning it silently', function () {
     $account = Account::factory()->create();
     $user = User::factory()->create();

@@ -25,13 +25,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
 			identifier: method.notFound
-			count: 8
+			count: 10
 			path: tests/Browser/ContactsInteractionsTest.php
 
 		-
 			message: '#^Call to an undefined method Tests\\BrowserTestCase\:\:visit\(\)\.$#'
 			identifier: method.notFound
-			count: 6
+			count: 10
 			path: tests/Browser/MembersInteractionsTest.php
 
 		-

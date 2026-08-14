@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text('last_registration_error')->nullable();
             $table->timestampsTz();
 
-            $table->unique(['id', 'account_id']);
+            $table->unique(['account_id', 'id']);
             $table->foreign(['waba_subscription_id', 'account_id'])
                 ->references(['id', 'account_id'])
                 ->on('waba_subscriptions')

@@ -16,10 +16,10 @@ use App\Models\WhatsappIntegration;
 use App\Models\WhatsappLegacyMigrationIssue;
 use App\Models\WhatsappPhoneNumberConnection;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
-uses(RefreshDatabase::class);
+uses(LazilyRefreshDatabase::class);
 
 afterEach(function (): void {
     app()->forgetInstance(AccountScope::CONTAINER_KEY);
@@ -53,6 +53,7 @@ test('preserves a legacy configuration in encrypted integration records and maps
         ->firstOrFail();
 
     expect($integration->access_token)->toBe($legacyToken)
+        ->and($integration->legacy_verify_token)->toBe($legacy->verify_token)
         ->and(DB::table('whatsapp_integrations')->where('id', $integration->id)->value('access_token'))
         ->not->toBe($legacyToken)
         ->and($connection->readiness)->toBe(WhatsappConnectionReadiness::WebhookWaiting)

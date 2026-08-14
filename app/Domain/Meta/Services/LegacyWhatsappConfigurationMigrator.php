@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Meta\Services;
 
+use App\Models\Conversation;
 use App\Models\Enums\WhatsappConnectionReadiness;
 use App\Models\Enums\WhatsappLegacyMigrationIssueKind;
+use App\Models\WabaSubscription;
+use App\Models\WhatsappConfig;
+use App\Models\WhatsappIntegration;
+use App\Models\WhatsappLegacyMigrationIssue;
+use App\Models\WhatsappPhoneNumberConnection;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use JsonException;
@@ -17,25 +23,24 @@ use JsonException;
  * The migrator is deliberately query-builder based. Tenant global scopes must
  * not hide another Account while a deployment is performing this cross-tenant
  * backfill, and no plaintext token is written to the new tables.
+ *
+ * @phpstan-type LegacyConfig array{
+ *     id: string,
+ *     account_id: string,
+ *     user_id: int|null,
+ *     phone_number_id: string|null,
+ *     waba_id: string|null,
+ *     access_token: string|null,
+ *     verify_token: string|null,
+ *     status: string|null,
+ *     connected_at: mixed,
+ *     registered_at: mixed,
+ *     subscribed_apps_at: mixed,
+ *     last_registration_error: string|null
+ * }
  */
 final class LegacyWhatsappConfigurationMigrator
 {
-    /**
-     * @phpstan-type LegacyConfig array{
-     *     id: string,
-     *     account_id: string,
-     *     user_id: int|null,
-     *     phone_number_id: string|null,
-     *     waba_id: string|null,
-     *     access_token: string|null,
-     *     status: string|null,
-     *     connected_at: mixed,
-     *     registered_at: mixed,
-     *     subscribed_apps_at: mixed,
-     *     last_registration_error: string|null
-     * }
-     */
-
     /**
      * Run the backfill more than once safely. The legacy ids and issue
      * fingerprints are the idempotency keys; existing CRM rows are only
@@ -53,23 +58,11 @@ final class LegacyWhatsappConfigurationMigrator
     }
 
     /**
-     * @return list<array{
-     *     id: string,
-     *     account_id: string,
-     *     user_id: int|null,
-     *     phone_number_id: string|null,
-     *     waba_id: string|null,
-     *     access_token: string|null,
-     *     status: string|null,
-     *     connected_at: mixed,
-     *     registered_at: mixed,
-     *     subscribed_apps_at: mixed,
-     *     last_registration_error: string|null
-     * }>
+     * @return list<LegacyConfig>
      */
     private function legacyConfigs(): array
     {
-        return array_values(DB::table('whatsapp_config')
+        return array_values(DB::table((new WhatsappConfig)->getTable())
             ->orderBy('id')
             ->get()
             ->map(static fn (object $row): array => [
@@ -79,6 +72,7 @@ final class LegacyWhatsappConfigurationMigrator
                 'phone_number_id' => is_string($row->phone_number_id) ? $row->phone_number_id : null,
                 'waba_id' => is_string($row->waba_id) ? $row->waba_id : null,
                 'access_token' => is_string($row->access_token) ? $row->access_token : null,
+                'verify_token' => is_string($row->verify_token) ? $row->verify_token : null,
                 'status' => is_string($row->status) ? $row->status : null,
                 'connected_at' => $row->connected_at,
                 'registered_at' => $row->registered_at,
@@ -91,28 +85,16 @@ final class LegacyWhatsappConfigurationMigrator
     }
 
     /**
-     * @param array{
-     *     id: string,
-     *     account_id: string,
-     *     user_id: int|null,
-     *     phone_number_id: string|null,
-     *     waba_id: string|null,
-     *     access_token: string|null,
-     *     status: string|null,
-     *     connected_at: mixed,
-     *     registered_at: mixed,
-     *     subscribed_apps_at: mixed,
-     *     last_registration_error: string|null
-     * } $legacy
+     * @param  LegacyConfig  $legacy
      */
     private function migrateConfig(array $legacy): void
     {
-        $integration = DB::table('whatsapp_integrations')
+        $integration = DB::table((new WhatsappIntegration)->getTable())
             ->where('legacy_config_id', $legacy['id'])
             ->first();
 
         if ($integration === null) {
-            $integration = DB::table('whatsapp_integrations')
+            $integration = DB::table((new WhatsappIntegration)->getTable())
                 ->where('account_id', $legacy['account_id'])
                 ->first();
         }
@@ -121,11 +103,14 @@ final class LegacyWhatsappConfigurationMigrator
             $integrationId = (string) str()->uuid();
             $plainToken = $this->nullableString($legacy['access_token']);
 
-            DB::table('whatsapp_integrations')->insert([
+            DB::table((new WhatsappIntegration)->getTable())->insert([
                 'id' => $integrationId,
                 'account_id' => $legacy['account_id'],
                 'created_by' => $legacy['user_id'],
                 'access_token' => $plainToken === null ? null : Crypt::encryptString($plainToken),
+                'legacy_verify_token' => $legacy['verify_token'] === null
+                    ? null
+                    : Crypt::encryptString($legacy['verify_token']),
                 'legacy_config_id' => $legacy['id'],
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -140,7 +125,7 @@ final class LegacyWhatsappConfigurationMigrator
             $integrationId = (string) $integration->id;
 
             if ($integration->legacy_config_id === null) {
-                DB::table('whatsapp_integrations')
+                DB::table((new WhatsappIntegration)->getTable())
                     ->where('id', $integrationId)
                     ->update(['legacy_config_id' => $legacy['id'], 'updated_at' => now()]);
             }
@@ -163,7 +148,7 @@ final class LegacyWhatsappConfigurationMigrator
         }
 
         if ($integration['legacy_config_id'] === null) {
-            DB::table('whatsapp_integrations')
+            DB::table((new WhatsappIntegration)->getTable())
                 ->where('id', $integration['id'])
                 ->update(['legacy_config_id' => $legacy['id'], 'updated_at' => now()]);
         }
@@ -189,19 +174,7 @@ final class LegacyWhatsappConfigurationMigrator
     }
 
     /**
-     * @param array{
-     *     id: string,
-     *     account_id: string,
-     *     user_id: int|null,
-     *     phone_number_id: string|null,
-     *     waba_id: string|null,
-     *     access_token: string|null,
-     *     status: string|null,
-     *     connected_at: mixed,
-     *     registered_at: mixed,
-     *     subscribed_apps_at: mixed,
-     *     last_registration_error: string|null
-     * } $legacy
+     * @param  LegacyConfig  $legacy
      * @return array<string, mixed>|null
      */
     private function migrateWaba(array $legacy, string $integrationId): ?array
@@ -212,12 +185,12 @@ final class LegacyWhatsappConfigurationMigrator
             return null;
         }
 
-        $waba = DB::table('waba_subscriptions')
+        $waba = DB::table((new WabaSubscription)->getTable())
             ->where('legacy_config_id', $legacy['id'])
             ->first();
 
         if ($waba === null) {
-            $waba = DB::table('waba_subscriptions')
+            $waba = DB::table((new WabaSubscription)->getTable())
                 ->where('waba_id', $wabaId)
                 ->first();
         }
@@ -240,7 +213,7 @@ final class LegacyWhatsappConfigurationMigrator
 
         $wabaRecordId = (string) str()->uuid();
 
-        DB::table('waba_subscriptions')->insert([
+        DB::table((new WabaSubscription)->getTable())->insert([
             'id' => $wabaRecordId,
             'account_id' => $legacy['account_id'],
             'integration_id' => $integrationId,
@@ -255,19 +228,7 @@ final class LegacyWhatsappConfigurationMigrator
     }
 
     /**
-     * @param array{
-     *     id: string,
-     *     account_id: string,
-     *     user_id: int|null,
-     *     phone_number_id: string|null,
-     *     waba_id: string|null,
-     *     access_token: string|null,
-     *     status: string|null,
-     *     connected_at: mixed,
-     *     registered_at: mixed,
-     *     subscribed_apps_at: mixed,
-     *     last_registration_error: string|null
-     * } $legacy
+     * @param  LegacyConfig  $legacy
      */
     private function migratePhoneConnection(array $legacy, ?string $wabaSubscriptionId): void
     {
@@ -277,12 +238,12 @@ final class LegacyWhatsappConfigurationMigrator
             return;
         }
 
-        $connection = DB::table('whatsapp_phone_number_connections')
+        $connection = DB::table((new WhatsappPhoneNumberConnection)->getTable())
             ->where('legacy_config_id', $legacy['id'])
             ->first();
 
         if ($connection === null) {
-            $connection = DB::table('whatsapp_phone_number_connections')
+            $connection = DB::table((new WhatsappPhoneNumberConnection)->getTable())
                 ->where('phone_number_id', $phoneNumberId)
                 ->first();
         }
@@ -301,7 +262,7 @@ final class LegacyWhatsappConfigurationMigrator
             return;
         }
 
-        DB::table('whatsapp_phone_number_connections')->insert([
+        DB::table((new WhatsappPhoneNumberConnection)->getTable())->insert([
             'id' => (string) str()->uuid(),
             'account_id' => $legacy['account_id'],
             'waba_subscription_id' => $wabaSubscriptionId,
@@ -319,19 +280,19 @@ final class LegacyWhatsappConfigurationMigrator
 
     private function assignConversations(): void
     {
-        $conversations = DB::table('conversations')
+        $conversations = DB::table((new Conversation)->getTable())
             ->whereNull('connection_id')
             ->orderBy('id')
             ->get(['id', 'account_id']);
 
         foreach ($conversations as $conversation) {
-            $connectionIds = DB::table('whatsapp_phone_number_connections')
+            $connectionIds = DB::table((new WhatsappPhoneNumberConnection)->getTable())
                 ->where('account_id', $conversation->account_id)
                 ->whereNotNull('legacy_config_id')
                 ->pluck('id');
 
             if ($connectionIds->count() === 1) {
-                DB::table('conversations')
+                DB::table((new Conversation)->getTable())
                     ->where('id', $conversation->id)
                     ->whereNull('connection_id')
                     ->update(['connection_id' => $connectionIds->first(), 'updated_at' => now()]);
@@ -339,7 +300,7 @@ final class LegacyWhatsappConfigurationMigrator
                 continue;
             }
 
-            $hasLegacyConfig = DB::table('whatsapp_config')
+            $hasLegacyConfig = DB::table((new WhatsappConfig)->getTable())
                 ->where('account_id', $conversation->account_id)
                 ->exists();
 
@@ -359,11 +320,7 @@ final class LegacyWhatsappConfigurationMigrator
     }
 
     /**
-     * @param array{
-     *     status: string|null,
-     *     registered_at: mixed,
-     *     subscribed_apps_at: mixed
-     * } $legacy
+     * @param  LegacyConfig  $legacy
      */
     private function readiness(array $legacy): string
     {
@@ -405,7 +362,7 @@ final class LegacyWhatsappConfigurationMigrator
             $conversationId ?? '',
         ]));
 
-        DB::table('whatsapp_legacy_migration_issues')->updateOrInsert(
+        DB::table((new WhatsappLegacyMigrationIssue)->getTable())->updateOrInsert(
             ['fingerprint' => $fingerprint],
             [
                 'id' => (string) str()->uuid(),

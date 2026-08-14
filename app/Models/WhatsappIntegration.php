@@ -24,12 +24,15 @@ use Illuminate\Support\Carbon;
  * @property string $account_id
  * @property int|null $created_by
  * @property string|null $access_token
+ * @property string|null $legacy_verify_token
  * @property string|null $legacy_config_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['account_id', 'created_by', 'access_token', 'legacy_config_id'])]
-#[Hidden(['access_token'])]
+#[Fillable([
+    'account_id', 'created_by', 'access_token', 'legacy_verify_token', 'legacy_config_id',
+])]
+#[Hidden(['access_token', 'legacy_verify_token'])]
 class WhatsappIntegration extends Model
 {
     /** @use HasFactory<WhatsappIntegrationFactory> */
@@ -66,6 +69,7 @@ class WhatsappIntegration extends Model
     {
         return [
             'access_token' => 'encrypted',
+            'legacy_verify_token' => 'encrypted',
         ];
     }
 }

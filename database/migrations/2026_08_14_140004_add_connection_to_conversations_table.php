@@ -11,6 +11,7 @@ return new class extends Migration
     {
         Schema::table('conversations', function (Blueprint $table): void {
             $table->foreignUuid('connection_id')->nullable()->after('contact_id');
+            $table->index('connection_id');
             $table->unique(['account_id', 'contact_id', 'connection_id'], 'idx_conversations_account_contact_connection');
             $table->foreign(['account_id', 'connection_id'])
                 ->references(['account_id', 'id'])

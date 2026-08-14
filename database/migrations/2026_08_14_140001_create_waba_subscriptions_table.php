@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestampTz('subscribed_apps_at')->nullable();
             $table->timestampsTz();
 
-            $table->unique(['id', 'account_id']);
+            $table->unique(['account_id', 'id']);
             $table->foreign(['integration_id', 'account_id'])
                 ->references(['id', 'account_id'])
                 ->on('whatsapp_integrations')

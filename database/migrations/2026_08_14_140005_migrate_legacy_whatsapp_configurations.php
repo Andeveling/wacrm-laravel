@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        app(LegacyWhatsappConfigurationMigrator::class)->run();
+        (new LegacyWhatsappConfigurationMigrator)->run();
     }
 
     public function down(): void

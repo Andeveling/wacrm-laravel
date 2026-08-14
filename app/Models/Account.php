@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -55,11 +55,11 @@ class Account extends Model
     }
 
     /**
-     * @return HasMany<WhatsappIntegration, $this>
+     * @return HasOne<WhatsappIntegration, $this>
      */
-    public function whatsappIntegrations(): HasMany
+    public function whatsappIntegration(): HasOne
     {
-        return $this->hasMany(WhatsappIntegration::class);
+        return $this->hasOne(WhatsappIntegration::class);
     }
 
     /**

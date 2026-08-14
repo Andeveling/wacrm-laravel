@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignUuid('account_id')->unique()->constrained()->cascadeOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('access_token')->nullable();
+            $table->text('legacy_verify_token')->nullable();
             $table->uuid('legacy_config_id')->nullable()->unique();
             $table->timestampsTz();
 

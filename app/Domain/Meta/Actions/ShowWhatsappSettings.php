@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Meta\Actions;
+
+use App\Models\WhatsappPhoneNumberConnection;
+use App\Support\CurrentAccount;
+use Inertia\Inertia;
+use Inertia\Response;
+
+final class ShowWhatsappSettings
+{
+    public function __invoke(CurrentAccount $account): Response
+    {
+        $connections = WhatsappPhoneNumberConnection::query()
+            ->with('wabaSubscription:id,waba_id')
+            ->orderByDesc('is_default')
+            ->orderByDesc('created_at')
+            ->get([
+                'id', 'waba_subscription_id', 'phone_number_id', 'readiness', 'is_default',
+                'connected_at', 'registered_at', 'last_registration_error',
+            ])
+            ->map(fn (WhatsappPhoneNumberConnection $connection): array => [
+                'id' => $connection->id,
+                'phone_number_id' => $connection->phone_number_id,
+                'waba_id' => $connection->wabaSubscription?->waba_id,
+                'readiness' => $connection->readiness->value,
+                'is_default' => $connection->is_default,
+                'connected_at' => $connection->connected_at?->toIso8601String(),
+                'registered_at' => $connection->registered_at?->toIso8601String(),
+                'last_registration_error' => $connection->last_registration_error,
+            ])
+            ->values()
+            ->all();
+
+        return Inertia::render('settings/whatsapp', [
+            'canManage' => $account->isAdmin(),
+            'connections' => $connections,
+            'webhookUrl' => route('meta.webhook.verify'),
+            'status' => session('whatsapp_status'),
+            'error' => session('whatsapp_error'),
+        ]);
+    }
+}

@@ -1,4 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
+import { Lock, Mail } from 'lucide-react';
+import { useId } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -7,15 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-/* @chisel-registration */
 import { register } from '@/routes';
-/* @end-chisel-registration */
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-/* @chisel-passkeys */
 import PasskeyVerify from './passkey-verify';
-
-/* @end-chisel-passkeys */
 
 type Props = {
   status?: string;
@@ -23,6 +20,9 @@ type Props = {
 };
 
 export default function Login({ status, canResetPassword }: Props) {
+  const emailId = useId();
+  const passwordId = useId();
+
   return (
     <>
       <Head title="Iniciar sesión" />
@@ -44,17 +44,21 @@ export default function Login({ status, canResetPassword }: Props) {
           <>
             <div className="grid gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="email">Correo electrónico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  name="email"
-                  required
-                  autoFocus
-                  tabIndex={0}
-                  autoComplete="email"
-                  placeholder="email@example.com"
-                />
+                <Label htmlFor={emailId}>Correo electrónico</Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute inset-y-0 left-3 my-auto size-4.5 text-muted-foreground" />
+                  <Input
+                    id={emailId}
+                    type="email"
+                    name="email"
+                    required
+                    autoFocus
+                    tabIndex={0}
+                    autoComplete="email"
+                    placeholder="tu@empresa.com"
+                    className="pl-10"
+                  />
+                </div>
                 <InputError message={errors.email} />
               </div>
 
@@ -64,32 +68,41 @@ export default function Login({ status, canResetPassword }: Props) {
                   {canResetPassword && (
                     <TextLink
                       href={request()}
-                      className="ml-auto text-sm"
+                      className="ml-auto text-sm font-medium text-primary no-underline"
                       tabIndex={0}
                     >
                       ¿Olvidaste tu contraseña?
                     </TextLink>
                   )}
                 </div>
-                <PasswordInput
-                  id="password"
-                  name="password"
-                  required
-                  tabIndex={0}
-                  autoComplete="current-password"
-                  placeholder="Contraseña"
-                />
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute inset-y-0 left-3 my-auto size-[18px] text-muted-foreground" />
+                  <PasswordInput
+                    id={passwordId}
+                    name="password"
+                    required
+                    tabIndex={0}
+                    autoComplete="current-password"
+                    placeholder="Contraseña"
+                    className="pl-10"
+                  />
+                </div>
                 <InputError message={errors.password} />
               </div>
 
               <div className="flex items-center space-x-3">
                 <Checkbox id="remember" name="remember" tabIndex={0} />
-                <Label htmlFor="remember">Recuérdame</Label>
+                <Label
+                  htmlFor="remember"
+                  className="text-sm font-normal text-muted-foreground"
+                >
+                  Recuérdame
+                </Label>
               </div>
 
               <Button
                 type="submit"
-                className="mt-4 w-full"
+                className="mt-2 w-full"
                 tabIndex={0}
                 disabled={processing}
                 data-test="login-button"
@@ -102,7 +115,11 @@ export default function Login({ status, canResetPassword }: Props) {
             {/* @chisel-registration */}
             <div className="text-center text-sm text-muted-foreground">
               ¿No tienes una cuenta?{' '}
-              <TextLink href={register()} tabIndex={0}>
+              <TextLink
+                href={register()}
+                className="font-medium text-primary no-underline"
+                tabIndex={0}
+              >
                 Regístrate
               </TextLink>
             </div>
@@ -112,7 +129,7 @@ export default function Login({ status, canResetPassword }: Props) {
       </Form>
 
       {status && (
-        <div className="mb-4 text-center text-sm font-medium text-green-600">
+        <div className="mt-4 text-center text-sm font-medium text-green-600">
           {status}
         </div>
       )}

@@ -93,6 +93,20 @@ final class LegacyWhatsappConfigurationMigrator
             ->where('legacy_config_id', $legacy['id'])
             ->first();
 
+        if ($integration !== null && $integration->account_id !== $legacy['account_id']) {
+            $this->recordIssue(
+                accountId: $legacy['account_id'],
+                kind: WhatsappLegacyMigrationIssueKind::IncompleteLegacyConfig,
+                legacyConfigId: $legacy['id'],
+                conversationId: null,
+                details: ['resource' => 'whatsapp_integration', 'action' => 'explicit_remediation_required'],
+            );
+
+            return;
+        }
+
+        $matchedByLegacyId = $integration !== null;
+
         if ($integration === null) {
             $integration = DB::table((new WhatsappIntegration)->getTable())
                 ->where('account_id', $legacy['account_id'])
@@ -124,10 +138,19 @@ final class LegacyWhatsappConfigurationMigrator
         } else {
             $integrationId = (string) $integration->id;
 
-            if ($integration->legacy_config_id === null) {
+            if (! $matchedByLegacyId) {
                 DB::table((new WhatsappIntegration)->getTable())
                     ->where('id', $integrationId)
-                    ->update(['legacy_config_id' => $legacy['id'], 'updated_at' => now()]);
+                    ->update([
+                        'access_token' => $legacy['access_token'] === null
+                            ? null
+                            : Crypt::encryptString($legacy['access_token']),
+                        'legacy_verify_token' => $legacy['verify_token'] === null
+                            ? null
+                            : Crypt::encryptString($legacy['verify_token']),
+                        'legacy_config_id' => $legacy['id'],
+                        'updated_at' => now(),
+                    ]);
             }
 
             $integration = [
@@ -135,22 +158,6 @@ final class LegacyWhatsappConfigurationMigrator
                 'account_id' => (string) $integration->account_id,
                 'legacy_config_id' => $legacy['id'],
             ];
-        }
-
-        if ($integration['account_id'] !== $legacy['account_id']) {
-            // This is only reachable when a pre-existing integration row has
-            // been manually corrupted; do not attach legacy data cross-tenant.
-            $integration = [
-                'id' => (string) $integration['id'],
-                'account_id' => $legacy['account_id'],
-                'legacy_config_id' => $legacy['id'],
-            ];
-        }
-
-        if ($integration['legacy_config_id'] === null) {
-            DB::table((new WhatsappIntegration)->getTable())
-                ->where('id', $integration['id'])
-                ->update(['legacy_config_id' => $legacy['id'], 'updated_at' => now()]);
         }
 
         $waba = $this->migrateWaba($legacy, (string) $integration['id']);

@@ -18,6 +18,7 @@ use App\Models\WhatsappPhoneNumberConnection;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -54,7 +55,7 @@ test('preserves a legacy configuration in encrypted integration records and maps
 
     expect($integration->access_token)->toBe($legacyToken)
         ->and($integration->legacy_verify_token)->toBe($legacy->verify_token)
-        ->and(DB::table('whatsapp_integrations')->where('id', $integration->id)->value('access_token'))
+        ->and(DB::table((new WhatsappIntegration)->getTable())->where('id', $integration->id)->value('access_token'))
         ->not->toBe($legacyToken)
         ->and($connection->readiness)->toBe(WhatsappConnectionReadiness::WebhookWaiting)
         ->and($connection->is_default)->toBeFalse()
@@ -85,6 +86,37 @@ test('reports a conversation that has no legacy connection instead of assigning 
             'candidate_connections' => 0,
             'action' => 'select_connection_explicitly',
         ]);
+});
+
+test('reports a conversation with multiple legacy connection candidates', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->create();
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    WhatsappConfig::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $user->id,
+    ]);
+    WhatsappPhoneNumberConnection::factory()->create([
+        'account_id' => $account->id,
+        'legacy_config_id' => Str::uuid()->toString(),
+    ]);
+    $contact = Contact::factory()->create(['account_id' => $account->id]);
+    $conversation = Conversation::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $user->id,
+        'contact_id' => $contact->id,
+    ]);
+
+    app(LegacyWhatsappConfigurationMigrator::class)->run();
+
+    $issue = WhatsappLegacyMigrationIssue::withoutGlobalScopes()
+        ->where('conversation_id', $conversation->id)
+        ->firstOrFail();
+
+    expect($conversation->fresh()->connection_id)->toBeNull()
+        ->and($issue->kind)->toBe(WhatsappLegacyMigrationIssueKind::AmbiguousConversationConnection)
+        ->and($issue->details['candidate_connections'])->toBe(2);
 });
 
 test('does not claim a WABA already represented by another account', function () {

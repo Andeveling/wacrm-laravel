@@ -1,6 +1,7 @@
-import { Link, usePage } from '@inertiajs/react';
-import { Fingerprint, Inbox, Sparkles } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { Fingerprint, Inbox, Moon, Sparkles, Sun } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { useAppearance } from '@/hooks/use-appearance';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types/ui';
 
@@ -9,7 +10,9 @@ export default function AuthSimpleLayout({
   title,
   description,
 }: AuthLayoutProps) {
-  const appName = usePage<{ name: string }>().props.name;
+  const { resolvedAppearance, updateAppearance } = useAppearance();
+  const nextAppearance = resolvedAppearance === 'dark' ? 'light' : 'dark';
+  const AppearanceIcon = nextAppearance === 'light' ? Sun : Moon;
 
   return (
     <div className="min-h-svh bg-background lg:grid lg:grid-cols-2">
@@ -67,6 +70,15 @@ export default function AuthSimpleLayout({
 
       {/* Right panel: form */}
       <div className="relative z-20 flex min-w-0 flex-col justify-center bg-background px-6 py-12 sm:px-12 lg:border-l lg:border-border/60">
+        <button
+          type="button"
+          className="absolute top-6 right-6 inline-flex size-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => updateAppearance(nextAppearance)}
+          aria-label={`Cambiar a modo ${nextAppearance === 'light' ? 'claro' : 'oscuro'}`}
+          data-testid="auth-appearance-toggle"
+        >
+          <AppearanceIcon className="size-4" aria-hidden="true" />
+        </button>
         <div className="w-full max-w-sm justify-center">
           <div className="mb-10 text-center">
             <div className="mb-6 flex items-center justify-center gap-2">
@@ -77,9 +89,7 @@ export default function AuthSimpleLayout({
                 <div className="flex size-10 items-center justify-center rounded-lg border border-primary/20 bg-linear-to-br from-primary/20 to-primary/5 text-primary">
                   <AppLogoIcon className="size-5 fill-current" />
                 </div>
-                <span className="text-lg font-bold tracking-tight">
-                  {appName}
-                </span>
+                <span className="text-lg font-bold tracking-tight">Wacrm</span>
               </Link>
             </div>
             <h2 className="mb-2 text-2xl font-semibold tracking-tight">

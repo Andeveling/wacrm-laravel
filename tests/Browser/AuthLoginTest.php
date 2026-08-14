@@ -13,12 +13,22 @@ beforeEach(function () {
 test('login page renders with correct elements', function () {
     $this->visit('/login')
         ->assertNoSmoke()
+        ->assertSee('Wacrm')
         ->assertSee('Iniciar sesión')
         ->assertSee('Correo electrónico')
         ->assertSee('Contraseña')
         ->assertSee('¿Olvidaste tu contraseña?')
         ->assertSee('Recuérdame')
         ->assertSee('Iniciar sesión con llave de acceso');
+});
+
+test('login offers an accessible compact appearance toggle', function () {
+    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
+    $this->visit('/login')
+        ->assertAttribute('html', 'data-mode', 'dark')
+        ->click('[data-testid="auth-appearance-toggle"]')
+        ->assertAttribute('html', 'data-mode', 'light')
+        ->assertNoSmoke();
 });
 
 test('successful login redirects to dashboard', function () {

@@ -10,7 +10,7 @@ if (import.meta.env.DEV) {
   import('react-grab');
 }
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = 'Wacrm';
 
 // Apply persisted mode and accent before Inertia starts its first render.
 initializeTheme();

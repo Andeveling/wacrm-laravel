@@ -33,16 +33,16 @@ test('login offers an accessible compact appearance toggle', function () {
 
 test('successful login redirects to dashboard', function () {
     $this->visit('/login')
-        ->type('input#email', $this->user->email)
-        ->type('input#password', $this->password)
+        ->type('input[name="email"]', $this->user->email)
+        ->type('input[name="password"]', $this->password)
         ->press('button[type="submit"]')
         ->assertNoSmoke();
 });
 
 test('failed login shows error message', function () {
     $this->visit('/login')
-        ->type('input#email', $this->user->email)
-        ->type('input#password', 'wrong-password')
+        ->type('input[name="email"]', $this->user->email)
+        ->type('input[name="password"]', 'wrong-password')
         ->press('button[type="submit"]')
         ->assertSee(trans('auth.failed'));
 });

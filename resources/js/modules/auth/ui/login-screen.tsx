@@ -1,5 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import { Lock, Mail } from 'lucide-react';
+import { useId } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -19,6 +20,10 @@ type Props = {
 };
 
 export default function Login({ status, canResetPassword }: Props) {
+  const emailId = useId();
+  const passwordId = useId();
+  const rememberId = useId();
+
   return (
     <>
       <Head title="Iniciar sesión" />
@@ -40,11 +45,11 @@ export default function Login({ status, canResetPassword }: Props) {
           <>
             <div className="grid gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="email">Correo electrónico</Label>
+                <Label htmlFor={emailId}>Correo electrónico</Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute inset-y-0 left-3 my-auto size-4.5 text-muted-foreground" />
                   <Input
-                    id="email"
+                    id={emailId}
                     type="email"
                     name="email"
                     required
@@ -60,8 +65,8 @@ export default function Login({ status, canResetPassword }: Props) {
 
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Contraseña</Label>
-                  {canResetPassword && (
+                  <Label htmlFor={passwordId}>Contraseña</Label>
+                  {canResetPassword ? (
                     <TextLink
                       href={request()}
                       className="ml-auto text-sm font-medium text-primary no-underline"
@@ -69,12 +74,12 @@ export default function Login({ status, canResetPassword }: Props) {
                     >
                       ¿Olvidaste tu contraseña?
                     </TextLink>
-                  )}
+                  ) : null}
                 </div>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute inset-y-0 left-3 my-auto size-[18px] text-muted-foreground" />
                   <PasswordInput
-                    id="password"
+                    id={passwordId}
                     name="password"
                     required
                     tabIndex={0}
@@ -87,9 +92,9 @@ export default function Login({ status, canResetPassword }: Props) {
               </div>
 
               <div className="flex items-center space-x-3">
-                <Checkbox id="remember" name="remember" tabIndex={0} />
+                <Checkbox id={rememberId} name="remember" tabIndex={0} />
                 <Label
-                  htmlFor="remember"
+                  htmlFor={rememberId}
                   className="text-sm font-normal text-muted-foreground"
                 >
                   Recuérdame
@@ -103,7 +108,7 @@ export default function Login({ status, canResetPassword }: Props) {
                 disabled={processing}
                 data-test="login-button"
               >
-                {processing && <Spinner />}
+                {processing ? <Spinner /> : null}
                 Iniciar sesión
               </Button>
             </div>
@@ -124,11 +129,11 @@ export default function Login({ status, canResetPassword }: Props) {
         )}
       </Form>
 
-      {status && (
+      {status ? (
         <div className="mt-4 text-center text-sm font-medium text-green-600">
           {status}
         </div>
-      )}
+      ) : null}
     </>
   );
 }

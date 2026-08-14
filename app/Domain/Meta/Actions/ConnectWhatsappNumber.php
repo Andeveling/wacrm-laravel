@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Meta\Actions;
 
-use App\Domain\Meta\Services\MetaGraphClient;
+use App\Domain\Meta\Responders\WhatsappConnectionResponder;
+use App\Domain\Meta\Results\WhatsappConnectionResult;
+use App\Domain\Meta\Services\MetaGraphClientContract;
 use App\Domain\Meta\Support\MetaGraphException;
 use App\Http\Requests\Meta\ConnectWhatsappNumberRequest;
 use App\Models\Enums\WhatsappConnectionReadiness;
@@ -22,8 +24,11 @@ final class ConnectWhatsappNumber
     public function __invoke(
         ConnectWhatsappNumberRequest $request,
         CurrentAccount $account,
-        MetaGraphClient $meta,
+        MetaGraphClientContract $meta,
+        WhatsappConnectionResponder $responder,
     ): RedirectResponse {
+        abort_unless($account->isAdmin(), 403);
+
         $data = $request->validated();
         $phoneNumberId = $data['phone_number_id'];
         $wabaId = $data['waba_id'];
@@ -62,11 +67,11 @@ final class ConnectWhatsappNumber
         }
 
         try {
-            $phone = $meta->verifyPhoneAndWaba($phoneNumberId, $wabaId, $token);
+            $meta->verifyPhoneAndWaba($phoneNumberId, $wabaId, $token);
         } catch (MetaGraphException $exception) {
             $this->logFailure($exception, $account, $phoneNumberId, $wabaId);
 
-            return to_route('settings.whatsapp')->with('whatsapp_error', $exception->getMessage());
+            return $responder->respond(WhatsappConnectionResult::failure($exception->getMessage()));
         }
 
         $integration ??= new WhatsappIntegration;
@@ -101,7 +106,7 @@ final class ConnectWhatsappNumber
                 $connection->save();
                 $this->logFailure($exception, $account, $phoneNumberId, $wabaId);
 
-                return to_route('settings.whatsapp')->with('whatsapp_error', $exception->getMessage());
+                return $responder->respond(WhatsappConnectionResult::failure($exception->getMessage()));
             }
 
             $waba->subscribed_apps_at = Carbon::now();
@@ -120,7 +125,7 @@ final class ConnectWhatsappNumber
                 $connection->save();
                 $this->logFailure($exception, $account, $phoneNumberId, $wabaId);
 
-                return to_route('settings.whatsapp')->with('whatsapp_error', $exception->getMessage());
+                return $responder->respond(WhatsappConnectionResult::failure($exception->getMessage()));
             }
 
             $connection->registered_at = Carbon::now();
@@ -136,7 +141,7 @@ final class ConnectWhatsappNumber
             ? 'Credenciales verificadas y WABA suscrito. Ingresa el PIN para registrar el número y empezar a recibir eventos.'
             : 'Número conectado. Meta está verificando la primera entrega del webhook.';
 
-        return to_route('settings.whatsapp')->with('whatsapp_status', $status);
+        return $responder->respond(WhatsappConnectionResult::success($status));
     }
 
     private function logFailure(

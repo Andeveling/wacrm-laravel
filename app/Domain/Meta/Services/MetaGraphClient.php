@@ -6,15 +6,18 @@ namespace App\Domain\Meta\Services;
 
 use App\Domain\Meta\Support\MetaGraphException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Throwable;
 
 /**
  * Narrow boundary around the Meta Graph calls needed by the connection wizard.
  * No caller receives a raw Graph error or response body: those may contain
  * provider details that are not safe to expose in a tenant-facing response.
  */
-final class MetaGraphClient
+final class MetaGraphClient implements MetaGraphClientContract
 {
     /**
      * Verify that the token can read the phone and WABA, and that the phone
@@ -83,6 +86,12 @@ final class MetaGraphClient
             return;
         }
 
+        $errorMessage = strtolower((string) $response->json('error.message', ''));
+
+        if (str_contains($errorMessage, 'already') && str_contains($errorMessage, 'subscribed')) {
+            return;
+        }
+
         $this->throwForResponse($response, 'subscription');
     }
 
@@ -117,7 +126,12 @@ final class MetaGraphClient
         try {
             $response = Http::withToken($token)
                 ->acceptJson()
+                ->connectTimeout(5)
                 ->timeout(10)
+                ->retry(2, 200, function (Throwable $exception, PendingRequest $request): bool {
+                    return $exception instanceof ConnectionException
+                        || ($exception instanceof RequestException && $exception->response->serverError());
+                }, throw: false)
                 ->get($this->url($resource), $query);
         } catch (ConnectionException) {
             throw new MetaGraphException(
@@ -143,7 +157,12 @@ final class MetaGraphClient
         try {
             return Http::withToken($token)
                 ->acceptJson()
+                ->connectTimeout(5)
                 ->timeout(10)
+                ->retry(2, 200, function (Throwable $exception, PendingRequest $request): bool {
+                    return $exception instanceof ConnectionException
+                        || ($exception instanceof RequestException && $exception->response->serverError());
+                }, throw: false)
                 ->post($this->url($resource), $payload);
         } catch (ConnectionException) {
             throw new MetaGraphException(

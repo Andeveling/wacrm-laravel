@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   XCircle,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
 import ConnectWhatsappNumber from '@/actions/App/Domain/Meta/Actions/ConnectWhatsappNumber';
 import Heading from '@/components/heading';
@@ -89,6 +89,7 @@ export default function Whatsapp({
   error,
 }: PageProps) {
   const [, copy] = useClipboard();
+  const inputId = useId();
   const [showToken, setShowToken] = useState(false);
   const connection = connections[0];
   const form = useForm<FormData>({
@@ -132,7 +133,7 @@ export default function Whatsapp({
           description="Conecta un número de WhatsApp Business y valida cada paso con Meta."
         />
 
-        {error && (
+        {!!error && (
           <Alert variant="destructive">
             <CircleAlert className="size-4" />
             <AlertTitle>El último paso necesita atención</AlertTitle>
@@ -174,9 +175,11 @@ export default function Whatsapp({
               <form onSubmit={submit} className="grid gap-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="wa-phone-id">Phone Number ID</Label>
+                    <Label htmlFor={`${inputId}-phone-id`}>
+                      Phone Number ID
+                    </Label>
                     <Input
-                      id="wa-phone-id"
+                      id={`${inputId}-phone-id`}
                       name="phone_number_id"
                       value={form.data.phone_number_id}
                       onChange={(event) =>
@@ -189,9 +192,9 @@ export default function Whatsapp({
                     <InputError message={form.errors.phone_number_id} />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="wa-waba-id">WABA ID</Label>
+                    <Label htmlFor={`${inputId}-waba-id`}>WABA ID</Label>
                     <Input
-                      id="wa-waba-id"
+                      id={`${inputId}-waba-id`}
                       name="waba_id"
                       value={form.data.waba_id}
                       onChange={(event) =>
@@ -206,12 +209,12 @@ export default function Whatsapp({
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="wa-access-token">
+                  <Label htmlFor={`${inputId}-access-token`}>
                     Token de acceso de Meta
                   </Label>
                   <div className="relative">
                     <Input
-                      id="wa-access-token"
+                      id={`${inputId}-access-token`}
                       name="access_token"
                       type={showToken ? 'text' : 'password'}
                       value={form.data.access_token}
@@ -243,11 +246,11 @@ export default function Whatsapp({
                 </div>
 
                 <div className="grid gap-2 sm:max-w-xs">
-                  <Label htmlFor="wa-pin">
+                  <Label htmlFor={`${inputId}-pin`}>
                     PIN de verificación en dos pasos
                   </Label>
                   <Input
-                    id="wa-pin"
+                    id={`${inputId}-pin`}
                     name="pin"
                     inputMode="numeric"
                     maxLength={6}
@@ -270,7 +273,7 @@ export default function Whatsapp({
                     Solo Owner y Admin pueden cambiar la conexión.
                   </p>
                   <Button type="submit" disabled={form.processing}>
-                    {form.processing && (
+                    {!!form.processing && (
                       <Loader2 className="size-4 animate-spin" />
                     )}
                     {form.processing
@@ -383,7 +386,7 @@ function ConnectionCard({ connection }: { connection: Connection }) {
           })}
         </div>
 
-        {connection.last_registration_error && (
+        {!!connection.last_registration_error && (
           <p className="text-xs text-destructive">
             {connection.last_registration_error}
           </p>

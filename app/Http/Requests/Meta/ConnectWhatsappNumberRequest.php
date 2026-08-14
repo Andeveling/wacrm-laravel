@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Meta;
 
-use App\Support\CurrentAccount;
 use Illuminate\Foundation\Http\FormRequest;
 
 final class ConnectWhatsappNumberRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return app(CurrentAccount::class)->isAdmin();
+        return true;
     }
 
     /**

@@ -190,6 +190,17 @@ html[data-theme="rose"] {
   --sidebar-ring: oklch(0.645 0.22 16);
 }
 
+@layer components {
+  .auth-form-panel {
+    @apply w-full max-w-md;
+  }
+
+  .auth-form-panel [data-slot="input"],
+  .auth-form-panel [data-slot="button"] {
+    @apply h-12 text-base;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

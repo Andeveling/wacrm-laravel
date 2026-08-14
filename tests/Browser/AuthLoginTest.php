@@ -31,6 +31,15 @@ test('login offers an accessible compact appearance toggle', function () {
         ->assertNoSmoke();
 });
 
+test('login uses the shared public auth form scale', function () {
+    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
+    $this->visit('/login')
+        ->assertScript("getComputedStyle(document.querySelector('[data-testid=auth-form-panel]')).maxWidth === '448px'")
+        ->assertScript("getComputedStyle(document.querySelector('input[name=email]')).height === '48px'")
+        ->assertScript("getComputedStyle(document.querySelector('[data-test=login-button]')).height === '48px'")
+        ->assertNoSmoke();
+});
+
 test('successful login redirects to dashboard', function () {
     $this->visit('/login')
         ->type('input[name="email"]', $this->user->email)

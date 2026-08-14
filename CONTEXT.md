@@ -21,6 +21,9 @@ Token Bearer para acceso programático. Pertenece a un Account y carga un conjun
 ### Contact
 Persona con la que el Account conversa por WhatsApp. Su **proyección pública** — `id`, `phone`, `name`, `email`, `company`, `avatar_url`, `created_at`, `updated_at` y sus `tags` — está definida una sola vez y es idéntica en todos los transportes: pantalla web, tools MCP y (cuando exista) la API REST. Agregar un campo al Contact público es editar ese único lugar. El detalle que devuelve MCP es esa misma proyección más `notes` y `conversations`.
 
+### WhatsApp Phone Number
+Número de WhatsApp Business conectado a un **Account** e identificado de forma única por el `phone_number_id` de Meta. Un Account puede conectar varios números; un `phone_number_id` pertenece a exactamente un Account. El webhook usa este identificador para asignar cada entrega entrante al Account correcto.
+
 ## Roles (AccountRole)
 
 Jerarquía ordinal plana de lo que un User puede hacer dentro de un Account:
@@ -119,6 +122,7 @@ Las sondas `pest --agent` son temporales: verifican backend o navegador dentro d
 - **Current Account** — el account en el que el User está "actuando" en este request.
 - **BelongsToAccount** — marcador de que un modelo está escopeado por tenant.
 - **Datos operativos** — contactos, negocios, conversaciones (CRM).
+- **WhatsApp Phone Number** — número de WhatsApp Business de un Account, identificado por su `phone_number_id` de Meta.
 
 ## Reglas de membresía
 

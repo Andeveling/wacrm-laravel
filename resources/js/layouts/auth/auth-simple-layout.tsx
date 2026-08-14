@@ -79,7 +79,10 @@ export default function AuthSimpleLayout({
         >
           <AppearanceIcon className="size-4" aria-hidden="true" />
         </button>
-        <div className="w-full max-w-sm justify-center">
+        <div
+          className="auth-form-panel justify-center"
+          data-testid="auth-form-panel"
+        >
           <div className="mb-10 text-center">
             <div className="mb-6 flex items-center justify-center gap-2">
               <Link

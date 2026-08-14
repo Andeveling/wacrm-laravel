@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -51,6 +52,14 @@ class Account extends Model
         return $this->belongsToMany(User::class, 'account_user')
             ->using(AccountUser::class)
             ->withPivot('role', 'joined_at');
+    }
+
+    /**
+     * @return HasMany<WhatsappIntegration, $this>
+     */
+    public function whatsappIntegrations(): HasMany
+    {
+        return $this->hasMany(WhatsappIntegration::class);
     }
 
     /**

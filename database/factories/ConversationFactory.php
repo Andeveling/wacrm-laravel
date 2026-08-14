@@ -24,7 +24,8 @@ class ConversationFactory extends Factory
         return [
             'account_id' => Account::factory(),
             'user_id' => User::factory(),
-            // Contacto propio por conversación: hay UNIQUE (account_id, contact_id).
+            // Contacto propio por conversación; the connection is nullable for
+            // legacy rows awaiting explicit assignment.
             'contact_id' => Contact::factory(),
             'status' => ConversationStatus::Open,
         ];

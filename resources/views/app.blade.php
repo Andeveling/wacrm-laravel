@@ -1,32 +1,49 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-mode="dark" data-theme="violet">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {{-- Inline script to detect system dark mode preference and apply it immediately --}}
+    {{-- Replay device preferences before the first paint to avoid a theme flash. --}}
     <script>
         (function() {
-            const appearance = '{{ $appearance ?? 'system' }}';
+            const root = document.documentElement;
+            const serverAppearance = @json($appearance ?? 'dark');
+            let appearance = ['light', 'dark', 'system'].includes(serverAppearance)
+                ? serverAppearance
+                : 'dark';
+            let theme = 'violet';
 
-            if (appearance === 'system') {
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            try {
+                const storedAppearance = localStorage.getItem('appearance');
+                const storedTheme = localStorage.getItem('wacrm.theme');
 
-                if (prefersDark) {
-                    document.documentElement.classList.add('dark');
+                if (['light', 'dark', 'system'].includes(storedAppearance)) {
+                    appearance = storedAppearance;
                 }
+                if (['violet', 'emerald', 'cobalt', 'amber', 'rose'].includes(storedTheme)) {
+                    theme = storedTheme;
+                }
+            } catch {
+                // Private browsing may deny localStorage; defaults remain valid.
             }
+
+            const mode = appearance === 'system'
+                ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                : appearance;
+
+            root.dataset.mode = mode;
+            root.dataset.theme = theme;
+            root.style.colorScheme = mode;
         })();
     </script>
-
-    {{-- Inline style to set the HTML background color based on our theme in app.css --}}
     <style>
         html {
-            background-color: oklch(1 0 0);
+            background-color: oklch(0.13 0.01 260);
         }
 
-        html.dark {
-            background-color: oklch(0.145 0 0);
+        html[data-mode="light"] {
+            background-color: oklch(0.99 0.002 260);
         }
     </style>
 

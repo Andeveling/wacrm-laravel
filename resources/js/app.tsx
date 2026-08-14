@@ -12,6 +12,9 @@ if (import.meta.env.DEV) {
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+// Apply persisted mode and accent before Inertia starts its first render.
+initializeTheme();
+
 createInertiaApp({
   title: (title) => (title ? `${title} - ${appName}` : appName),
   layout: (name) => {
@@ -38,5 +41,4 @@ createInertiaApp({
   },
 });
 
-// This will set light / dark mode on load...
-initializeTheme();
+// The boot state is ready before React hydrates, preventing a theme flash.

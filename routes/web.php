@@ -3,6 +3,7 @@
 use App\Domain\Automations\Actions\EditAutomation;
 use App\Domain\Automations\Actions\ShowAutomationLogs;
 use App\Domain\Automations\Actions\ShowAutomations;
+use App\Domain\Automations\Actions\ShowNewAutomation;
 use App\Domain\Automations\Actions\StoreAutomation;
 use App\Domain\Broadcasts\Actions\CountBroadcastAudience;
 use App\Domain\Broadcasts\Actions\ShowBroadcast;
@@ -99,7 +100,7 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
     Route::get('broadcasts/{id}', ShowBroadcast::class)->name('broadcasts.show');
 
     Route::get('automations', ShowAutomations::class)->name('automations');
-    Route::inertia('automations/new', 'automations/new')->name('automations.new');
+    Route::get('automations/new', ShowNewAutomation::class)->name('automations.new');
     Route::post('automations', StoreAutomation::class)->name('automations.store');
     Route::get('automations/{automation}/edit', EditAutomation::class)->name('automations.edit');
     Route::get('automations/{automation}/logs', ShowAutomationLogs::class)->name('automations.logs');

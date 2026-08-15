@@ -1,6 +1,7 @@
-import { Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -40,12 +41,14 @@ interface ConversationListProps {
   conversations: Conversation[];
   activeConversationId: string | null;
   onSelect: (conversation: Conversation) => void;
+  onNewConversation: () => void;
 }
 
 export function ConversationList({
   conversations,
   activeConversationId,
   onSelect,
+  onNewConversation,
 }: ConversationListProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<InboxFilter>('all');
@@ -67,14 +70,24 @@ export function ConversationList({
   return (
     <div className="flex h-full w-full flex-col border-r border-border sm:w-80">
       <div className="space-y-2 border-b border-border p-3">
-        <div className="relative">
-          <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar conversación…"
-            className="pl-8"
-          />
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar conversación…"
+              className="pl-8"
+            />
+          </div>
+          <Button
+            size="icon"
+            type="button"
+            onClick={onNewConversation}
+            aria-label="Nueva conversación"
+          >
+            <Plus className="size-4" />
+          </Button>
         </div>
         <div className="flex flex-wrap gap-1">
           {FILTER_OPTIONS.map((opt) => (

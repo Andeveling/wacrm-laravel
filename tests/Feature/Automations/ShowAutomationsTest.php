@@ -54,6 +54,23 @@ test('automations page returns an empty list for an account without automations'
             ->has('automations', 0));
 });
 
+test('new automation page exposes active current-account connections', function () {
+    [$user, $account] = memberWithRole('admin');
+    $active = WhatsappPhoneNumberConnection::factory()->for($account)->active()->create(['phone_number_id' => 'phone-sales']);
+    WhatsappPhoneNumberConnection::factory()->for($account)->create();
+    WhatsappPhoneNumberConnection::factory()->active()->create();
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('automations.new'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('automations/new')
+            ->has('connections', 1)
+            ->where('connections.0.id', $active->id)
+            ->where('connections.0.phone_number_id', 'phone-sales'));
+});
+
 test('automations page eager loads steps', function () {
     [$user, $account] = memberWithRole('admin');
     $automations = Automation::factory()->count(2)->for($account)->create();

@@ -59,7 +59,7 @@ jobs:
           # suite or not, so without it the whole suite exits non-zero.
           extensions: pdo_pgsql, pgsql, sockets
           tools: composer:v2
-          coverage: none
+          coverage: pcov
 
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -119,6 +119,19 @@ jobs:
       # `browser` job below.
       - name: Run CI checks
         run: composer ci:check
+
+      - name: Enforce PHP coverage and CRAP budgets
+        run: composer quality:php
+
+      - name: Verify PHP quality gate regressions fail
+        run: composer quality:php:verify
+
+      - name: Upload PHP quality reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-quality-reports
+          path: reports/php/
+          if-no-files-found: error
 
   browser:
     runs-on: ubuntu-latest

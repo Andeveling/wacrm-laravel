@@ -74,6 +74,14 @@
       "@test"
     ],
     "types:check": ["phpstan analyse --memory-limit=1G"],
+    "quality:php": [
+      "@php -r \"is_dir('reports/php') || mkdir('reports/php', 0777, true);\"",
+      "@php vendor/bin/pest --exclude-testsuite=Browser --coverage-clover reports/php/coverage.xml --coverage-crap4j reports/php/crap4j.xml",
+      "@php tools/quality/check-php-quality.php reports/php/coverage.xml reports/php/crap4j.xml"
+    ],
+    "quality:php:verify": [
+      "@php tools/quality/check-php-quality.php --self-test"
+    ],
     "test": [
       "@php artisan config:clear --ansi",
       "@lint:check",

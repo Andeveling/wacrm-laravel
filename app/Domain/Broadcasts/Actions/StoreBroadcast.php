@@ -43,7 +43,9 @@ final readonly class StoreBroadcast
                 throw ValidationException::withMessages(['template_id' => 'La plantilla seleccionada no está aprobada o no está disponible.']);
             }
 
-            $contacts = $this->audience->contacts($tagIds)->lockForUpdate();
+            $contacts = $this->audience->contacts($tagIds)
+                ->lockForUpdate()
+                ->get(['id']);
             $recipientCount = $contacts->count();
 
             if ($recipientCount === 0) {
@@ -64,7 +66,7 @@ final readonly class StoreBroadcast
                 'total_recipients' => $recipientCount,
             ]);
 
-            $contacts->select('id')->chunkById(200, function (Collection $contacts) use ($broadcast): void {
+            $contacts->chunk(200)->each(function (Collection $contacts) use ($broadcast): void {
                 BroadcastRecipient::query()->insert($contacts->map(fn ($contact): array => [
                     'id' => (string) Str::uuid(),
                     'broadcast_id' => $broadcast->id,

@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Tags, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AUDIENCE_TAGS } from '../fixtures';
+import type { BroadcastTag } from '../contracts';
 
 export type AudienceType = 'all' | 'tags';
 
@@ -10,6 +10,8 @@ export interface AudienceConfig {
 }
 
 interface Step2Props {
+  tags: BroadcastTag[];
+  audienceCount: number | null;
   audience: AudienceConfig;
   onUpdate: (audience: AudienceConfig) => void;
   onNext: () => void;
@@ -37,14 +39,14 @@ const AUDIENCE_OPTIONS: {
 ];
 
 export function Step2SelectAudience({
+  tags,
+  audienceCount,
   audience,
   onUpdate,
   onNext,
   onBack,
 }: Step2Props) {
-  const canProceed =
-    audience.type === 'all' ||
-    (audience.type === 'tags' && (audience.tagIds?.length ?? 0) > 0);
+  const canProceed = audienceCount !== null && audienceCount > 0;
 
   function toggleTag(tagId: string) {
     const current = audience.tagIds ?? [];
@@ -104,7 +106,7 @@ export function Step2SelectAudience({
         <div className="rounded-xl border border-border bg-card/50 p-4">
           <p className="mb-2 text-sm font-medium text-foreground">Etiquetas</p>
           <div className="flex flex-wrap gap-1.5">
-            {AUDIENCE_TAGS.map((tag) => {
+            {tags.map((tag) => {
               const selected = (audience.tagIds ?? []).includes(tag.id);
               return (
                 <button
@@ -124,6 +126,14 @@ export function Step2SelectAudience({
           </div>
         </div>
       )}
+
+      <p className="text-sm text-muted-foreground" aria-live="polite">
+        {audienceCount === null
+          ? 'Calculando contactos alcanzados…'
+          : audienceCount === 0
+            ? 'Esta audiencia no tiene contactos. Selecciona otra para continuar.'
+            : `${audienceCount.toLocaleString()} contactos alcanzados.`}
+      </p>
 
       <div className="flex items-center justify-between border-t border-border pt-4">
         <Button variant="outline" onClick={onBack}>

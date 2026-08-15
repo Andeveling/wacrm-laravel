@@ -1,10 +1,12 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Check } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useEffect, useRef, useState } from 'react';
 import { broadcasts } from '@/routes';
-import { show } from '@/routes/broadcasts';
-import type { MessageTemplate } from '../contracts';
+import {
+  audienceCount as audienceCountRoute,
+  store,
+} from '@/routes/broadcasts';
+import type { BroadcastTag, MessageTemplate } from '../contracts';
 import { Step1ChooseTemplate } from './step1-choose-template';
 import type { AudienceConfig } from './step2-select-audience';
 import { Step2SelectAudience } from './step2-select-audience';
@@ -15,20 +17,65 @@ const STEPS = [
   { key: 'template', label: 'Plantilla' },
   { key: 'audience', label: 'Audiencia' },
   { key: 'personalize', label: 'Personalizar' },
-  { key: 'send', label: 'Enviar' },
+  { key: 'send', label: 'Crear' },
 ] as const;
 
-export default function NewBroadcastPage() {
+interface NewBroadcastPageProps {
+  templates: MessageTemplate[];
+  tags: BroadcastTag[];
+}
+
+export default function NewBroadcastPage({
+  templates,
+  tags,
+}: NewBroadcastPageProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [template, setTemplate] = useState<MessageTemplate | null>(null);
   const [audience, setAudience] = useState<AudienceConfig>({ type: 'all' });
-  const [variables, setVariables] = useState<Record<string, string>>({});
-  const [name, setName] = useState('');
+  const [audienceCount, setAudienceCount] = useState<number | null>(null);
+  const audienceDebounce = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const form = useForm({
+    name: '',
+    template_id: '',
+    audience_type: 'all' as 'all' | 'tags',
+    tag_ids: [] as string[],
+    template_variables: {} as Record<string, string>,
+    scheduled_at: '',
+  });
 
-  function handleSend() {
+  useEffect(() => {
+    const controller = new AbortController();
+    clearTimeout(audienceDebounce.current);
+    setAudienceCount(null);
+
+    audienceDebounce.current = setTimeout(async () => {
+      const response = await fetch(
+        audienceCountRoute.url({ query: { tag_ids: audience.tagIds ?? [] } }),
+        { headers: { Accept: 'application/json' }, signal: controller.signal },
+      );
+
+      if (response.ok) {
+        const data: { count: number } = await response.json();
+        setAudienceCount(data.count);
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      clearTimeout(audienceDebounce.current);
+    };
+  }, [audience.tagIds]);
+
+  function handleCreate() {
     if (!template) return;
-    toast.success('Difusión enviada.');
-    router.visit(show('bc-0'));
+    form.transform((data) => ({
+      ...data,
+      template_id: template.id,
+      audience_type: audience.type,
+      tag_ids: audience.tagIds ?? [],
+      scheduled_at: data.scheduled_at || null,
+    }));
+    form.post(store.url());
   }
 
   return (
@@ -39,7 +86,7 @@ export default function NewBroadcastPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Nueva difusión</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Envía un mensaje de plantilla a varios contactos en unos pasos.
+            Crea una difusión de plantilla para varios contactos en unos pasos.
           </p>
         </div>
 
@@ -80,6 +127,7 @@ export default function NewBroadcastPage() {
         <div className="min-h-[400px]">
           {currentStep === 0 && (
             <Step1ChooseTemplate
+              templates={templates}
               selectedTemplate={template}
               onSelect={setTemplate}
               onNext={() => setCurrentStep(1)}
@@ -88,6 +136,8 @@ export default function NewBroadcastPage() {
           )}
           {currentStep === 1 && (
             <Step2SelectAudience
+              tags={tags}
+              audienceCount={audienceCount}
               audience={audience}
               onUpdate={setAudience}
               onNext={() => setCurrentStep(2)}
@@ -97,19 +147,27 @@ export default function NewBroadcastPage() {
           {currentStep === 2 && template && (
             <Step3Personalize
               template={template}
-              variables={variables}
-              onUpdate={setVariables}
+              variables={form.data.template_variables}
+              onUpdate={(variables) =>
+                form.setData('template_variables', variables)
+              }
               onNext={() => setCurrentStep(3)}
               onBack={() => setCurrentStep(1)}
             />
           )}
           {currentStep === 3 && template && (
             <Step4ScheduleSend
-              name={name}
-              onNameChange={setName}
+              name={form.data.name}
+              onNameChange={(name) => form.setData('name', name)}
               template={template}
               audience={audience}
-              onSend={handleSend}
+              tags={tags}
+              audienceCount={audienceCount ?? 0}
+              scheduledAt={form.data.scheduled_at}
+              onScheduledAtChange={(scheduledAt) =>
+                form.setData('scheduled_at', scheduledAt)
+              }
+              onSend={handleCreate}
               onBack={() => setCurrentStep(2)}
             />
           )}

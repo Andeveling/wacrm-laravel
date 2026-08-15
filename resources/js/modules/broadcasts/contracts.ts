@@ -71,3 +71,9 @@ export interface MessageTemplate {
   status?: MessageTemplateStatus;
   rejection_reason?: string;
 }
+
+export interface BroadcastTag {
+  id: string;
+  name: string;
+  color: string;
+}

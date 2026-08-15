@@ -6,6 +6,7 @@ use App\Jobs\ProcessWhatsappWebhookDelivery;
 use App\Models\Account;
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\Enums\MessageStatus;
 use App\Models\Enums\WhatsappConnectionReadiness;
 use App\Models\Message;
 use App\Models\Scopes\AccountScope;
@@ -16,6 +17,7 @@ use App\Models\WhatsappPhoneNumberConnection;
 use App\Models\WhatsappWebhookDelivery;
 use App\Models\WhatsappWebhookEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -646,6 +648,342 @@ test('a retried inbound message does not duplicate crm records and still activat
         ->and(Conversation::query()->count())->toBe(1)
         ->and(Conversation::query()->sole()->messages()->count())->toBe(1)
         ->and($connection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+/**
+ * @param  list<array{phone_number_id: string, message_id: string, status: string, recipient_id?: string, waba_id?: string}>  $statuses
+ */
+function inboundStatusesPayload(array $statuses): string
+{
+    $entries = [];
+
+    foreach ($statuses as $status) {
+        $wabaId = $status['waba_id'] ?? 'waba-'.$status['phone_number_id'];
+        $entries[] = [
+            'id' => $wabaId,
+            'changes' => [[
+                'field' => 'messages',
+                'value' => [
+                    'messaging_product' => 'whatsapp',
+                    'metadata' => [
+                        'display_phone_number' => $status['recipient_id'] ?? '573001112233',
+                        'phone_number_id' => $status['phone_number_id'],
+                    ],
+                    'statuses' => [[
+                        'id' => $status['message_id'],
+                        'status' => $status['status'],
+                        'timestamp' => '1712000100',
+                        'recipient_id' => $status['recipient_id'] ?? '573001112233',
+                    ]],
+                ],
+            ]],
+        ];
+    }
+
+    return json_encode([
+        'object' => 'whatsapp_business_account',
+        'entry' => $entries,
+    ], JSON_THROW_ON_ERROR);
+}
+
+test('a late sent status does not regress a delivered outbound message', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+    $connection->readiness = WhatsappConnectionReadiness::Active;
+    $connection->save();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    $contact = Contact::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'phone' => '+573001112233',
+    ]);
+    $conversation = Conversation::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'contact_id' => $contact->id,
+        'connection_id' => $connection->id,
+    ]);
+    $message = Message::factory()->outgoing()->delivered()->create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $owner->id,
+        'message_id' => 'wamid.out-1',
+        'content_text' => 'Hola cliente',
+    ]);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+    $body = inboundStatusesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'message_id' => 'wamid.out-1',
+        'status' => 'sent',
+        'recipient_id' => '573001112233',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect($message->fresh()->status)->toBe(MessageStatus::Delivered)
+        ->and(Message::query()->count())->toBe(1);
+
+    $event = WhatsappWebhookEvent::query()->sole();
+    expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED)
+        ->and($event->account_id)->toBe($account->id)
+        ->and($event->connection_id)->toBe($connection->id);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('a status for an unknown message id is uncorrelated and does not invent a message', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+    $connection->readiness = WhatsappConnectionReadiness::Active;
+    $connection->save();
+
+    $body = inboundStatusesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'message_id' => 'wamid.missing-1',
+        'status' => 'delivered',
+        'recipient_id' => '573001112233',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    $event = WhatsappWebhookEvent::query()->sole();
+    expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_UNCORRELATED)
+        ->and($event->account_id)->toBe($account->id)
+        ->and($event->connection_id)->toBe($connection->id);
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect(Message::query()->count())->toBe(0)
+        ->and(Conversation::query()->count())->toBe(0)
+        ->and(Contact::query()->count())->toBe(0);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('a delivered status advances a sent outbound message', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+    $connection->readiness = WhatsappConnectionReadiness::Active;
+    $connection->save();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    $contact = Contact::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'phone' => '+573001112233',
+    ]);
+    $conversation = Conversation::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'contact_id' => $contact->id,
+        'connection_id' => $connection->id,
+    ]);
+    $message = Message::factory()->outgoing()->create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $owner->id,
+        'message_id' => 'wamid.out-2',
+        'content_text' => 'Hola cliente',
+        'status' => MessageStatus::Sent,
+    ]);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+    $body = inboundStatusesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'message_id' => 'wamid.out-2',
+        'status' => 'delivered',
+        'recipient_id' => '573001112233',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect($message->fresh()->status)->toBe(MessageStatus::Delivered);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('a failed status does not regress a delivered outbound message', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+    $connection->readiness = WhatsappConnectionReadiness::Active;
+    $connection->save();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    $contact = Contact::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'phone' => '+573001112233',
+    ]);
+    $conversation = Conversation::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'contact_id' => $contact->id,
+        'connection_id' => $connection->id,
+    ]);
+    $message = Message::factory()->outgoing()->delivered()->create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $owner->id,
+        'message_id' => 'wamid.out-3',
+        'content_text' => 'Hola cliente',
+    ]);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+    $body = inboundStatusesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'message_id' => 'wamid.out-3',
+        'status' => 'failed',
+        'recipient_id' => '573001112233',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect($message->fresh()->status)->toBe(MessageStatus::Delivered);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('a failed status marks a sent outbound message as failed', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+    $connection->readiness = WhatsappConnectionReadiness::Active;
+    $connection->save();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    $contact = Contact::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'phone' => '+573001112233',
+    ]);
+    $conversation = Conversation::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'contact_id' => $contact->id,
+        'connection_id' => $connection->id,
+    ]);
+    $message = Message::factory()->outgoing()->create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $owner->id,
+        'message_id' => 'wamid.out-4',
+        'content_text' => 'Hola cliente',
+        'status' => MessageStatus::Sent,
+    ]);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+    $body = inboundStatusesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'message_id' => 'wamid.out-4',
+        'status' => 'failed',
+        'recipient_id' => '573001112233',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect($message->fresh()->status)->toBe(MessageStatus::Failed);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('the same inbound message in a second delivery does not duplicate crm records', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+
+    $first = inboundMessagesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'wa_id' => '573007770002',
+        'name' => 'Retry',
+        'message_id' => 'wamid.retry-2',
+        'text' => 'Primera entrega',
+        'waba_id' => 'waba-123',
+    ]]);
+    $second = inboundMessagesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'wa_id' => '573007770002',
+        'name' => 'Retry',
+        'message_id' => 'wamid.retry-2',
+        'text' => 'Segunda entrega',
+        'waba_id' => 'waba-123',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($first), $first)->assertOk();
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($second), $second)->assertOk();
+
+    expect(WhatsappWebhookDelivery::query()->count())->toBe(2)
+        ->and(WhatsappWebhookEvent::query()->count())->toBe(2);
+
+    $classifications = WhatsappWebhookEvent::query()->pluck('classification')->all();
+    expect($classifications)->toEqualCanonicalizing([
+        WhatsappWebhookEvent::CLASSIFICATION_PROCESSED,
+        WhatsappWebhookEvent::CLASSIFICATION_PROCESSED,
+    ]);
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect(Contact::query()->count())->toBe(1)
+        ->and(Conversation::query()->count())->toBe(1)
+        ->and(Message::query()->count())->toBe(1)
+        ->and(Message::query()->sole()->content_text)->toBe('Primera entrega');
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('an inbound that exhausts internal processing is failed and replayable without inventing crm records', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+    WhatsappIntegration::query()->update(['created_by' => null]);
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+    $account->users()->detach();
+
+    $body = inboundMessagesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'wa_id' => '573005550001',
+        'name' => 'Sin miembro',
+        'message_id' => 'wamid.failed-internal',
+        'text' => 'No deberia persistir',
+        'waba_id' => 'waba-123',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    $delivery = WhatsappWebhookDelivery::query()->sole();
+    $event = WhatsappWebhookEvent::query()->sole();
+
+    expect($delivery->processing_state)->toBe(WhatsappWebhookDelivery::STATE_PROCESSED)
+        ->and($delivery->processed_at)->not->toBeNull()
+        ->and($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_FAILED)
+        ->and($event->account_id)->toBe($account->id)
+        ->and($event->connection_id)->toBe($connection->id);
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect(Contact::query()->count())->toBe(0)
+        ->and(Message::query()->count())->toBe(0);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+    $account->users()->attach($owner->id, ['role' => 'owner', 'joined_at' => now()]);
+
+    expect(Artisan::call('whatsapp:replay-events', ['event' => $event->id]))->toBe(0);
+
+    $event->refresh();
+    expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED);
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect(Message::query()->sole()->message_id)->toBe('wamid.failed-internal');
 
     app()->forgetInstance(AccountScope::CONTAINER_KEY);
 });

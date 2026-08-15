@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 final class WhatsappWebhookDeliveryProcessor
 {
@@ -60,6 +61,28 @@ final class WhatsappWebhookDeliveryProcessor
 
             $locked->processing_state = WhatsappWebhookDelivery::STATE_PROCESSED;
             $locked->processed_at = Carbon::now();
+            $locked->save();
+        });
+    }
+
+    public function replay(WhatsappWebhookEvent $event): void
+    {
+        DB::transaction(function () use ($event): void {
+            $locked = WhatsappWebhookEvent::query()
+                ->whereKey($event->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($locked === null) {
+                return;
+            }
+
+            $outcome = $this->classifyExtracted($this->extractedFromEvent($locked));
+
+            $locked->classification = $outcome['classification'];
+            $locked->account_id = $outcome['account_id'];
+            $locked->connection_id = $outcome['connection_id'];
+            $locked->phone_number_id = $outcome['phone_number_id'];
             $locked->save();
         });
     }
@@ -124,7 +147,11 @@ final class WhatsappWebhookDeliveryProcessor
                 }
 
                 $messages = Arr::get($value, 'messages', []);
-                if (! is_array($messages) || $messages === []) {
+                $statuses = Arr::get($value, 'statuses', []);
+                $hasMessages = is_array($messages) && $messages !== [];
+                $hasStatuses = is_array($statuses) && $statuses !== [];
+
+                if (! $hasMessages && ! $hasStatuses) {
                     $events[] = [
                         'fingerprint' => 'unsupported:'.$delivery->id.':'.$entryIndex.':'.$changeIndex,
                         'phone_number_id' => $phoneNumberId,
@@ -137,27 +164,49 @@ final class WhatsappWebhookDeliveryProcessor
 
                 $contacts = is_array(Arr::get($value, 'contacts')) ? $value['contacts'] : [];
 
-                foreach ($messages as $messageIndex => $message) {
-                    if (! is_array($message)) {
-                        continue;
+                if ($hasMessages) {
+                    foreach ($messages as $messageIndex => $message) {
+                        if (! is_array($message)) {
+                            continue;
+                        }
+
+                        $messageId = is_string($message['id'] ?? null) ? $message['id'] : null;
+                        $indexedContact = $contacts[$messageIndex] ?? null;
+                        $firstContact = $contacts[0] ?? null;
+                        $contact = is_array($indexedContact)
+                            ? $indexedContact
+                            : (is_array($firstContact) ? $firstContact : []);
+
+                        $events[] = [
+                            'fingerprint' => $messageId !== null ? 'message:'.$messageId : 'message:'.$delivery->id.':'.$entryIndex.':'.$messageIndex,
+                            'phone_number_id' => $phoneNumberId,
+                            'kind' => 'inbound_message',
+                            'payload' => [
+                                'message' => $message,
+                                'contact' => $contact,
+                            ],
+                        ];
                     }
+                }
 
-                    $messageId = is_string($message['id'] ?? null) ? $message['id'] : null;
-                    $indexedContact = $contacts[$messageIndex] ?? null;
-                    $firstContact = $contacts[0] ?? null;
-                    $contact = is_array($indexedContact)
-                        ? $indexedContact
-                        : (is_array($firstContact) ? $firstContact : []);
+                if ($hasStatuses) {
+                    foreach ($statuses as $statusIndex => $status) {
+                        if (! is_array($status)) {
+                            continue;
+                        }
 
-                    $events[] = [
-                        'fingerprint' => $messageId !== null ? 'message:'.$messageId : 'message:'.$delivery->id.':'.$entryIndex.':'.$messageIndex,
-                        'phone_number_id' => $phoneNumberId,
-                        'kind' => 'inbound_message',
-                        'payload' => [
-                            'message' => $message,
-                            'contact' => $contact,
-                        ],
-                    ];
+                        $statusId = is_string($status['id'] ?? null) ? $status['id'] : null;
+                        $statusValue = is_string($status['status'] ?? null) ? $status['status'] : null;
+
+                        $events[] = [
+                            'fingerprint' => $statusId !== null && $statusValue !== null
+                                ? 'status:'.$statusId.':'.$statusValue
+                                : 'status:'.$delivery->id.':'.$entryIndex.':'.$statusIndex,
+                            'phone_number_id' => $phoneNumberId,
+                            'kind' => 'message_status',
+                            'payload' => ['status' => $status],
+                        ];
+                    }
                 }
             }
         }
@@ -180,17 +229,70 @@ final class WhatsappWebhookDeliveryProcessor
             return;
         }
 
-        if ($extracted['kind'] !== 'inbound_message') {
-            $this->recordEvent($delivery, $extracted, WhatsappWebhookEvent::CLASSIFICATION_UNSUPPORTED);
+        $outcome = $this->classifyExtracted($extracted);
 
-            return;
+        $this->recordEvent(
+            $delivery,
+            $extracted,
+            $outcome['classification'],
+            accountId: $outcome['account_id'],
+            connectionId: $outcome['connection_id'],
+            phoneNumberId: $outcome['phone_number_id'],
+        );
+
+        if ($outcome['classification'] === WhatsappWebhookEvent::CLASSIFICATION_PROCESSED) {
+            Log::info('WhatsApp webhook event classified.', [
+                'delivery_id' => $delivery->id,
+                'account_id' => $outcome['account_id'],
+                'connection_id' => $outcome['connection_id'],
+                'processing_state' => $outcome['classification'],
+            ]);
+        }
+    }
+
+    /**
+     * @return array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}
+     */
+    private function extractedFromEvent(WhatsappWebhookEvent $event): array
+    {
+        $kind = match (true) {
+            Str::startsWith($event->fingerprint, 'status:') => 'message_status',
+            Str::startsWith($event->fingerprint, 'message:') => 'inbound_message',
+            default => 'unsupported',
+        };
+
+        return [
+            'fingerprint' => $event->fingerprint,
+            'phone_number_id' => $event->phone_number_id,
+            'kind' => $kind,
+            'payload' => is_array($event->payload) ? $event->payload : [],
+        ];
+    }
+
+    /**
+     * @param  array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}  $extracted
+     * @return array{classification: string, account_id: string|null, connection_id: string|null, phone_number_id: string|null}
+     */
+    private function classifyExtracted(array $extracted): array
+    {
+        $phoneNumberId = $extracted['phone_number_id'];
+
+        if ($extracted['kind'] !== 'inbound_message' && $extracted['kind'] !== 'message_status') {
+            return [
+                'classification' => WhatsappWebhookEvent::CLASSIFICATION_UNSUPPORTED,
+                'account_id' => null,
+                'connection_id' => null,
+                'phone_number_id' => is_string($phoneNumberId) ? $phoneNumberId : null,
+            ];
         }
 
-        $phoneNumberId = $extracted['phone_number_id'];
         if (! is_string($phoneNumberId) || $phoneNumberId === '') {
-            $this->recordEvent($delivery, $extracted, WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED);
-
-            return;
+            return [
+                'classification' => WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED,
+                'account_id' => null,
+                'connection_id' => null,
+                'phone_number_id' => null,
+            ];
         }
 
         $connection = WhatsappPhoneNumberConnection::query()
@@ -199,60 +301,51 @@ final class WhatsappWebhookDeliveryProcessor
             ->first();
 
         if ($connection === null) {
-            $this->recordEvent($delivery, $extracted, WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED, phoneNumberId: $phoneNumberId);
-
-            return;
+            return [
+                'classification' => WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED,
+                'account_id' => null,
+                'connection_id' => null,
+                'phone_number_id' => $phoneNumberId,
+            ];
         }
 
         if ($connection->readiness === WhatsappConnectionReadiness::Disconnected) {
-            $this->recordEvent(
-                $delivery,
-                $extracted,
-                WhatsappWebhookEvent::CLASSIFICATION_BLOCKED,
-                accountId: $connection->account_id,
-                connectionId: $connection->id,
-                phoneNumberId: $phoneNumberId,
-            );
-
-            return;
+            return [
+                'classification' => WhatsappWebhookEvent::CLASSIFICATION_BLOCKED,
+                'account_id' => $connection->account_id,
+                'connection_id' => $connection->id,
+                'phone_number_id' => $phoneNumberId,
+            ];
         }
 
         app()->instance(AccountScope::CONTAINER_KEY, $connection->account_id);
 
         try {
-            $applied = $this->applyInboundMessage($connection, $extracted['payload']);
+            $classification = $extracted['kind'] === 'message_status'
+                ? $this->applyStatusUpdate($connection, $extracted['payload'])
+                : ($this->applyInboundMessage($connection, $extracted['payload'])
+                    ? WhatsappWebhookEvent::CLASSIFICATION_PROCESSED
+                    : WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED);
+        } catch (Throwable $exception) {
+            report($exception);
+            Log::error('WhatsApp webhook event processing failed.', [
+                'fingerprint' => $extracted['fingerprint'],
+                'account_id' => $connection->account_id,
+                'connection_id' => $connection->id,
+                'processing_state' => WhatsappWebhookEvent::CLASSIFICATION_FAILED,
+            ]);
+
+            $classification = WhatsappWebhookEvent::CLASSIFICATION_FAILED;
         } finally {
             app()->forgetInstance(AccountScope::CONTAINER_KEY);
         }
 
-        if (! $applied) {
-            $this->recordEvent(
-                $delivery,
-                $extracted,
-                WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED,
-                accountId: $connection->account_id,
-                connectionId: $connection->id,
-                phoneNumberId: $phoneNumberId,
-            );
-
-            return;
-        }
-
-        $this->recordEvent(
-            $delivery,
-            $extracted,
-            WhatsappWebhookEvent::CLASSIFICATION_PROCESSED,
-            accountId: $connection->account_id,
-            connectionId: $connection->id,
-            phoneNumberId: $phoneNumberId,
-        );
-
-        Log::info('WhatsApp inbound message routed.', [
-            'delivery_id' => $delivery->id,
+        return [
+            'classification' => $classification,
             'account_id' => $connection->account_id,
             'connection_id' => $connection->id,
-            'processing_state' => WhatsappWebhookEvent::CLASSIFICATION_PROCESSED,
-        ]);
+            'phone_number_id' => $phoneNumberId,
+        ];
     }
 
     /**
@@ -333,6 +426,63 @@ final class WhatsappWebhookDeliveryProcessor
         }
 
         return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function applyStatusUpdate(WhatsappPhoneNumberConnection $connection, array $payload): string
+    {
+        $status = is_array($payload['status'] ?? null) ? $payload['status'] : [];
+        $metaMessageId = is_string($status['id'] ?? null) ? $status['id'] : null;
+        $incoming = MessageStatus::tryFrom(is_string($status['status'] ?? null) ? $status['status'] : '');
+
+        if ($metaMessageId === null || $incoming === null) {
+            return WhatsappWebhookEvent::CLASSIFICATION_UNSUPPORTED;
+        }
+
+        $message = Message::query()
+            ->whereHas('conversation', function ($query) use ($connection): void {
+                $query->where('connection_id', $connection->id);
+            })
+            ->where('message_id', $metaMessageId)
+            ->lockForUpdate()
+            ->first();
+
+        if ($message === null) {
+            return WhatsappWebhookEvent::CLASSIFICATION_UNCORRELATED;
+        }
+
+        if ($this->canAdvanceStatus($message->status, $incoming)) {
+            $message->status = $incoming;
+            $message->save();
+        }
+
+        return WhatsappWebhookEvent::CLASSIFICATION_PROCESSED;
+    }
+
+    private function canAdvanceStatus(MessageStatus $current, MessageStatus $incoming): bool
+    {
+        if ($incoming === MessageStatus::Failed) {
+            return $current === MessageStatus::Sending || $current === MessageStatus::Sent;
+        }
+
+        if ($current === MessageStatus::Failed) {
+            return false;
+        }
+
+        return $this->statusRank($incoming) > $this->statusRank($current);
+    }
+
+    private function statusRank(MessageStatus $status): int
+    {
+        return match ($status) {
+            MessageStatus::Sending => 0,
+            MessageStatus::Sent => 1,
+            MessageStatus::Delivered => 2,
+            MessageStatus::Read => 3,
+            MessageStatus::Failed => -1,
+        };
     }
 
     private function ownerUserId(WhatsappPhoneNumberConnection $connection): int

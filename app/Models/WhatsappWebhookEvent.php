@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Database\Factories\WhatsappWebhookEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -49,6 +50,28 @@ class WhatsappWebhookEvent extends Model
     public const CLASSIFICATION_UNCORRELATED = 'uncorrelated';
 
     public const CLASSIFICATION_FAILED = 'failed';
+
+    /**
+     * @return list<string>
+     */
+    public static function classifiableOutcomes(): array
+    {
+        return [
+            self::CLASSIFICATION_FAILED,
+            self::CLASSIFICATION_UNRESOLVED,
+            self::CLASSIFICATION_BLOCKED,
+            self::CLASSIFICATION_UNCORRELATED,
+        ];
+    }
+
+    /**
+     * @param  Builder<WhatsappWebhookEvent>  $query
+     * @return Builder<WhatsappWebhookEvent>
+     */
+    public function scopeClassifiable(Builder $query): Builder
+    {
+        return $query->whereIn('classification', self::classifiableOutcomes());
+    }
 
     /**
      * @return BelongsTo<WhatsappWebhookDelivery, $this>

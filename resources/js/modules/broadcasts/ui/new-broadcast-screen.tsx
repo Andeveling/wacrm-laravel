@@ -6,7 +6,11 @@ import {
   audienceCount as audienceCountRoute,
   store,
 } from '@/routes/broadcasts';
-import type { BroadcastTag, MessageTemplate } from '../contracts';
+import type {
+  BroadcastConnection,
+  BroadcastTag,
+  MessageTemplate,
+} from '../contracts';
 import { Step1ChooseTemplate } from './step1-choose-template';
 import type { AudienceConfig } from './step2-select-audience';
 import { Step2SelectAudience } from './step2-select-audience';
@@ -23,11 +27,13 @@ const STEPS = [
 interface NewBroadcastPageProps {
   templates: MessageTemplate[];
   tags: BroadcastTag[];
+  connections: BroadcastConnection[];
 }
 
 export default function NewBroadcastPage({
   templates,
   tags,
+  connections = [],
 }: NewBroadcastPageProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [template, setTemplate] = useState<MessageTemplate | null>(null);
@@ -41,6 +47,8 @@ export default function NewBroadcastPage({
     tag_ids: [] as string[],
     template_variables: {} as Record<string, string>,
     scheduled_at: '',
+    connection_id:
+      connections.find((connection) => connection.is_default)?.id ?? '',
   });
 
   useEffect(() => {
@@ -166,6 +174,11 @@ export default function NewBroadcastPage({
               scheduledAt={form.data.scheduled_at}
               onScheduledAtChange={(scheduledAt) =>
                 form.setData('scheduled_at', scheduledAt)
+              }
+              connections={connections}
+              connectionId={form.data.connection_id}
+              onConnectionChange={(connectionId) =>
+                form.setData('connection_id', connectionId)
               }
               onSend={handleCreate}
               onBack={() => setCurrentStep(2)}

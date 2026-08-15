@@ -62,6 +62,7 @@ export function MessageThread({
           </p>
           <p className="text-xs text-muted-foreground">
             {conversation.contact?.phone}
+            {conversation.connection_id ? ' · Conexión fijada' : ''}
           </p>
         </div>
       </header>

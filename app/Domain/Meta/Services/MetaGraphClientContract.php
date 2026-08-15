@@ -16,4 +16,6 @@ interface MetaGraphClientContract
     public function unsubscribeWaba(string $wabaId, string $token): void;
 
     public function registerPhoneNumber(string $phoneNumberId, string $token, string $pin): void;
+
+    public function sendTextMessage(string $phoneNumberId, string $token, string $to, string $body): string;
 }

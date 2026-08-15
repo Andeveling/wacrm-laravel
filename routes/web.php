@@ -3,6 +3,7 @@
 use App\Domain\Automations\Actions\EditAutomation;
 use App\Domain\Automations\Actions\ShowAutomationLogs;
 use App\Domain\Automations\Actions\ShowAutomations;
+use App\Domain\Automations\Actions\StoreAutomation;
 use App\Domain\Broadcasts\Actions\CountBroadcastAudience;
 use App\Domain\Broadcasts\Actions\ShowBroadcast;
 use App\Domain\Broadcasts\Actions\ShowBroadcasts;
@@ -32,6 +33,8 @@ use App\Domain\Flows\Actions\ShowFlowEditor;
 use App\Domain\Flows\Actions\ShowFlowRuns;
 use App\Domain\Flows\Actions\ShowFlows;
 use App\Domain\Inbox\Actions\ShowInbox;
+use App\Domain\Inbox\Actions\StoreInboxConversation;
+use App\Domain\Inbox\Actions\StoreInboxMessage;
 use App\Domain\Invitations\Actions\PreviewInvitation;
 use App\Domain\Invitations\Actions\RedeemInvitation;
 use App\Domain\Invitations\Actions\RegenerateInvitation;
@@ -97,6 +100,7 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
 
     Route::get('automations', ShowAutomations::class)->name('automations');
     Route::inertia('automations/new', 'automations/new')->name('automations.new');
+    Route::post('automations', StoreAutomation::class)->name('automations.store');
     Route::get('automations/{automation}/edit', EditAutomation::class)->name('automations.edit');
     Route::get('automations/{automation}/logs', ShowAutomationLogs::class)->name('automations.logs');
 
@@ -105,6 +109,8 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
     Route::get('flows/{id}', ShowFlowEditor::class)->name('flows.show');
 
     Route::get('inbox', ShowInbox::class)->name('inbox');
+    Route::post('inbox/conversations', StoreInboxConversation::class)->name('inbox.conversations.store');
+    Route::post('inbox/{conversation}/messages', StoreInboxMessage::class)->name('inbox.messages.store');
 
     Route::post('invitations', StoreInvitation::class)
         ->name('invitations.store');

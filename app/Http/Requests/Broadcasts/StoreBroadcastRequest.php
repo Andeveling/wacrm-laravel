@@ -20,6 +20,7 @@ final class StoreBroadcastRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'template_id' => ['required', 'uuid'],
+            'connection_id' => ['required', 'uuid'],
             'audience_type' => ['required', Rule::in(['all', 'tags'])],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['uuid', 'distinct'],

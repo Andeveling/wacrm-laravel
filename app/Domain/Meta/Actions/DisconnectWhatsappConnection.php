@@ -8,6 +8,9 @@ use App\Domain\Meta\Responders\WhatsappConnectionResponder;
 use App\Domain\Meta\Results\WhatsappConnectionResult;
 use App\Domain\Meta\Services\MetaGraphClientContract;
 use App\Domain\Meta\Support\MetaGraphException;
+use App\Models\Automation;
+use App\Models\Broadcast;
+use App\Models\Enums\BroadcastStatus;
 use App\Models\Enums\WhatsappConnectionReadiness;
 use App\Models\WabaSubscription;
 use App\Models\WhatsappPhoneNumberConnection;
@@ -41,11 +44,33 @@ final class DisconnectWhatsappConnection
         $phoneConnection->is_default = false;
         $phoneConnection->save();
 
+        $this->pausePinnedBroadcasts($phoneConnection);
+        $this->pausePinnedAutomations($phoneConnection);
         $this->unsubscribeWabaIfUnused($phoneConnection, $meta, $account);
 
         return $responder->respond(WhatsappConnectionResult::success(
             'Número desconectado. El historial se conserva.',
         ));
+    }
+
+    private function pausePinnedBroadcasts(WhatsappPhoneNumberConnection $phoneConnection): void
+    {
+        Broadcast::query()
+            ->whereBelongsTo($phoneConnection, 'whatsappPhoneNumberConnection')
+            ->whereIn('status', [
+                BroadcastStatus::Draft,
+                BroadcastStatus::Scheduled,
+                BroadcastStatus::Sending,
+            ])
+            ->update(['status' => BroadcastStatus::Paused]);
+    }
+
+    private function pausePinnedAutomations(WhatsappPhoneNumberConnection $phoneConnection): void
+    {
+        Automation::query()
+            ->whereBelongsTo($phoneConnection, 'whatsappPhoneNumberConnection')
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
     }
 
     private function unsubscribeWabaIfUnused(

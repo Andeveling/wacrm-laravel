@@ -212,6 +212,12 @@ export default function BroadcastDetailPage({
               </div>
               <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
                 <span>Plantilla: {broadcast.template_name}</span>
+                {broadcast.connection_id ? (
+                  <>
+                    <span>·</span>
+                    <span>Conexión fijada</span>
+                  </>
+                ) : null}
                 <span>·</span>
                 <span>
                   Creada el{' '}

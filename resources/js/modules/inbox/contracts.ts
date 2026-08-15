@@ -12,6 +12,7 @@ export type ConversationStatus = 'open' | 'pending' | 'closed';
 export interface Conversation {
   id: string;
   contact_id: string;
+  connection_id?: string | null;
   contact?: ConversationContact;
   status: ConversationStatus;
   last_message_text?: string;

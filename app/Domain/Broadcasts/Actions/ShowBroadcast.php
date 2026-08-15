@@ -24,6 +24,7 @@ final class ShowBroadcast
         return Inertia::render('broadcasts/show', [
             'broadcast' => [
                 'id' => $broadcast->id,
+                'connection_id' => $broadcast->connection_id,
                 'name' => $broadcast->name,
                 'template_name' => $broadcast->template_name,
                 'template_language' => $broadcast->template_language,

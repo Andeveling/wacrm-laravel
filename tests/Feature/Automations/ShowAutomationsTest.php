@@ -5,8 +5,11 @@ use App\Models\Automation;
 use App\Models\AutomationLog;
 use App\Models\AutomationStep;
 use App\Models\Contact;
+use App\Models\Enums\AutomationConnectionMode;
+use App\Models\WhatsappPhoneNumberConnection;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -153,4 +156,93 @@ test('automation logs page returns real executions ordered by date', function ()
         'automation_logs' => 1,
         'contacts' => 1,
     ]);
+});
+
+test('an outbound automation pins an active connection', function () {
+    [$user, $account] = memberWithRole('admin');
+    $sales = WhatsappPhoneNumberConnection::factory()->for($account)->active()->create();
+    WhatsappPhoneNumberConnection::factory()->for($account)->active()->create(['is_default' => true]);
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('automations.store'), [
+            'name' => 'Recordatorio',
+            'trigger_type' => 'time_based',
+            'connection_mode' => 'pinned',
+            'connection_id' => $sales->id,
+        ])
+        ->assertRedirect();
+
+    $automation = Automation::query()->sole();
+
+    expect($automation->name)->toBe('Recordatorio')
+        ->and($automation->trigger_type)->toBe('time_based')
+        ->and($automation->connection_mode)->toBe(AutomationConnectionMode::Pinned)
+        ->and($automation->connection_id)->toBe($sales->id);
+});
+
+test('an inbound automation can use the triggering connection', function () {
+    [$user, $account] = memberWithRole('admin');
+    WhatsappPhoneNumberConnection::factory()->for($account)->active()->create(['is_default' => true]);
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('automations.store'), [
+            'name' => 'Bienvenida',
+            'trigger_type' => 'first_inbound_message',
+            'connection_mode' => 'trigger',
+        ])
+        ->assertRedirect();
+
+    $automation = Automation::query()->sole();
+
+    expect($automation->connection_mode)->toBe(AutomationConnectionMode::Trigger)
+        ->and($automation->connection_id)->toBeNull();
+});
+
+test('an outbound automation cannot use the triggering connection', function () {
+    [$user, $account] = memberWithRole('admin');
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->from(route('automations.new'))
+        ->post(route('automations.store'), [
+            'name' => 'Recordatorio',
+            'trigger_type' => 'time_based',
+            'connection_mode' => 'trigger',
+        ])
+        ->assertRedirect(route('automations.new'))
+        ->assertSessionHasErrors('connection_mode');
+
+    expect(Automation::query()->count())->toBe(0);
+});
+
+test('disconnecting a pinned connection pauses the automation instead of switching sender', function () {
+    [$user, $account] = memberWithRole('admin');
+    $sales = WhatsappPhoneNumberConnection::factory()->for($account)->active()->create();
+    $support = WhatsappPhoneNumberConnection::factory()->for($account)->active()->create();
+    Http::fake();
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('automations.store'), [
+            'name' => 'Recordatorio',
+            'trigger_type' => 'time_based',
+            'connection_mode' => 'pinned',
+            'connection_id' => $sales->id,
+            'is_active' => true,
+        ])
+        ->assertRedirect();
+
+    $automation = Automation::query()->sole();
+
+    $this->delete(route('settings.whatsapp.disconnect', $sales))
+        ->assertRedirect(route('settings.whatsapp'));
+
+    $automation = $automation->fresh();
+
+    expect($automation)->not->toBeNull()
+        ->and($automation->is_active)->toBeFalse()
+        ->and($automation->connection_id)->toBe($sales->id)
+        ->and($support->fresh()->readiness->value)->toBe('active');
 });

@@ -16,6 +16,7 @@ final class ShowBroadcasts
             ->latest('created_at')
             ->get([
                 'id',
+                'connection_id',
                 'name',
                 'template_name',
                 'template_language',
@@ -31,6 +32,7 @@ final class ShowBroadcasts
             ])
             ->map(fn (Broadcast $broadcast): array => [
                 'id' => $broadcast->id,
+                'connection_id' => $broadcast->connection_id,
                 'name' => $broadcast->name,
                 'template_name' => $broadcast->template_name,
                 'template_language' => $broadcast->template_language,

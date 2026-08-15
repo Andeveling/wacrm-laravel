@@ -35,6 +35,23 @@ test('admin can invite a new email and invitation row is created with hashed tok
     expect($invitation->token_hash)->toMatch('/^[a-f0-9]{64}$/');
 });
 
+test('invited email is normalized before it is persisted', function () {
+    $account = Account::factory()->create();
+    $admin = User::factory()->create();
+    $account->users()->attach($admin->id, ['role' => AccountRole::Admin->value, 'joined_at' => now()]);
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('accounts.members.store', $account), [
+            'email' => '  NewHire@Gmail.COM  ',
+            'role' => AccountRole::Member->value,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('invited', true);
+
+    expect(Invitation::withoutGlobalScopes()->sole()->email)->toBe('newhire@gmail.com');
+});
+
 test('active invitations for the same normalized email are rejected', function () {
     $account = Account::factory()->create();
     $admin = User::factory()->create();

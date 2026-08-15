@@ -52,6 +52,28 @@ test('invited email is normalized before it is persisted', function () {
     expect(Invitation::withoutGlobalScopes()->sole()->email)->toBe('newhire@gmail.com');
 });
 
+test('admin invite flashes a one-time preview link for the issued token', function () {
+    $account = Account::factory()->create();
+    $admin = User::factory()->create();
+    $account->users()->attach($admin->id, ['role' => AccountRole::Admin->value, 'joined_at' => now()]);
+
+    $response = $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('accounts.members.store', $account), [
+            'email' => 'invitee@gmail.com',
+            'role' => AccountRole::Member->value,
+        ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('invited', true);
+    $response->assertSessionHas('invitation_url');
+    $url = session('invitation_url');
+    expect($url)->toBeString();
+    $token = basename((string) parse_url($url, PHP_URL_PATH));
+    expect($url)->toBe(route('invitations.preview', ['token' => $token]));
+    expect(Invitation::withoutGlobalScopes()->sole()->token_hash)->toBe(hash('sha256', $token));
+});
+
 test('active invitations for the same normalized email are rejected', function () {
     $account = Account::factory()->create();
     $admin = User::factory()->create();

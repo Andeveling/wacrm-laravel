@@ -427,7 +427,11 @@ export default function Members({
               {invitation_url}
             </p>
             <DialogFooter>
-              <Button type="button" onClick={copyInvitationUrl}>
+              <Button
+                type="button"
+                onClick={copyInvitationUrl}
+                data-testid="copy-invitation-url"
+              >
                 Copiar enlace
               </Button>
               <DialogClose asChild>

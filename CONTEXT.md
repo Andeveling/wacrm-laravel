@@ -99,6 +99,8 @@ Lo hace cumplir `tools/lint/test-layout.php` en el `pre-commit`; las reglas est√
 | Sonda backend temporal | `sail pest --agent='\App\Models\User::factory()->count(1)->create(); expect(\App\Models\User::count())->toBe(1);'` |
 | Sonda full-stack temporal | `sail pest --agent='visit("/")->assertNoJavaScriptErrors();'` |
 | Vitest solo | `sail pnpm test` |
+| Allowlist de excepciones de calidad | `sail pnpm check:quality-exceptions` |
+| Duplicaci√≥n PHP + TypeScript | `sail pnpm check:duplication` |
 
 `sail composer test` es el mismo comando que corre el job `ci` en CI; `sail composer test:browser`, el job `browser`. Ambos son obligatorios en cada pull request.
 

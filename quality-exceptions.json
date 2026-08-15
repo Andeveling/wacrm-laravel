@@ -1,0 +1,113 @@
+{
+  "$schema": "./schemas/quality-exceptions.schema.json",
+  "architecture": [
+    {
+      "paths": [
+        "automations/ui/automation-logs-screen.tsx",
+        "automations/ui/automations-screen.tsx",
+        "automations/ui/edit-automation-screen.tsx",
+        "broadcasts/ui/broadcast-screen.tsx",
+        "broadcasts/ui/broadcasts-screen.tsx",
+        "broadcasts/ui/step1-choose-template.tsx",
+        "broadcasts/ui/step2-select-audience.tsx",
+        "broadcasts/ui/step4-schedule-send.tsx",
+        "broadcasts/ui/templates-screen.tsx",
+        "dashboard/ui/dashboard-screen.tsx",
+        "flows/ui/flow-editor-screen.tsx",
+        "flows/ui/flow-runs-screen.tsx",
+        "flows/ui/flows-screen.tsx",
+        "inbox/ui/inbox-screen.tsx",
+        "pipelines/ui/deal-form.tsx",
+        "pipelines/ui/pipelines-screen.tsx"
+      ],
+      "reason": "Legacy screens still read fixtures until their Account-data tickets close.",
+      "issue": 96,
+      "expires": "2026-12-31"
+    }
+  ],
+  "coverage": [],
+  "mutation": [],
+  "crap": [],
+  "phpstan": [
+    {
+      "paths": ["phpstan-tests-baseline.neon"],
+      "reason": "Pest suite diagnostics recorded while adopting PHPStan on tests. New diagnostics still fail types:check; the neon file stays until the Pest types are tightened.",
+      "issue": 123,
+      "expires": "2026-11-15"
+    }
+  ],
+  "duplication": [
+    {
+      "baseline": {
+        "clones": 60,
+        "duplicatedLines": 1016,
+        "duplicatedTokens": 5419,
+        "cloneFingerprints": [
+          "0366fa64319da1f29d53eb4c6cf63c1414ec486e37f99e3bf830df033703f12c",
+          "05866156eecfbee4fe1e00a084e10bd8b8ff99913daebb9a6ccf332d3001f744",
+          "0d5e66fdc4295a009a094a58792dfd337523ddddd19b8263423dea6a69521206",
+          "10ca5a0461f79e8e01e5d921532515aff9b673d51f443c77a1450536b6a98129",
+          "11f4002d1d501f5cb3f368d8659ebf6b096d70e3c6d06333bb05c23d1de3e154",
+          "1d65ccc9e46a61b72d09ce3274c9240d1e143fb9cca25482e6fbfcd7beade382",
+          "20832755aa0df2579de195d56e5c437bb128352347b60e4355e51efccf9d1b62",
+          "251daea6ddcb6f057f6fbeeff888876babbfb6eabe5b78f7a901754b2f7cdf71",
+          "2bf84991bdaa997368cbad937f986ee7a49a9f6b68e53580708e89637d2e9fed",
+          "2c6b3459ff360f70a12ca8b36a171b0dba0a612a7f0d206dfc18e2bcb88f1f6b",
+          "2fcb873f90fa53fcc8b12ec3bfb26dd3d4b923a4b1cb70b0ec73eef09c1b666a",
+          "33e94b07dec9ec4707ce09157ed9d88d8ea24fddb82444e4a38d2a86b475251f",
+          "39ddbc2f46a24bcee3654015878b2c967d3e07b8c1efce840da92bb1f26047cb",
+          "3c5c3bd4fe931ab778a8c2eef8b26c8c8d0f98e7b9f567aff9d50ab7e2eddb71",
+          "3ced3f212724423f52324dff6f5270233cc23a0ac4549b46b999dde3a74daffb",
+          "3f4dab43d8678b0420f6a388b83c0e365703e6f72b6c2a124d26584436f2b49f",
+          "3f7aac133f9d2e60a955ce5daf53ae03f6b8b7f8ef2149efb0c27bb8afdf40ab",
+          "42d305925971244fb43075f551224d808258ee50b56395fbea9662c01ab4c58e",
+          "4b34cbffdb1ffbad731b97d1e2846cc26a6c5a9be39d7acd45a56a4d15a9c6d2",
+          "57bfca6673c5ce82aa2db4258df12feea6744ed7873b4461236e3db523f415ec",
+          "5c04046a77a9c207b92c10d5646b138ce7d68681b69161ded1bb1bf07d5c3164",
+          "667dfe412d5f5444bc73e111893a3ee5c8723f05b790768ba8d7ee763d84c7e1",
+          "66f97d0717b1756e055ba464af140e5f644d2b7569a9d85de788852a62616bd7",
+          "689d5ec3941a27a1aabaf6b8aa82483334166d3ce6aa301b72baa05dc9564a82",
+          "6a4427da57cac8a0a0d3430bf056cb2ce978d2579a3a1f07935f35c59a3dddf5",
+          "740e0c796492c4c0434aa655fc5503691e728e5cfadad66ea23bf1f9963e62e0",
+          "7942056c98acbd1b7522bd414805c43f4e30db7fa556fa97a2b470b0d24c87f3",
+          "7ca563cb14fc4f1b30c7cfab6580ec9582657097bdbe2fd8d86c1771afc9ce9e",
+          "80d9f7dfa078fa4caef5628b087305c01d6fa06b50cde1e608fa0d70216a4ba7",
+          "8ee19bd4ae9d2b166211c23b7f990f2766a8e759dfa10a5d3d56b5119cbf4994",
+          "96580e8e8430e730df68578646438ec0a722961ddce355f9babed82e0dc5a1e8",
+          "98fadf076fc93b8385efc6153da9e53dc95d9385a73eddbfe60b5087d043eb91",
+          "a0addcd6e2d169c16c6299d6b75031323b45e1cee7c523c2edb8263cf5bb8a57",
+          "a220980145be70c0cb26e2cee1e27ac1942db0c80eb5bdc4496b0b104a78298e",
+          "a4edd48ba8fc66d37ba421a5c6d8dc8f7900f8fd317f2dd37ec96028f14b90fd",
+          "a4f210f477a0f5390247fe3eea46874fc24fa7a6ef8490a0d5942714d0278900",
+          "a66715f9277038d78ccccadf5bdc8424d459b28b2349853830e85474ae836c54",
+          "ac9892e2fdcf821657c83da0c5db24b4e376c90310f3772192f3129635ba5add",
+          "b04bfa4d4ecf413644d4eae77279e297d2423a94d05caa283ec34f88bbdaa573",
+          "b4e14f7d7863fad315c4f977d0c9614d2e38bb4ceefb70e8a01181a4abf2d1ad",
+          "baa0e4840bec2087705c231068415b3eccad5c27156dfe03947257fd6b9797db",
+          "bae0cc03cabd2e44cfdbd07f4dd67fd567f2e6f39702e8ddf7b4da15053c5fd3",
+          "c4a2bc9570ac09f7a49e045c5e4e9e91d6af41c557388ae9090e7129f7af44ff",
+          "c8590c3d69b9bf7bc471c28b162726a20469cee4905b488588634e516b8f7661",
+          "ce3047388a78d15819c055823cb324e36ac54457c7d4b0ae92f0c8dc726b7e40",
+          "cf884df8e52d2191c4535d1084bdbdbe267c3a193827fc4521a529da10e332e4",
+          "d16b328bbdf193614b8ccf86a03af08cf9c452f909ea191d1165eb8539458dc0",
+          "d29ea1ecf0f9ed38f08c118a25bfcebda6556451ab80bf90107a5b03a8afef3a",
+          "d2a7ab32e2184f2c0bada3c436925e1fffc0d2bdfc39706393486c2f6ded6c8d",
+          "d438dd0d86532610096306082195aa5ab1ce39963fdc7364bfcf450781c56418",
+          "d7c3360aa6e9ce20e269891b494f96ba2e4559a8e9cc8ab8671ca27c2ed6286d",
+          "d996d4928194309e73049df011bef7406aa83ed0e4a75af71945b6e166aa113a",
+          "e22b144b13d1a63bcd50bc0e55a8a959f5c37fc6b14a0f01f5aa6889bd0530e4",
+          "e392ad86741a7879cbb84295b7cb60602d4d5a455f947eab1fb5f5fab9f25883",
+          "e9b7ccb2acd04b5b2d41c392cdb840ad04f5ec73734d92e5543382bc86fe0863",
+          "ebf066b0f822569766572505455e7559eb86b8da688c021dd7b7a56a98f45042",
+          "f5e1d1f61058db205eb179a191b4a7d30ce753d3cb2527dd261eed6224858cec",
+          "fd3492f5caf94762cb41d29cbff35d8bb4d497d27e8bb9d0729e5e0c1d586826",
+          "fd3aff4625f96c84db0e1671a9546f299ba90f38eaf27e9ce3bed51791447e14",
+          "fec7bf6a0bf46c041d34c39e6413dae202dd6846e21684db645564435d3ea4bb"
+        ]
+      },
+      "reason": "Initial jscpd baseline; it may only shrink as historical clones are removed.",
+      "issue": 127,
+      "expires": "2026-12-31"
+    }
+  ]
+}

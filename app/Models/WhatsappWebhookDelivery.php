@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -46,12 +47,22 @@ class WhatsappWebhookDelivery extends Model
 
     public const STATE_QUEUED = 'queued';
 
+    public const STATE_PROCESSED = 'processed';
+
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
         'processing_state' => self::STATE_RECEIVED,
     ];
+
+    /**
+     * @return HasMany<WhatsappWebhookEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(WhatsappWebhookEvent::class, 'delivery_id');
+    }
 
     /**
      * @return array<string, string>

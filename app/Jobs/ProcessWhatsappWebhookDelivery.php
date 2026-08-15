@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Domain\Meta\Services\WhatsappWebhookDeliveryProcessor;
 use App\Models\WhatsappWebhookDelivery;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,9 +16,9 @@ use Throwable;
 /**
  * Asynchronous handoff for the global Meta webhook inbox.
  *
- * Event extraction and tenant routing belong to the processing seam that
- * consumes this job. For now the job records that the durable delivery has
- * entered the queue without exposing its raw payload to queue metadata.
+ * Event extraction and tenant routing run after Meta's acknowledgement.
+ * The job only carries the delivery id so the raw payload never enters
+ * queue metadata.
  */
 final class ProcessWhatsappWebhookDelivery implements ShouldQueue
 {
@@ -25,12 +26,15 @@ final class ProcessWhatsappWebhookDelivery implements ShouldQueue
 
     public function __construct(public string $deliveryId) {}
 
-    public function handle(): void
+    public function handle(WhatsappWebhookDeliveryProcessor $processor): void
     {
-        WhatsappWebhookDelivery::query()
-            ->whereKey($this->deliveryId)
-            ->where('processing_state', WhatsappWebhookDelivery::STATE_RECEIVED)
-            ->update(['processing_state' => WhatsappWebhookDelivery::STATE_QUEUED]);
+        $delivery = WhatsappWebhookDelivery::query()->whereKey($this->deliveryId)->first();
+
+        if ($delivery === null) {
+            return;
+        }
+
+        $processor->process($delivery);
     }
 
     public function failed(?Throwable $exception): void

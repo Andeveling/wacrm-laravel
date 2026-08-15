@@ -3,7 +3,18 @@
 declare(strict_types=1);
 
 use App\Jobs\ProcessWhatsappWebhookDelivery;
+use App\Models\Account;
+use App\Models\Contact;
+use App\Models\Conversation;
+use App\Models\Enums\WhatsappConnectionReadiness;
+use App\Models\Message;
+use App\Models\Scopes\AccountScope;
+use App\Models\User;
+use App\Models\WabaSubscription;
+use App\Models\WhatsappIntegration;
+use App\Models\WhatsappPhoneNumberConnection;
 use App\Models\WhatsappWebhookDelivery;
+use App\Models\WhatsappWebhookEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +22,10 @@ use Illuminate\Support\Facades\Queue;
 use RuntimeException;
 
 uses(RefreshDatabase::class);
+
+afterEach(function () {
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
 
 const META_WEBHOOK_SECRET = 'test-app-secret-for-meta-webhook';
 const META_WEBHOOK_VERIFY_TOKEN = 'shared-meta-webhook-verify-token';
@@ -21,6 +36,80 @@ beforeEach(function () {
 function sign(string $body): string
 {
     return 'sha256='.hash_hmac('sha256', $body, META_WEBHOOK_SECRET);
+}
+
+/**
+ * @param  list<array{phone_number_id: string, wa_id: string, name: string, message_id: string, text: string, waba_id?: string}>  $messages
+ */
+function inboundMessagesPayload(array $messages): string
+{
+    $entries = [];
+
+    foreach ($messages as $message) {
+        $wabaId = $message['waba_id'] ?? 'waba-'.$message['phone_number_id'];
+        $entries[] = [
+            'id' => $wabaId,
+            'changes' => [[
+                'field' => 'messages',
+                'value' => [
+                    'messaging_product' => 'whatsapp',
+                    'metadata' => [
+                        'display_phone_number' => $message['wa_id'],
+                        'phone_number_id' => $message['phone_number_id'],
+                    ],
+                    'contacts' => [[
+                        'profile' => ['name' => $message['name']],
+                        'wa_id' => $message['wa_id'],
+                    ]],
+                    'messages' => [[
+                        'from' => $message['wa_id'],
+                        'id' => $message['message_id'],
+                        'timestamp' => '1712000000',
+                        'type' => 'text',
+                        'text' => ['body' => $message['text']],
+                    ]],
+                ],
+            ]],
+        ];
+    }
+
+    return json_encode([
+        'object' => 'whatsapp_business_account',
+        'entry' => $entries,
+    ], JSON_THROW_ON_ERROR);
+}
+
+/**
+ * @return array<string, string>
+ */
+function signedWebhookServer(string $body): array
+{
+    return [
+        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'CONTENT_TYPE' => 'application/json',
+    ];
+}
+
+/**
+ * @return array{0: Account, 1: User, 2: WhatsappPhoneNumberConnection}
+ */
+function waitingConnection(string $phoneNumberId, string $wabaId = 'waba-123'): array
+{
+    [$owner, $account] = memberWithRole('owner');
+    $integration = WhatsappIntegration::factory()->for($account)->create([
+        'created_by' => $owner->id,
+    ]);
+    $waba = WabaSubscription::factory()->forIntegration($integration)->create([
+        'account_id' => $account->id,
+        'waba_id' => $wabaId,
+    ]);
+    $connection = WhatsappPhoneNumberConnection::factory()->forWaba($waba)->create([
+        'account_id' => $account->id,
+        'phone_number_id' => $phoneNumberId,
+        'readiness' => WhatsappConnectionReadiness::WebhookWaiting,
+    ]);
+
+    return [$account, $owner, $connection];
 }
 test('get returns the challenge in text plain when token matches', function () {
     $challenge = '1234567890';
@@ -85,9 +174,9 @@ test('post persists the delivery and returns 200', function () {
     // order is not part of its contract, only the key/value pairs are.
     expect($delivery->raw_payload)->toEqual(['object' => 'whatsapp_business_account', 'entry' => []]);
     expect($delivery->content_length)->toBe(strlen($body));
-    expect($delivery->processing_state)->toBe('queued');
+    expect($delivery->processing_state)->toBe(WhatsappWebhookDelivery::STATE_PROCESSED);
     expect($delivery->received_at)->not->toBeNull();
-    expect($delivery->processed_at)->toBeNull();
+    expect($delivery->processed_at)->not->toBeNull();
 });
 test('raw body preserves byte exact payload not just decoded array', function () {
     // Use deliberately non-canonical JSON formatting (extra spaces,
@@ -300,4 +389,263 @@ test('post returns 503 without logging the signed payload when persistence fails
         'HTTP_X_HUB_SIGNATURE_256' => sign($body),
         'CONTENT_TYPE' => 'application/json',
     ], $body)->assertServiceUnavailable();
+});
+
+test('a routed inbound message creates isolated crm records and activates the waiting connection', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+    $existing = Contact::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'phone' => '+573001112233',
+        'name' => 'Existing Name',
+    ]);
+
+    $body = inboundMessagesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'wa_id' => '573001112233',
+        'name' => 'Ana Pérez',
+        'message_id' => 'wamid.sales-1',
+        'text' => 'Hola ventas',
+        'waba_id' => 'waba-123',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    $delivery = WhatsappWebhookDelivery::query()->sole();
+    expect($delivery->processing_state)->toBe(WhatsappWebhookDelivery::STATE_PROCESSED)
+        ->and($delivery->processed_at)->not->toBeNull();
+
+    $event = WhatsappWebhookEvent::query()->where('delivery_id', $delivery->id)->sole();
+    expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED)
+        ->and($event->account_id)->toBe($account->id)
+        ->and($event->connection_id)->toBe($connection->id);
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    $contact = Contact::query()->where('phone_normalized', '573001112233')->sole();
+    expect($contact->id)->toBe($existing->id)
+        ->and($contact->account_id)->toBe($account->id);
+
+    $conversation = Conversation::query()->sole();
+    expect($conversation->account_id)->toBe($account->id)
+        ->and($conversation->contact_id)->toBe($contact->id)
+        ->and($conversation->connection_id)->toBe($connection->id)
+        ->and($conversation->last_message_text)->toBe('Hola ventas');
+
+    $message = Message::query()->sole();
+    expect($message->conversation_id)->toBe($conversation->id)
+        ->and($message->message_id)->toBe('wamid.sales-1')
+        ->and($message->content_text)->toBe('Hola ventas')
+        ->and($message->sender_type)->toBe('customer');
+
+    expect($connection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('a delivery with two connections isolates tenants and does not leak crm records', function () {
+    [$salesAccount, $salesOwner, $salesConnection] = waitingConnection('phone-sales', 'waba-sales');
+    [$supportAccount, $supportOwner, $supportConnection] = waitingConnection('phone-support', 'waba-support');
+
+    Contact::factory()->create([
+        'account_id' => $salesAccount->id,
+        'user_id' => $salesOwner->id,
+        'phone' => '573009990001',
+        'name' => 'Cliente ventas',
+    ]);
+
+    $body = inboundMessagesPayload([
+        [
+            'phone_number_id' => 'phone-sales',
+            'wa_id' => '573009990001',
+            'name' => 'Cliente ventas',
+            'message_id' => 'wamid.sales-2',
+            'text' => 'Quiero precio',
+            'waba_id' => 'waba-sales',
+        ],
+        [
+            'phone_number_id' => 'phone-support',
+            'wa_id' => '573009990002',
+            'name' => 'Cliente soporte',
+            'message_id' => 'wamid.support-1',
+            'text' => 'Necesito ayuda',
+            'waba_id' => 'waba-support',
+        ],
+    ]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    $delivery = WhatsappWebhookDelivery::query()->latest('received_at')->firstOrFail();
+    expect($delivery->processing_state)->toBe(WhatsappWebhookDelivery::STATE_PROCESSED);
+
+    $events = WhatsappWebhookEvent::query()->where('delivery_id', $delivery->id)->orderBy('fingerprint')->get();
+    expect($events)->toHaveCount(2)
+        ->and($events->pluck('account_id')->all())->toEqualCanonicalizing([
+            $salesAccount->id,
+            $supportAccount->id,
+        ]);
+
+    app()->instance(AccountScope::CONTAINER_KEY, $salesAccount->id);
+    $salesConversation = Conversation::query()->sole();
+    expect(Contact::query()->count())->toBe(1)
+        ->and($salesConversation->connection_id)->toBe($salesConnection->id)
+        ->and($salesConversation->messages()->sole()->message_id)->toBe('wamid.sales-2')
+        ->and($salesConversation->messages()->sole()->content_text)->toBe('Quiero precio');
+
+    app()->instance(AccountScope::CONTAINER_KEY, $supportAccount->id);
+    $supportConversation = Conversation::query()->sole();
+    expect(Contact::query()->count())->toBe(1)
+        ->and($supportConversation->connection_id)->toBe($supportConnection->id)
+        ->and(Contact::query()->sole()->phone_normalized)->toBe('573009990002')
+        ->and($supportConversation->messages()->sole()->message_id)->toBe('wamid.support-1');
+
+    expect($salesConnection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active)
+        ->and($supportConnection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('unknown disconnected and unsupported events are classified without mutating crm state', function () {
+    [$account, $owner, $disconnected] = waitingConnection('phone-old', 'waba-old');
+    $disconnected->readiness = WhatsappConnectionReadiness::Disconnected;
+    $disconnected->save();
+
+    $body = json_encode([
+        'object' => 'whatsapp_business_account',
+        'entry' => [
+            [
+                'id' => 'waba-unknown',
+                'changes' => [[
+                    'field' => 'messages',
+                    'value' => [
+                        'messaging_product' => 'whatsapp',
+                        'metadata' => ['phone_number_id' => 'phone-unknown'],
+                        'contacts' => [['profile' => ['name' => 'Ghost'], 'wa_id' => '573000000001']],
+                        'messages' => [[
+                            'from' => '573000000001',
+                            'id' => 'wamid.unknown-1',
+                            'timestamp' => '1712000000',
+                            'type' => 'text',
+                            'text' => ['body' => 'Hola fantasma'],
+                        ]],
+                    ],
+                ]],
+            ],
+            [
+                'id' => 'waba-old',
+                'changes' => [[
+                    'field' => 'messages',
+                    'value' => [
+                        'messaging_product' => 'whatsapp',
+                        'metadata' => ['phone_number_id' => 'phone-old'],
+                        'contacts' => [['profile' => ['name' => 'Viejo'], 'wa_id' => '573000000002']],
+                        'messages' => [[
+                            'from' => '573000000002',
+                            'id' => 'wamid.blocked-1',
+                            'timestamp' => '1712000000',
+                            'type' => 'text',
+                            'text' => ['body' => 'No deberia entrar'],
+                        ]],
+                    ],
+                ]],
+            ],
+            [
+                'id' => 'waba-old',
+                'changes' => [[
+                    'field' => 'message_template_status_update',
+                    'value' => ['event' => 'APPROVED'],
+                ]],
+            ],
+        ],
+    ], JSON_THROW_ON_ERROR);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    $delivery = WhatsappWebhookDelivery::query()->latest('received_at')->firstOrFail();
+    $classifications = WhatsappWebhookEvent::query()
+        ->where('delivery_id', $delivery->id)
+        ->pluck('classification')
+        ->all();
+
+    expect($classifications)->toEqualCanonicalizing([
+        WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED,
+        WhatsappWebhookEvent::CLASSIFICATION_BLOCKED,
+        WhatsappWebhookEvent::CLASSIFICATION_UNSUPPORTED,
+    ]);
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+    expect(Contact::query()->count())->toBe(0)
+        ->and(Conversation::query()->count())->toBe(0)
+        ->and($disconnected->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Disconnected);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('the same wa_id opens separate conversations per connection inside one account', function () {
+    [$account, $owner, $sales] = waitingConnection('phone-sales', 'waba-multi');
+    $supportWaba = WabaSubscription::query()->withoutGlobalScopes()->where('account_id', $account->id)->sole();
+    $support = WhatsappPhoneNumberConnection::factory()->forWaba($supportWaba)->create([
+        'account_id' => $account->id,
+        'phone_number_id' => 'phone-support',
+        'readiness' => WhatsappConnectionReadiness::WebhookWaiting,
+    ]);
+
+    $body = inboundMessagesPayload([
+        [
+            'phone_number_id' => 'phone-sales',
+            'wa_id' => '573008880001',
+            'name' => 'Mismo cliente',
+            'message_id' => 'wamid.same-sales',
+            'text' => 'Hola ventas',
+            'waba_id' => 'waba-multi',
+        ],
+        [
+            'phone_number_id' => 'phone-support',
+            'wa_id' => '573008880001',
+            'name' => 'Mismo cliente',
+            'message_id' => 'wamid.same-support',
+            'text' => 'Hola soporte',
+            'waba_id' => 'waba-multi',
+        ],
+    ]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect(Contact::query()->count())->toBe(1)
+        ->and(Conversation::query()->count())->toBe(2)
+        ->and(Conversation::query()->pluck('connection_id')->all())->toEqualCanonicalizing([
+            $sales->id,
+            $support->id,
+        ]);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('a retried inbound message does not duplicate crm records and still activates the connection', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+
+    $body = inboundMessagesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'wa_id' => '573007770001',
+        'name' => 'Retry',
+        'message_id' => 'wamid.retry-1',
+        'text' => 'Primera entrega',
+        'waba_id' => 'waba-123',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    expect(WhatsappWebhookDelivery::query()->count())->toBe(2);
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect(Contact::query()->count())->toBe(1)
+        ->and(Conversation::query()->count())->toBe(1)
+        ->and(Conversation::query()->sole()->messages()->count())->toBe(1)
+        ->and($connection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
 });

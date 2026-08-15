@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * Hilo 1:1 con un contacto. Única por (account_id, contact_id) — el
- * webhook entrante depende de ese backstop (Supabase 036).
+ * Hilo 1:1 entre un Contact y una WhatsApp Phone Number Connection.
+ * Única por (account_id, contact_id, connection_id).
  *
  * @property string $id
  * @property int $user_id

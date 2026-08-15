@@ -5,6 +5,9 @@ declare(strict_types=1);
 use App\Domain\Contacts\Support\ContactCsvRow;
 use App\Domain\Contacts\Support\ContactCsvRows;
 
+covers(ContactCsvRows::class);
+mutates(ContactCsvRow::class);
+
 /**
  * The parser is pure: it takes raw CSV text and returns typed rows,
  * touching neither the database nor the container, so every edge case

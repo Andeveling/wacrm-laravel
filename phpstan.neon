@@ -1,6 +1,10 @@
 includes:
     - vendor/larastan/larastan/extension.neon
     - vendor/nesbot/carbon/extension.neon
+    - vendor/pestphp/pest-plugin-phpstan/extension.neon
+    # Existing Pest diagnostics are recorded while the suite is adopted. New
+    # diagnostics still fail `types:check`; application analysis is unchanged.
+    - phpstan-tests-baseline.neon
 
 parameters:
     paths:
@@ -9,6 +13,7 @@ parameters:
         - config/
         - database/
         - routes/
+        - tests/
         - tests/Fixtures/
 
     level: 7

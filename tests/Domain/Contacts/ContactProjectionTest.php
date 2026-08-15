@@ -7,6 +7,8 @@ use App\Models\Contact;
 use App\Models\Tag;
 use Illuminate\Support\Carbon;
 
+covers(ContactProjection::class);
+
 /**
  * The projection is pure: it reads an already-loaded model and issues
  * no query, so it is verifiable without a database, without the MCP

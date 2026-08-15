@@ -3,8 +3,11 @@
 use App\Domain\Automations\Actions\EditAutomation;
 use App\Domain\Automations\Actions\ShowAutomationLogs;
 use App\Domain\Automations\Actions\ShowAutomations;
+use App\Domain\Broadcasts\Actions\CountBroadcastAudience;
 use App\Domain\Broadcasts\Actions\ShowBroadcast;
 use App\Domain\Broadcasts\Actions\ShowBroadcasts;
+use App\Domain\Broadcasts\Actions\ShowNewBroadcast;
+use App\Domain\Broadcasts\Actions\StoreBroadcast;
 use App\Domain\Contacts\Actions\BulkDestroyContacts;
 use App\Domain\Contacts\Actions\DestroyContact;
 use App\Domain\Contacts\Actions\DestroyContactNote;
@@ -87,7 +90,9 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
     Route::inertia('notifications', 'notifications')->name('notifications');
     Route::inertia('agents', 'agents')->name('agents');
     Route::get('broadcasts', ShowBroadcasts::class)->name('broadcasts');
-    Route::inertia('broadcasts/new', 'broadcasts/new')->name('broadcasts.new');
+    Route::get('broadcasts/new', ShowNewBroadcast::class)->name('broadcasts.new');
+    Route::get('broadcasts/audience-count', CountBroadcastAudience::class)->name('broadcasts.audience-count');
+    Route::post('broadcasts', StoreBroadcast::class)->name('broadcasts.store');
     Route::get('broadcasts/{id}', ShowBroadcast::class)->name('broadcasts.show');
 
     Route::get('automations', ShowAutomations::class)->name('automations');

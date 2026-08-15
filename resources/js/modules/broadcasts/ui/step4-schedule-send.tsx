@@ -1,5 +1,5 @@
-import { ArrowLeft, Send, Users } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, CalendarClock, Save, Users } from 'lucide-react';
+import { useId, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,8 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import type { MessageTemplate } from '../contracts';
-import { AUDIENCE_TAGS, mockAudienceContacts } from '../fixtures';
+import type { BroadcastTag, MessageTemplate } from '../contracts';
 import type { AudienceConfig } from './step2-select-audience';
 
 interface Step4Props {
@@ -19,17 +18,12 @@ interface Step4Props {
   onNameChange: (name: string) => void;
   template: MessageTemplate;
   audience: AudienceConfig;
+  tags: BroadcastTag[];
+  audienceCount: number;
+  scheduledAt: string;
+  onScheduledAtChange: (scheduledAt: string) => void;
   onSend: () => void;
   onBack: () => void;
-}
-
-function estimateReach(audience: AudienceConfig): number {
-  const all = mockAudienceContacts(24);
-  if (audience.type === 'all') return all.length;
-  if (!audience.tagIds?.length) return 0;
-  return all.filter((c) =>
-    (c.tags ?? []).some((t) => audience.tagIds?.includes(t.id)),
-  ).length;
 }
 
 export function Step4ScheduleSend({
@@ -37,36 +31,41 @@ export function Step4ScheduleSend({
   onNameChange,
   template,
   audience,
+  tags,
+  audienceCount,
+  scheduledAt,
+  onScheduledAtChange,
   onSend,
   onBack,
 }: Step4Props) {
   const [showConfirm, setShowConfirm] = useState(false);
-  const estimatedReach = estimateReach(audience);
+  const nameInputId = useId();
+  const scheduledAtInputId = useId();
   const audienceLabel =
     audience.type === 'all'
       ? 'Todos los contactos'
-      : `Por etiqueta (${(audience.tagIds ?? []).map((id) => AUDIENCE_TAGS.find((tag) => tag.id === id)?.name).join(', ')})`;
+      : (audience.tagIds?.length ?? 0) === 0
+        ? 'Todos los contactos'
+        : `Por etiqueta (${(audience.tagIds ?? []).map((id) => tags.find((tag) => tag.id === id)?.name).join(', ')})`;
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">
-          Revisa y envía
-        </h2>
+        <h2 className="text-lg font-semibold text-foreground">Revisa y crea</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Confirma los detalles antes de enviar.
+          Confirma los detalles antes de crear la difusión.
         </p>
       </div>
 
       <div>
         <label
-          htmlFor="broadcast-name"
+          htmlFor={nameInputId}
           className="mb-1.5 block text-sm font-medium text-foreground"
         >
           Nombre de la difusión
         </label>
         <Input
-          id="broadcast-name"
+          id={nameInputId}
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Ej. Promo de julio"
@@ -89,7 +88,7 @@ export function Step4ScheduleSend({
             <div className="flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-primary" />
               <p className="font-medium text-foreground">
-                {estimatedReach.toLocaleString()}
+                {audienceCount.toLocaleString()}
               </p>
             </div>
           </div>
@@ -100,6 +99,22 @@ export function Step4ScheduleSend({
         </div>
       </div>
 
+      <div>
+        <label
+          htmlFor={scheduledAtInputId}
+          className="mb-1.5 block text-sm font-medium text-foreground"
+        >
+          Programar para más tarde{' '}
+          <span className="font-normal text-muted-foreground">(opcional)</span>
+        </label>
+        <Input
+          id={scheduledAtInputId}
+          type="datetime-local"
+          value={scheduledAt}
+          onChange={(event) => onScheduledAtChange(event.target.value)}
+        />
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
@@ -107,23 +122,28 @@ export function Step4ScheduleSend({
         </Button>
 
         <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-          <Button disabled={!name.trim()} onClick={() => setShowConfirm(true)}>
-            <Send className="h-4 w-4" />
-            Enviar ahora
+          <Button
+            disabled={!name.trim() || audienceCount === 0}
+            onClick={() => setShowConfirm(true)}
+          >
+            <Save className="h-4 w-4" />
+            {scheduledAt ? 'Programar difusión' : 'Crear borrador'}
           </Button>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Confirmar difusión</DialogTitle>
               <DialogDescription>
-                Estás a punto de enviar esta difusión a{' '}
+                Estás a punto de{' '}
+                {scheduledAt ? 'programar' : 'crear como borrador'} esta
+                difusión para{' '}
                 <span className="font-medium text-foreground">
-                  {estimatedReach.toLocaleString()}
+                  {audienceCount.toLocaleString()}
                 </span>{' '}
                 contactos usando la plantilla{' '}
                 <span className="font-medium text-foreground">
                   {template.name}
                 </span>
-                . Esta acción no se puede deshacer.
+                . No se enviarán mensajes todavía.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -136,8 +156,8 @@ export function Step4ScheduleSend({
                   onSend();
                 }}
               >
-                <Send className="h-4 w-4" />
-                Enviar ahora
+                <CalendarClock className="h-4 w-4" />
+                {scheduledAt ? 'Programar difusión' : 'Crear borrador'}
               </Button>
             </DialogFooter>
           </DialogContent>

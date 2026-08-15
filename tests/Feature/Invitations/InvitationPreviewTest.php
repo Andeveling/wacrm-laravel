@@ -20,6 +20,7 @@ test('invitee can preview a valid invitation', function () {
         ->for($inviter, 'inviter')
         ->create([
             'role' => 'admin',
+            'email' => 'invitee@gmail.com',
             'token_hash' => hash('sha256', $plainToken),
             'expires_at' => now()->addDays(7),
             'label' => 'Welcome Fabian',
@@ -37,6 +38,7 @@ test('invitee can preview a valid invitation', function () {
         ->where('label', 'Welcome Fabian')
         ->where('token', $plainToken)
         ->where('expires_at', $invitation->expires_at->toIso8601String())
+        ->missing('email')
     );
 });
 

@@ -61,8 +61,10 @@ final readonly class InviteMember
             AccountRole::from((string) $validated['role']),
         );
 
+        $invitationUrl = null;
+
         if ($actor !== null && $status === MemberActionStatus::Success) {
-            DB::transaction(function () use ($account, $actor, $validated): void {
+            $issued = DB::transaction(function () use ($account, $actor, $validated): array {
                 Account::query()->whereKey($account->id)->lockForUpdate()->firstOrFail();
 
                 if (Invitation::withoutGlobalScopes()
@@ -77,18 +79,21 @@ final readonly class InviteMember
                     ]);
                 }
 
-                $this->issuer->issue(
+                return $this->issuer->issue(
                     accountId: $account->id,
                     inviter: $actor,
                     role: $validated['role'],
                     email: $validated['email'],
                 );
             });
+
+            $invitationUrl = route('invitations.preview', $issued['token']);
         }
 
         return ($this->responder)(
             new MemberActionResult($status, account: $account),
             flash: 'invited',
+            redirectData: $invitationUrl === null ? [] : ['invitation_url' => $invitationUrl],
         );
     }
 }

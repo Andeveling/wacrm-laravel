@@ -67,7 +67,7 @@ export function InviteMemberForm({
           Invitar miembro
         </CardTitle>
         <CardDescription>
-          Envía una invitación por email y elige el rol inicial.
+          Crea un enlace de invitación para compartir y elige el rol inicial.
         </CardDescription>
       </CardHeader>
       <CardContent>

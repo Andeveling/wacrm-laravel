@@ -42,8 +42,10 @@ class PruneWhatsappWebhookDeliveries extends Command
 
         $deleted = WhatsappWebhookDelivery::query()
             ->where('received_at', '<', $cutoff)
+            ->settled()
             ->whereDoesntHave('events', function (Builder $query): void {
-                $query->whereIn('classification', WhatsappWebhookEvent::classifiableOutcomes());
+                /** @var Builder<WhatsappWebhookEvent> $query */
+                $query->classifiable();
             })
             ->delete();
 

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Database\Factories\WhatsappWebhookDeliveryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -49,6 +50,19 @@ class WhatsappWebhookDelivery extends Model
 
     public const STATE_PROCESSED = 'processed';
 
+    public const STATE_FAILED = 'failed';
+
+    /**
+     * @return list<string>
+     */
+    public static function settledStates(): array
+    {
+        return [
+            self::STATE_PROCESSED,
+            self::STATE_FAILED,
+        ];
+    }
+
     /**
      * @var array<string, mixed>
      */
@@ -62,6 +76,28 @@ class WhatsappWebhookDelivery extends Model
     public function events(): HasMany
     {
         return $this->hasMany(WhatsappWebhookEvent::class, 'delivery_id');
+    }
+
+    /**
+     * @param  Builder<WhatsappWebhookDelivery>  $query
+     * @return Builder<WhatsappWebhookDelivery>
+     */
+    public function scopeSettled(Builder $query): Builder
+    {
+        return $query->whereIn('processing_state', self::settledStates());
+    }
+
+    public function isSettled(): bool
+    {
+        return in_array($this->processing_state, self::settledStates(), true);
+    }
+
+    public function markSettled(): void
+    {
+        $this->processing_state = $this->events()->failed()->exists()
+            ? self::STATE_FAILED
+            : self::STATE_PROCESSED;
+        $this->save();
     }
 
     /**

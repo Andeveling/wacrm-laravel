@@ -31,7 +31,7 @@ test('artisan refuses to replay a processed webhook event', function () {
         'classification' => WhatsappWebhookEvent::CLASSIFICATION_PROCESSED,
     ]);
 
-    expect(Artisan::call('whatsapp:replay-events', ['event' => $event->id]))->toBe(0);
+    expect(Artisan::call('whatsapp:replay-events', ['target' => $event->id]))->toBe(0);
     expect($event->fresh()->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED);
     expect(Artisan::output())->toContain('nothing to replay');
 });
@@ -113,7 +113,9 @@ test('artisan replay applies an unresolved inbound after the connection exists a
         'readiness' => WhatsappConnectionReadiness::WebhookWaiting,
     ]);
 
-    expect(Artisan::call('whatsapp:replay-events', ['event' => $event->id]))->toBe(0);
+    $delivery = WhatsappWebhookDelivery::query()->sole();
+
+    expect(Artisan::call('whatsapp:replay-events', ['target' => $delivery->id]))->toBe(0);
 
     $event->refresh();
     expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED)
@@ -126,7 +128,7 @@ test('artisan replay applies an unresolved inbound after the connection exists a
         ->and(Message::query()->sole()->message_id)->toBe('wamid.later-1')
         ->and(Message::query()->sole()->content_text)->toBe('Hola despues');
 
-    expect(Artisan::call('whatsapp:replay-events', ['event' => $event->id]))->toBe(0);
+    expect(Artisan::call('whatsapp:replay-events', ['target' => $event->id]))->toBe(0);
 
     expect(Message::query()->count())->toBe(1);
 
@@ -173,12 +175,19 @@ test('prune deletes ordinary expired deliveries and keeps pending or failed work
         'processed_at' => now()->subDays(2),
     ]);
 
+    $unprocessed = WhatsappWebhookDelivery::factory()->create([
+        'received_at' => now()->subDays(50),
+        'processing_state' => WhatsappWebhookDelivery::STATE_RECEIVED,
+        'processed_at' => null,
+    ]);
+
     expect(Artisan::call('whatsapp:prune-deliveries', ['--older-than' => '30days']))->toBe(0);
 
     expect(WhatsappWebhookDelivery::query()->pluck('id')->all())->toEqualCanonicalizing([
         $pending->id,
         $failed->id,
         $fresh->id,
+        $unprocessed->id,
     ]);
 });
 
@@ -204,7 +213,7 @@ test('artisan replay applies a blocked inbound after the connection is reconnect
     $connection->readiness = WhatsappConnectionReadiness::WebhookWaiting;
     $connection->save();
 
-    expect(Artisan::call('whatsapp:replay-events', ['event' => $event->id]))->toBe(0);
+    expect(Artisan::call('whatsapp:replay-events', ['target' => $event->id]))->toBe(0);
 
     $event->refresh();
     expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED);
@@ -256,7 +265,7 @@ test('artisan replay correlates an uncorrelated status after the message exists'
 
     app()->forgetInstance(AccountScope::CONTAINER_KEY);
 
-    expect(Artisan::call('whatsapp:replay-events', ['event' => $event->id]))->toBe(0);
+    expect(Artisan::call('whatsapp:replay-events', ['target' => $event->id]))->toBe(0);
 
     $event->refresh();
     expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED);

@@ -74,6 +74,15 @@ class WhatsappWebhookEvent extends Model
     }
 
     /**
+     * @param  Builder<WhatsappWebhookEvent>  $query
+     * @return Builder<WhatsappWebhookEvent>
+     */
+    public function scopeFailed(Builder $query): Builder
+    {
+        return $query->where('classification', self::CLASSIFICATION_FAILED);
+    }
+
+    /**
      * @return BelongsTo<WhatsappWebhookDelivery, $this>
      */
     public function delivery(): BelongsTo

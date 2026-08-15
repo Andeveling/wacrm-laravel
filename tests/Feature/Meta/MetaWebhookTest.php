@@ -17,6 +17,7 @@ use App\Models\WhatsappPhoneNumberConnection;
 use App\Models\WhatsappWebhookDelivery;
 use App\Models\WhatsappWebhookEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -443,6 +444,40 @@ test('a routed inbound message creates isolated crm records and activates the wa
     expect($connection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active);
 
     app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('a classified inbound logs delivery and event identifiers after routing', function () {
+    [$account] = waitingConnection('phone-sales');
+
+    /** @var list<MessageLogged> $logged */
+    $logged = [];
+    Log::listen(function (MessageLogged $entry) use (&$logged): void {
+        $logged[] = $entry;
+    });
+
+    $body = inboundMessagesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'wa_id' => '573001112233',
+        'name' => 'Ana Pérez',
+        'message_id' => 'wamid.log-1',
+        'text' => 'Hola logs',
+        'waba_id' => 'waba-123',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    $delivery = WhatsappWebhookDelivery::query()->sole();
+    $event = WhatsappWebhookEvent::query()->sole();
+    $classified = collect($logged)->first(
+        fn (MessageLogged $entry): bool => $entry->message === 'WhatsApp webhook event classified.',
+    );
+
+    expect($classified)->not->toBeNull()
+        ->and($classified->context['delivery_id'])->toBe($delivery->id)
+        ->and($classified->context['event_id'])->toBe($event->id)
+        ->and($classified->context['account_id'])->toBe($account->id)
+        ->and($classified->context['classification'])->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED)
+        ->and($classified->context)->not->toHaveKey('raw_body');
 });
 
 test('a delivery with two connections isolates tenants and does not leak crm records', function () {
@@ -961,7 +996,7 @@ test('an inbound that exhausts internal processing is failed and replayable with
     $delivery = WhatsappWebhookDelivery::query()->sole();
     $event = WhatsappWebhookEvent::query()->sole();
 
-    expect($delivery->processing_state)->toBe(WhatsappWebhookDelivery::STATE_PROCESSED)
+    expect($delivery->processing_state)->toBe(WhatsappWebhookDelivery::STATE_FAILED)
         ->and($delivery->processed_at)->not->toBeNull()
         ->and($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_FAILED)
         ->and($event->account_id)->toBe($account->id)
@@ -976,10 +1011,12 @@ test('an inbound that exhausts internal processing is failed and replayable with
 
     $account->users()->attach($owner->id, ['role' => 'owner', 'joined_at' => now()]);
 
-    expect(Artisan::call('whatsapp:replay-events', ['event' => $event->id]))->toBe(0);
+    expect(Artisan::call('whatsapp:replay-events', ['target' => $event->id]))->toBe(0);
 
     $event->refresh();
-    expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED);
+    $delivery->refresh();
+    expect($event->classification)->toBe(WhatsappWebhookEvent::CLASSIFICATION_PROCESSED)
+        ->and($delivery->processing_state)->toBe(WhatsappWebhookDelivery::STATE_PROCESSED);
 
     app()->instance(AccountScope::CONTAINER_KEY, $account->id);
 

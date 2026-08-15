@@ -35,7 +35,7 @@ final class WhatsappWebhookDeliveryProcessor
                 ->lockForUpdate()
                 ->first();
 
-            if ($locked === null || $locked->processing_state === WhatsappWebhookDelivery::STATE_PROCESSED) {
+            if ($locked === null || $locked->isSettled()) {
                 return;
             }
 
@@ -59,9 +59,8 @@ final class WhatsappWebhookDeliveryProcessor
                 $this->routeExtractedEvent($locked, $extracted);
             }
 
-            $locked->processing_state = WhatsappWebhookDelivery::STATE_PROCESSED;
             $locked->processed_at = Carbon::now();
-            $locked->save();
+            $locked->markSettled();
         });
     }
 
@@ -84,6 +83,9 @@ final class WhatsappWebhookDeliveryProcessor
             $locked->connection_id = $outcome['connection_id'];
             $locked->phone_number_id = $outcome['phone_number_id'];
             $locked->save();
+
+            $this->syncDeliveryOutcome($locked);
+            $this->logClassification($locked);
         });
     }
 
@@ -231,7 +233,7 @@ final class WhatsappWebhookDeliveryProcessor
 
         $outcome = $this->classifyExtracted($extracted);
 
-        $this->recordEvent(
+        $event = $this->recordEvent(
             $delivery,
             $extracted,
             $outcome['classification'],
@@ -240,14 +242,7 @@ final class WhatsappWebhookDeliveryProcessor
             phoneNumberId: $outcome['phone_number_id'],
         );
 
-        if ($outcome['classification'] === WhatsappWebhookEvent::CLASSIFICATION_PROCESSED) {
-            Log::info('WhatsApp webhook event classified.', [
-                'delivery_id' => $delivery->id,
-                'account_id' => $outcome['account_id'],
-                'connection_id' => $outcome['connection_id'],
-                'processing_state' => $outcome['classification'],
-            ]);
-        }
+        $this->logClassification($event);
     }
 
     /**
@@ -328,13 +323,6 @@ final class WhatsappWebhookDeliveryProcessor
                     : WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED);
         } catch (Throwable $exception) {
             report($exception);
-            Log::error('WhatsApp webhook event processing failed.', [
-                'fingerprint' => $extracted['fingerprint'],
-                'account_id' => $connection->account_id,
-                'connection_id' => $connection->id,
-                'processing_state' => WhatsappWebhookEvent::CLASSIFICATION_FAILED,
-            ]);
-
             $classification = WhatsappWebhookEvent::CLASSIFICATION_FAILED;
         } finally {
             app()->forgetInstance(AccountScope::CONTAINER_KEY);
@@ -521,8 +509,8 @@ final class WhatsappWebhookDeliveryProcessor
         ?string $accountId = null,
         ?string $connectionId = null,
         ?string $phoneNumberId = null,
-    ): void {
-        WhatsappWebhookEvent::query()->create([
+    ): WhatsappWebhookEvent {
+        return WhatsappWebhookEvent::query()->create([
             'delivery_id' => $delivery->id,
             'account_id' => $accountId,
             'connection_id' => $connectionId,
@@ -531,5 +519,42 @@ final class WhatsappWebhookDeliveryProcessor
             'classification' => $classification,
             'payload' => $extracted['payload'],
         ]);
+    }
+
+    private function syncDeliveryOutcome(WhatsappWebhookEvent $event): void
+    {
+        $delivery = WhatsappWebhookDelivery::query()
+            ->whereKey($event->delivery_id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($delivery === null || ! $delivery->isSettled()) {
+            return;
+        }
+
+        $delivery->markSettled();
+    }
+
+    private function logClassification(WhatsappWebhookEvent $event): void
+    {
+        $context = [
+            'delivery_id' => $event->delivery_id,
+            'event_id' => $event->id,
+            'classification' => $event->classification,
+        ];
+
+        if ($event->account_id !== null) {
+            $context['account_id'] = $event->account_id;
+        }
+
+        if ($event->classification === WhatsappWebhookEvent::CLASSIFICATION_FAILED) {
+            Log::error('WhatsApp webhook event processing failed.', $context);
+
+            return;
+        }
+
+        if ($event->classification === WhatsappWebhookEvent::CLASSIFICATION_PROCESSED) {
+            Log::info('WhatsApp webhook event classified.', $context);
+        }
     }
 }

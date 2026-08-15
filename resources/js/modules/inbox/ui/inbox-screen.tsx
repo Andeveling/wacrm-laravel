@@ -7,6 +7,7 @@ import type { Conversation, InboxPageProps, Message } from '../contracts';
 import { ContactSidebar } from './contact-sidebar';
 import { ConversationList } from './conversation-list';
 import { MessageThread } from './message-thread';
+import { NewConversationDialog } from './new-conversation-dialog';
 
 function groupMessages(messages: Message[]): Record<string, Message[]> {
   return messages.reduce<Record<string, Message[]>>((groups, message) => {
@@ -20,6 +21,8 @@ function groupMessages(messages: Message[]): Record<string, Message[]> {
 export default function InboxPage({
   conversations: initialConversations,
   messages: initialMessages,
+  contacts,
+  connections,
 }: InboxPageProps) {
   const [conversations, setConversations] = useState<Conversation[]>(
     () => initialConversations,
@@ -27,6 +30,7 @@ export default function InboxPage({
   const [activeId, setActiveId] = useState<string | null>(
     () => initialConversations[0]?.id ?? null,
   );
+  const [newConversationOpen, setNewConversationOpen] = useState(false);
   const messagesByConversation = groupMessages(initialMessages);
 
   const activeConversation =
@@ -59,6 +63,7 @@ export default function InboxPage({
           conversations={conversations}
           activeConversationId={activeId}
           onSelect={selectConversation}
+          onNewConversation={() => setNewConversationOpen(true)}
         />
 
         {activeConversation ? (
@@ -83,6 +88,12 @@ export default function InboxPage({
           </div>
         )}
       </div>
+      <NewConversationDialog
+        open={newConversationOpen}
+        onOpenChange={setNewConversationOpen}
+        contacts={contacts}
+        connections={connections}
+      />
     </>
   );
 }

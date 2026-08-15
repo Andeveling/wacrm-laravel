@@ -92,6 +92,8 @@ test('inbox page returns the current account conversations and messages', functi
             ->where('messages.1.content_text', 'Hola, te leo.')
             ->where('messages.2.conversation_id', $olderConversation->id)
             ->where('messages.2.content_text', 'Necesito ayuda con mi pedido.')
+            ->has('contacts', 2)
+            ->has('connections', 0)
         );
 });
 
@@ -168,10 +170,10 @@ test('inbox page loads conversations, contacts, and messages without n plus one'
         ->get(route('inbox'))
         ->assertOk();
 
-    expect($queries)->toHaveCount(3)
+    expect($queries)->toHaveCount(4)
         ->and(array_count_values($queries))->toMatchArray([
             'conversations' => 1,
-            'contacts' => 1,
+            'contacts' => 2,
             'messages' => 1,
         ]);
 });

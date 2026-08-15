@@ -29,6 +29,12 @@ export interface Automation {
   steps: AutomationStep[];
 }
 
+export interface AutomationConnection {
+  id: string;
+  phone_number_id: string;
+  is_default: boolean;
+}
+
 export interface AutomationStep {
   id: string;
   step_type: AutomationStepType;

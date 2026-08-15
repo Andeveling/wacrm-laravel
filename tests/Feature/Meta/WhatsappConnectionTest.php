@@ -3,9 +3,13 @@
 declare(strict_types=1);
 
 use App\Models\Account;
+use App\Models\Automation;
+use App\Models\Broadcast;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Enums\AccountRole;
+use App\Models\Enums\AutomationConnectionMode;
+use App\Models\Enums\BroadcastStatus;
 use App\Models\Enums\WhatsappConnectionReadiness;
 use App\Models\User;
 use App\Models\WabaSubscription;
@@ -297,6 +301,47 @@ test('disconnecting a number keeps its conversation and leaves a sibling WABA su
         ->and($waba->subscribed_apps_at)->not->toBeNull()
         ->and($integration->fresh()->access_token)->toBe('secret-meta-token');
     Http::assertNothingSent();
+});
+
+test('disconnecting a connection pauses legacy unpinned outbound work', function () {
+    [$admin, $account, , $waba, $sales] = seededConnection(phoneNumberId: 'phone-sales');
+    $support = WhatsappPhoneNumberConnection::factory()->forWaba($waba)->create([
+        'account_id' => $account->id,
+        'phone_number_id' => 'phone-support',
+        'readiness' => WhatsappConnectionReadiness::Active,
+    ]);
+
+    $legacyDraft = Broadcast::factory()->for($account)->create(['connection_id' => null, 'status' => BroadcastStatus::Draft]);
+    $legacyScheduled = Broadcast::factory()->for($account)->create(['connection_id' => null, 'status' => BroadcastStatus::Scheduled]);
+    $pinnedSending = Broadcast::factory()->for($account)->create(['connection_id' => $sales->id, 'status' => BroadcastStatus::Sending]);
+    $unaffected = Broadcast::factory()->for($account)->create(['connection_id' => $support->id, 'status' => BroadcastStatus::Draft]);
+    $legacyAutomation = Automation::factory()->for($account)->active()->create([
+        'user_id' => $admin->id,
+        'connection_mode' => AutomationConnectionMode::Pinned,
+        'connection_id' => null,
+    ]);
+    $triggerAutomation = Automation::factory()->for($account)->active()->create([
+        'user_id' => $admin->id,
+        'connection_mode' => AutomationConnectionMode::Trigger,
+        'connection_id' => null,
+    ]);
+    $pinnedAutomation = Automation::factory()->for($account)->active()->create(['user_id' => $admin->id, 'connection_id' => $sales->id]);
+    $unaffectedAutomation = Automation::factory()->for($account)->active()->create(['user_id' => $admin->id, 'connection_id' => $support->id]);
+    Http::fake();
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->delete(route('settings.whatsapp.disconnect', $sales))
+        ->assertRedirect(route('settings.whatsapp'));
+
+    expect($legacyDraft->fresh()->status)->toBe(BroadcastStatus::Paused)
+        ->and($legacyScheduled->fresh()->status)->toBe(BroadcastStatus::Paused)
+        ->and($pinnedSending->fresh()->status)->toBe(BroadcastStatus::Paused)
+        ->and($unaffected->fresh()->status)->toBe(BroadcastStatus::Draft)
+        ->and($legacyAutomation->fresh()->is_active)->toBeFalse()
+        ->and($triggerAutomation->fresh()->is_active)->toBeTrue()
+        ->and($pinnedAutomation->fresh()->is_active)->toBeFalse()
+        ->and($unaffectedAutomation->fresh()->is_active)->toBeTrue();
 });
 
 test('claiming another account number fails without revealing the owner', function () {

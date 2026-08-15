@@ -70,6 +70,23 @@ final class MetaGraphClient implements MetaGraphClientContract
         $this->throwForResponse($response, 'subscription');
     }
 
+    public function unsubscribeWaba(string $wabaId, string $token): void
+    {
+        $response = $this->delete($wabaId.'/subscribed_apps', $token, 'unsubscription');
+
+        if ($response->successful()) {
+            return;
+        }
+
+        $errorMessage = strtolower((string) $response->json('error.message', ''));
+
+        if (str_contains($errorMessage, 'not') && str_contains($errorMessage, 'subscribed')) {
+            return;
+        }
+
+        $this->throwForResponse($response, 'unsubscription');
+    }
+
     public function registerPhoneNumber(string $phoneNumberId, string $token, string $pin): void
     {
         $response = $this->post(
@@ -141,6 +158,23 @@ final class MetaGraphClient implements MetaGraphClientContract
         }
     }
 
+    private function delete(string $resource, string $token, string $operation): Response
+    {
+        try {
+            return Http::withToken($token)
+                ->acceptJson()
+                ->connectTimeout(5)
+                ->timeout(10)
+                ->retry(2, 200, throw: false)
+                ->delete($this->url($resource));
+        } catch (ConnectionException) {
+            throw new MetaGraphException(
+                $operation,
+                'No se pudo contactar a Meta. Revisa la red e intenta de nuevo.',
+            );
+        }
+    }
+
     private function url(string $resource): string
     {
         return rtrim((string) config('services.meta.graph_api_url'), '/')
@@ -163,6 +197,7 @@ final class MetaGraphClient implements MetaGraphClientContract
                 default => 'Meta no permitió consultar el WABA. Revisa los permisos del token.',
             },
             'subscription' => 'Meta no pudo suscribir el WABA a los webhooks. Revisa los permisos del token.',
+            'unsubscription' => 'Meta no pudo desuscribir el WABA. El número ya quedó desconectado.',
             'registration' => match ($code) {
                 190 => 'El token de Meta es inválido o expiró.',
                 10, 200, 2000 => 'El token de Meta no tiene permisos para registrar el número.',

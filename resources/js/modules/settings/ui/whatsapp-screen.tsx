@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
   CheckCircle2,
   CircleAlert,
@@ -9,11 +9,14 @@ import {
   LockKeyhole,
   Radio,
   ShieldCheck,
+  Star,
   XCircle,
 } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
 import ConnectWhatsappNumber from '@/actions/App/Domain/Meta/Actions/ConnectWhatsappNumber';
+import DisconnectWhatsappConnection from '@/actions/App/Domain/Meta/Actions/DisconnectWhatsappConnection';
+import SetDefaultWhatsappConnection from '@/actions/App/Domain/Meta/Actions/SetDefaultWhatsappConnection';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -26,6 +29,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useClipboard } from '@/hooks/use-clipboard';
@@ -91,10 +102,13 @@ export default function Whatsapp({
   const [, copy] = useClipboard();
   const inputId = useId();
   const [showToken, setShowToken] = useState(false);
-  const connection = connections[0];
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [connectionToDisconnect, setConnectionToDisconnect] =
+    useState<Connection | null>(null);
+  const hasConnections = connections.length > 0;
   const form = useForm<FormData>({
-    phone_number_id: connection?.phone_number_id ?? '',
-    waba_id: connection?.waba_id ?? '',
+    phone_number_id: '',
+    waba_id: '',
     access_token: '',
     pin: '',
   });
@@ -103,13 +117,6 @@ export default function Whatsapp({
     if (status) toast.success(status);
     if (error) toast.error(error, { duration: 10000 });
   }, [status, error]);
-
-  useEffect(() => {
-    if (!connection) return;
-    if (!form.data.phone_number_id)
-      form.setData('phone_number_id', connection.phone_number_id ?? '');
-    if (!form.data.waba_id) form.setData('waba_id', connection.waba_id ?? '');
-  }, [connection, form]);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -124,13 +131,37 @@ export default function Whatsapp({
     if (await copy(webhookUrl)) toast.success('URL copiada.');
   }
 
+  function setDefault(connection: Connection) {
+    setBusyId(connection.id);
+    router.patch(
+      SetDefaultWhatsappConnection(connection.id),
+      {},
+      {
+        preserveScroll: true,
+        onError: () => toast.error('No se pudo actualizar el remitente.'),
+        onFinish: () => setBusyId(null),
+      },
+    );
+  }
+
+  function disconnect() {
+    if (!connectionToDisconnect) return;
+    setBusyId(connectionToDisconnect.id);
+    router.delete(DisconnectWhatsappConnection(connectionToDisconnect.id), {
+      preserveScroll: true,
+      onSuccess: () => setConnectionToDisconnect(null),
+      onError: () => toast.error('No se pudo desconectar el número.'),
+      onFinish: () => setBusyId(null),
+    });
+  }
+
   return (
     <>
       <Head title="WhatsApp" />
       <div className="max-w-3xl space-y-6">
         <Heading
           title="WhatsApp"
-          description="Conecta un número de WhatsApp Business y valida cada paso con Meta."
+          description="Administra varios números y WABA. El remitente predeterminado solo cambia si lo eliges."
         />
 
         {!!error && (
@@ -144,7 +175,22 @@ export default function Whatsapp({
         {connections.length > 0 ? (
           <div className="grid gap-3">
             {connections.map((item) => (
-              <ConnectionCard key={item.id} connection={item} />
+              <ConnectionCard
+                key={item.id}
+                connection={item}
+                canManage={canManage}
+                busy={busyId === item.id}
+                onRetry={() => {
+                  form.setData({
+                    phone_number_id: item.phone_number_id ?? '',
+                    waba_id: item.waba_id ?? '',
+                    access_token: '',
+                    pin: '',
+                  });
+                }}
+                onSetDefault={() => setDefault(item)}
+                onDisconnect={() => setConnectionToDisconnect(item)}
+              />
             ))}
           </div>
         ) : (
@@ -162,8 +208,8 @@ export default function Whatsapp({
           <Card>
             <CardHeader>
               <CardTitle>
-                {connection
-                  ? 'Reintentar o rotar credenciales'
+                {hasConnections
+                  ? 'Añadir o reintentar un número'
                   : 'Conectar primer número'}
               </CardTitle>
               <CardDescription>
@@ -222,7 +268,7 @@ export default function Whatsapp({
                         form.setData('access_token', event.target.value)
                       }
                       placeholder={
-                        connection
+                        hasConnections
                           ? 'Vacío para usar el token guardado'
                           : 'Token de sistema de Meta'
                       }
@@ -270,7 +316,7 @@ export default function Whatsapp({
                 <div className="flex items-center justify-between gap-3 border-t pt-4">
                   <p className="flex items-center gap-2 text-xs text-muted-foreground">
                     <LockKeyhole className="size-3.5" />
-                    Solo Owner y Admin pueden cambiar la conexión.
+                    Solo Owner y Admin pueden gestionar las conexiones.
                   </p>
                   <Button type="submit" disabled={form.processing}>
                     {!!form.processing && (
@@ -278,8 +324,8 @@ export default function Whatsapp({
                     )}
                     {form.processing
                       ? 'Validando…'
-                      : connection
-                        ? 'Continuar conexión'
+                      : hasConnections
+                        ? 'Validar y guardar'
                         : 'Validar y conectar'}
                   </Button>
                 </div>
@@ -326,11 +372,56 @@ export default function Whatsapp({
           </CardContent>
         </Card>
       </div>
+
+      <Dialog
+        open={!!connectionToDisconnect}
+        onOpenChange={(open) => !open && setConnectionToDisconnect(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Desconectar número</DialogTitle>
+            <DialogDescription>
+              {connectionToDisconnect
+                ? `¿Desconectar ${connectionToDisconnect.phone_number_id}? El historial se conserva y no se elige otro remitente predeterminado.`
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConnectionToDisconnect(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={disconnect}
+              disabled={!!busyId}
+            >
+              Desconectar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-function ConnectionCard({ connection }: { connection: Connection }) {
+function ConnectionCard({
+  connection,
+  canManage,
+  busy,
+  onRetry,
+  onSetDefault,
+  onDisconnect,
+}: {
+  connection: Connection;
+  canManage: boolean;
+  busy: boolean;
+  onRetry: () => void;
+  onSetDefault: () => void;
+  onDisconnect: () => void;
+}) {
   const currentStep = STEP_ORDER.indexOf(connection.readiness);
   const attention =
     connection.readiness === 'attention_required' ||
@@ -348,24 +439,32 @@ function ConnectionCard({ connection }: { connection: Connection }) {
               WABA: {connection.waba_id ?? 'pendiente de validación'}
             </p>
           </div>
-          <Badge
-            variant={
-              attention
-                ? 'destructive'
-                : connection.readiness === 'active'
-                  ? 'default'
-                  : 'secondary'
-            }
-          >
-            {connection.readiness === 'active' ? (
-              <CheckCircle2 className="size-3" />
-            ) : attention ? (
-              <XCircle className="size-3" />
-            ) : (
-              <ShieldCheck className="size-3" />
-            )}
-            {STEP_LABELS[connection.readiness]}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {connection.is_default ? (
+              <Badge variant="outline">
+                <Star className="size-3" />
+                Predeterminado
+              </Badge>
+            ) : null}
+            <Badge
+              variant={
+                attention
+                  ? 'destructive'
+                  : connection.readiness === 'active'
+                    ? 'default'
+                    : 'secondary'
+              }
+            >
+              {connection.readiness === 'active' ? (
+                <CheckCircle2 className="size-3" />
+              ) : attention ? (
+                <XCircle className="size-3" />
+              ) : (
+                <ShieldCheck className="size-3" />
+              )}
+              {STEP_LABELS[connection.readiness]}
+            </Badge>
+          </div>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-4">
@@ -391,6 +490,53 @@ function ConnectionCard({ connection }: { connection: Connection }) {
             {connection.last_registration_error}
           </p>
         )}
+
+        {canManage ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
+            {connection.readiness !== 'active' ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={onRetry}
+              >
+                {connection.readiness === 'disconnected'
+                  ? 'Reconectar'
+                  : 'Reintentar'}
+              </Button>
+            ) : null}
+            {connection.readiness === 'active' && !connection.is_default ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={onSetDefault}
+              >
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Star className="size-4" />
+                )}
+                Usar como predeterminado
+              </Button>
+            ) : null}
+            {connection.readiness !== 'disconnected' ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={onDisconnect}
+                className="border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20"
+              >
+                {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                Desconectar
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

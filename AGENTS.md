@@ -1,22 +1,13 @@
-# wacrm
+## Agent skills
 
-Multi-tenant WhatsApp CRM. Every operational record belongs to an `Account` (the tenant). Laravel 13 + Inertia v3 + React 19 + Tailwind v4, under Sail.
+### Issue tracker
 
-`original-wacrm/` is the archived Next.js + Supabase app this project migrates away from. Reference material only: read it to check original behaviour, never edit it, never wire the two together.
+[one-line summary of where issues are tracked]. See `docs/agents/issue-tracker.md`.
 
-Activate the matching skill before writing code in its domain — not when stuck.
+### Triage labels
 
-Answer structural questions (repo map, call flow, dependencies, impact) with CodeGraph before broad Glob/Grep. Run `codegraph init` once if `.codegraph/` is missing rather than falling back.
+[one-line summary of the label vocabulary]. See `docs/agents/triage-labels.md`.
 
-Commits run Lefthook and commitlint. Never `--no-verify` or `LEFTHOOK=0` — it only moves the failure to CI.
+### Domain docs
 
-## Where to look
-
-| Topic | File |
-| --- | --- |
-| Which skills exist, where they live, how they are vendored | `docs/agents/skills.md` |
-| Commit hooks, blocking lints, ADR 0001 and 0004 enforcement | `docs/agents/git-hooks.md` |
-| Biome config, ignored paths, disabled rules | `docs/agents/js-tooling.md` |
-| Issue tracker | `docs/agents/issue-tracker.md` |
-| Triage labels | `docs/agents/triage-labels.md` |
-| Domain glossary and ADRs | `CONTEXT.md`, `docs/adr/`, `docs/agents/domain.md` |
+[one-line summary of layout — "single-context" or "multi-context"]. See `docs/agents/domain.md`.

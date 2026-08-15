@@ -186,27 +186,45 @@ final class MetaGraphClient implements MetaGraphClientContract
         $code = $response->json('error.code');
         $code = is_int($code) ? $code : null;
 
-        $message = match ($operation) {
-            'credentials' => match ($code) {
-                190 => 'El token de Meta es inválido o expiró.',
-                10, 200, 2000 => 'El token de Meta no tiene los permisos necesarios.',
-                default => 'Meta rechazó las credenciales. Revisa el token y vuelve a intentar.',
-            },
-            'permissions' => match ($code) {
-                10, 200, 2000 => 'El token de Meta no tiene permisos para consultar este WABA.',
-                default => 'Meta no permitió consultar el WABA. Revisa los permisos del token.',
-            },
+        throw new MetaGraphException($operation, $this->messageFor($operation, $code), $code);
+    }
+
+    private function messageFor(string $operation, ?int $code): string
+    {
+        return match ($operation) {
+            'credentials' => $this->credentialsMessage($code),
+            'permissions' => $this->permissionsMessage($code),
             'subscription' => 'Meta no pudo suscribir el WABA a los webhooks. Revisa los permisos del token.',
             'unsubscription' => 'Meta no pudo desuscribir el WABA. El número ya quedó desconectado.',
-            'registration' => match ($code) {
-                190 => 'El token de Meta es inválido o expiró.',
-                10, 200, 2000 => 'El token de Meta no tiene permisos para registrar el número.',
-                100 => 'Meta no pudo registrar el número. Revisa el PIN de verificación en dos pasos.',
-                default => 'Meta no pudo registrar el número. Revisa la configuración e intenta de nuevo.',
-            },
+            'registration' => $this->registrationMessage($code),
             default => 'Meta no pudo completar la operación.',
         };
+    }
 
-        throw new MetaGraphException($operation, $message, $code);
+    private function credentialsMessage(?int $code): string
+    {
+        return match ($code) {
+            190 => 'El token de Meta es inválido o expiró.',
+            10, 200, 2000 => 'El token de Meta no tiene los permisos necesarios.',
+            default => 'Meta rechazó las credenciales. Revisa el token y vuelve a intentar.',
+        };
+    }
+
+    private function permissionsMessage(?int $code): string
+    {
+        return match ($code) {
+            10, 200, 2000 => 'El token de Meta no tiene permisos para consultar este WABA.',
+            default => 'Meta no permitió consultar el WABA. Revisa los permisos del token.',
+        };
+    }
+
+    private function registrationMessage(?int $code): string
+    {
+        return match ($code) {
+            190 => 'El token de Meta es inválido o expiró.',
+            10, 200, 2000 => 'El token de Meta no tiene permisos para registrar el número.',
+            100 => 'Meta no pudo registrar el número. Revisa el PIN de verificación en dos pasos.',
+            default => 'Meta no pudo registrar el número. Revisa la configuración e intenta de nuevo.',
+        };
     }
 }

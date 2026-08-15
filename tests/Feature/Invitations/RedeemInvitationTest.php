@@ -1,14 +1,11 @@
 <?php
 
-use App\Domain\Invitations\Responders\RedeemInvitationResponder;
-use App\Domain\Invitations\Results\RedeemInvitationResult;
 use App\Models\Account;
+use App\Models\Contact;
 use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 
@@ -46,11 +43,11 @@ test('invitee redeems an active invitation', function () {
 test('invitee cannot redeem an unavailable invitation', function () {
     $token = Str::random(48);
 
-    $this->withoutExceptionHandling();
-
     $this->actingAs(User::factory()->create())
-        ->post(route('invitations.redeem', $token));
-})->throws(ValidationException::class);
+        ->from(route('invitations.preview', $token))
+        ->post(route('invitations.redeem', $token))
+        ->assertInvalid(['invite']);
+});
 
 test('invitee cannot redeem an invitation while belonging to another account', function () {
     $account = Account::factory()->create();
@@ -68,6 +65,25 @@ test('invitee cannot redeem an invitation while belonging to another account', f
     expect($invitation->fresh()->accepted_at)->toBeNull();
 });
 
-test('redeem responder rejects unauthenticated results', function () {
-    app(RedeemInvitationResponder::class)(RedeemInvitationResult::unauthenticated());
-})->throws(HttpException::class);
+test('invitee cannot redeem while their personal account already has domain data', function () {
+    $account = Account::factory()->create();
+    $inviter = User::factory()->create();
+    $invitee = User::factory()->create();
+    $personal = Account::factory()->personal()->create();
+    $personal->users()->attach($invitee, ['role' => 'owner', 'joined_at' => now()]);
+    Contact::factory()->for($personal)->create(['user_id' => $invitee->id]);
+    $token = Str::random(48);
+    $invitation = redeemableInvitation($account, $inviter, $token);
+
+    $this->actingAs($invitee)
+        ->post(route('invitations.redeem', $token))
+        ->assertConflict()
+        ->assertSessionHasErrorsIn('redeem_conflict', 'invite');
+
+    expect($invitation->fresh()->accepted_at)->toBeNull();
+});
+
+test('guest cannot redeem an invitation', function () {
+    $this->post(route('invitations.redeem', Str::random(48)))
+        ->assertRedirect(route('login'));
+});

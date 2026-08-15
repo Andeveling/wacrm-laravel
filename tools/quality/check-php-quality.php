@@ -5,6 +5,7 @@ declare(strict_types=1);
 const WARNING_COMPLEXITY = 8;
 const MAX_COMPLEXITY = 10;
 const MAX_CRAP = 30.0;
+const FLOOR_COVERAGE = 75.5;
 
 if ($argc === 2 && $argv[1] === '--self-test') {
     $directory = sys_get_temp_dir().'/wacrm-php-quality-'.bin2hex(random_bytes(6));
@@ -49,6 +50,12 @@ foreach ([$coverageFile, $crapFile] as $report) {
 }
 
 $baseline = (float) trim((string) file_get_contents(__DIR__.'/php-coverage-baseline.txt'));
+
+if ($baseline < FLOOR_COVERAGE) {
+    fwrite(STDERR, sprintf("Coverage ratchet %.1f%% cannot fall below the committed %.1f%% floor.\n", $baseline, FLOOR_COVERAGE));
+    exit(2);
+}
+
 $coverage = simplexml_load_file($coverageFile);
 $metrics = $coverage?->project?->metrics;
 $elements = (int) ($metrics['elements'] ?? 0);

@@ -32,16 +32,52 @@ final class ConnectWhatsappNumber
         $data = $request->validated();
         $phoneNumberId = $data['phone_number_id'];
         $wabaId = $data['waba_id'];
-
         $integration = WhatsappIntegration::query()->first();
-        $token = $data['access_token'] ?: $integration?->access_token;
+        $token = $this->requireToken($data['access_token'] ?: $integration?->access_token);
 
+        $this->guardAgainstForeignClaims($account, $phoneNumberId, $wabaId);
+
+        try {
+            $meta->verifyPhoneAndWaba($phoneNumberId, $wabaId, $token);
+        } catch (MetaGraphException $exception) {
+            return $responder->respond($this->failedResult($exception, $account, $phoneNumberId, $wabaId));
+        }
+
+        [$waba, $connection] = $this->persistVerifiedCredentials(
+            $request,
+            $account,
+            $integration,
+            $token,
+            $phoneNumberId,
+            $wabaId,
+        );
+
+        $result = $this->subscribeWabaIfNeeded($meta, $account, $waba, $connection, $token, $phoneNumberId, $wabaId)
+            ?? $this->registerPhoneIfNeeded($meta, $account, $connection, $data['pin'] ?? null, $token, $phoneNumberId, $wabaId);
+
+        if ($result === null) {
+            $this->markWaitingForWebhook($connection);
+            $result = WhatsappConnectionResult::success($connection->registered_at === null
+                ? 'Credenciales verificadas y WABA suscrito. Ingresa el PIN para registrar el número y empezar a recibir eventos.'
+                : 'Número conectado. Meta está verificando la primera entrega del webhook.');
+        }
+
+        return $responder->respond($result);
+    }
+
+    private function requireToken(mixed $token): string
+    {
         if (! is_string($token) || $token === '') {
             throw ValidationException::withMessages([
                 'access_token' => 'Ingresa un token de Meta para iniciar la conexión.',
             ]);
         }
 
+        return $token;
+    }
+
+    private function guardAgainstForeignClaims(CurrentAccount $account, string $phoneNumberId, string $wabaId): void
+    {
         $foreignPhone = WhatsappPhoneNumberConnection::query()
             ->withoutGlobalScopes()
             ->where('phone_number_id', $phoneNumberId)
@@ -65,15 +101,19 @@ final class ConnectWhatsappNumber
                 'waba_id' => 'Este WABA ya pertenece a otro Account de esta instalación.',
             ]);
         }
+    }
 
-        try {
-            $meta->verifyPhoneAndWaba($phoneNumberId, $wabaId, $token);
-        } catch (MetaGraphException $exception) {
-            $this->logFailure($exception, $account, $phoneNumberId, $wabaId);
-
-            return $responder->respond(WhatsappConnectionResult::failure($exception->getMessage()));
-        }
-
+    /**
+     * @return array{0: WabaSubscription, 1: WhatsappPhoneNumberConnection}
+     */
+    private function persistVerifiedCredentials(
+        ConnectWhatsappNumberRequest $request,
+        CurrentAccount $account,
+        ?WhatsappIntegration $integration,
+        string $token,
+        string $phoneNumberId,
+        string $wabaId,
+    ): array {
         $integration ??= new WhatsappIntegration;
         $integration->account_id = $account->id();
         $integration->created_by ??= $request->user()->id;
@@ -97,15 +137,26 @@ final class ConnectWhatsappNumber
         }
         $connection->save();
 
+        return [$waba, $connection];
+    }
+
+    private function subscribeWabaIfNeeded(
+        MetaGraphClientContract $meta,
+        CurrentAccount $account,
+        WabaSubscription $waba,
+        WhatsappPhoneNumberConnection $connection,
+        string $token,
+        string $phoneNumberId,
+        string $wabaId,
+    ): ?WhatsappConnectionResult {
         if ($waba->subscribed_apps_at === null) {
             try {
                 $meta->subscribeWaba($wabaId, $token);
             } catch (MetaGraphException $exception) {
                 $connection->readiness = WhatsappConnectionReadiness::CredentialsVerified;
                 $connection->save();
-                $this->logFailure($exception, $account, $phoneNumberId, $wabaId);
 
-                return $responder->respond(WhatsappConnectionResult::failure($exception->getMessage()));
+                return $this->failedResult($exception, $account, $phoneNumberId, $wabaId);
             }
 
             $waba->subscribed_apps_at = Carbon::now();
@@ -116,31 +167,54 @@ final class ConnectWhatsappNumber
             $connection->readiness = WhatsappConnectionReadiness::Subscribed;
         }
 
-        if ($connection->registered_at === null && filled($data['pin'] ?? null)) {
-            try {
-                $meta->registerPhoneNumber($phoneNumberId, $token, $data['pin']);
-            } catch (MetaGraphException $exception) {
-                $connection->last_registration_error = $exception->getMessage();
-                $connection->save();
-                $this->logFailure($exception, $account, $phoneNumberId, $wabaId);
+        return null;
+    }
 
-                return $responder->respond(WhatsappConnectionResult::failure($exception->getMessage()));
-            }
-
-            $connection->registered_at = Carbon::now();
+    private function registerPhoneIfNeeded(
+        MetaGraphClientContract $meta,
+        CurrentAccount $account,
+        WhatsappPhoneNumberConnection $connection,
+        mixed $pin,
+        string $token,
+        string $phoneNumberId,
+        string $wabaId,
+    ): ?WhatsappConnectionResult {
+        if ($connection->registered_at !== null || ! is_string($pin) || $pin === '') {
+            return null;
         }
 
+        try {
+            $meta->registerPhoneNumber($phoneNumberId, $token, $pin);
+        } catch (MetaGraphException $exception) {
+            $connection->last_registration_error = $exception->getMessage();
+            $connection->save();
+
+            return $this->failedResult($exception, $account, $phoneNumberId, $wabaId);
+        }
+
+        $connection->registered_at = Carbon::now();
+
+        return null;
+    }
+
+    private function markWaitingForWebhook(WhatsappPhoneNumberConnection $connection): void
+    {
         if ($connection->registered_at !== null && $connection->readiness !== WhatsappConnectionReadiness::Active) {
             $connection->readiness = WhatsappConnectionReadiness::WebhookWaiting;
         }
 
         $connection->save();
+    }
 
-        $status = $connection->registered_at === null
-            ? 'Credenciales verificadas y WABA suscrito. Ingresa el PIN para registrar el número y empezar a recibir eventos.'
-            : 'Número conectado. Meta está verificando la primera entrega del webhook.';
+    private function failedResult(
+        MetaGraphException $exception,
+        CurrentAccount $account,
+        string $phoneNumberId,
+        string $wabaId,
+    ): WhatsappConnectionResult {
+        $this->logFailure($exception, $account, $phoneNumberId, $wabaId);
 
-        return $responder->respond(WhatsappConnectionResult::success($status));
+        return WhatsappConnectionResult::failure($exception->getMessage());
     }
 
     private function logFailure(

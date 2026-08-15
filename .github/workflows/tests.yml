@@ -127,6 +127,7 @@ jobs:
         run: composer quality:php:verify
 
       - name: Upload PHP quality reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: php-quality-reports

@@ -54,8 +54,9 @@ The script creates the Herdr worktree, provisions its local dependencies, initia
 Once the worktree is ready, the script resolves that workspace's pane and starts the implementation agent inside it:
 
 ```bash
-herdr pane run <pane-id> opencode run -i \
-  --command implement --model openai/gpt-5.6-luna --variant high <issue-number>
+herdr pane run <pane-id> opencode2 run \
+  --model openai/gpt-5.6-luna#high \
+  "/implement <issue-number>"
 ```
 
 Override the model or reasoning effort only when the user asks, through `WORKTREE_AGENT_MODEL` and `WORKTREE_AGENT_VARIANT`. The agent works the issue in its own tab; do not run `/implement` for that issue in this session as well.
@@ -69,7 +70,7 @@ Creation is complete only when all of these are true:
 - Its Compose project, containers, network, volumes, and bind mount belong only to the new path.
 - Its `.codegraph/` index exists inside the new worktree and is not shared with another checkout.
 - Its Sail services are running and ready for tests.
-- Its pane runs `opencode` on `/implement <issue-number>`.
+- Its pane runs `opencode2` on `/implement <issue-number>`.
 - The final response includes path, branch, workspace ID, pane ID, base commit, and clean status.
 
 ## Sail

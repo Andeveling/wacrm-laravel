@@ -50,11 +50,11 @@ workspace_id=$(herdr worktree list --cwd "$repository_root" |
     jq -er --arg path "$worktree_path" '.result.worktrees[] | select(.path == $path) | .open_workspace_id')
 pane_id=$(herdr pane list --workspace "$workspace_id" | jq -er '.result.panes[0].pane_id')
 
-herdr pane run "$pane_id" opencode2 run -i \
-    --command implement \
-    --model "${WORKTREE_AGENT_MODEL:-xai/grok-4.6}" \
-    --variant "${WORKTREE_AGENT_VARIANT:-high}" \
-    "$issue_number"
+model="${WORKTREE_AGENT_MODEL:-xai/grok-4.6}"
+variant="${WORKTREE_AGENT_VARIANT:-high}"
+herdr pane run "$pane_id" opencode2 run \
+    --model "${model}#${variant}" \
+    "/implement ${issue_number}"
 
 git -C "$worktree_path" status --short --branch
 git -C "$worktree_path" log -1 --oneline

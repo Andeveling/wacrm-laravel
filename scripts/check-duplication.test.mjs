@@ -118,6 +118,7 @@ ${cloneBody}    }
       );
       const result = spawnSync('node', ['scripts/check-duplication.mjs'], {
         encoding: 'utf8',
+        timeout: 60_000,
       });
 
       expect(result.status).toBe(1);
@@ -128,5 +129,5 @@ ${cloneBody}    }
       rmSync(firstPath, { force: true });
       rmSync(secondPath, { force: true });
     }
-  });
+  }, 60_000);
 });

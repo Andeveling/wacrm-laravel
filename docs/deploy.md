@@ -1,6 +1,6 @@
 # Deploy
 
-WACRM corre en una VPS de 1 CPU / 1 GB RAM (Ubuntu 24.04, alias SSH `wacrm-demo`, IP `167.172.150.205`) con stack nativo:
+WACRM corre en una VPS de 1 CPU / 1 GB RAM (Ubuntu 24.04, alias SSH `andeveling`, IP `167.172.150.205`) con stack nativo:
 
 | Pieza | Detalle |
 | --- | --- |

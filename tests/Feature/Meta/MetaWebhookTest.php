@@ -30,68 +30,10 @@ afterEach(function () {
     app()->forgetInstance(AccountScope::CONTAINER_KEY);
 });
 
-const META_WEBHOOK_SECRET = 'test-app-secret-for-meta-webhook';
-const META_WEBHOOK_VERIFY_TOKEN = 'shared-meta-webhook-verify-token';
 beforeEach(function () {
     config()->set('services.meta.app_secret', META_WEBHOOK_SECRET);
     config()->set('services.meta.webhook_verify_token', META_WEBHOOK_VERIFY_TOKEN);
 });
-function sign(string $body): string
-{
-    return 'sha256='.hash_hmac('sha256', $body, META_WEBHOOK_SECRET);
-}
-
-/**
- * @param  list<array{phone_number_id: string, wa_id: string, name: string, message_id: string, text: string, waba_id?: string}>  $messages
- */
-function inboundMessagesPayload(array $messages): string
-{
-    $entries = [];
-
-    foreach ($messages as $message) {
-        $wabaId = $message['waba_id'] ?? 'waba-'.$message['phone_number_id'];
-        $entries[] = [
-            'id' => $wabaId,
-            'changes' => [[
-                'field' => 'messages',
-                'value' => [
-                    'messaging_product' => 'whatsapp',
-                    'metadata' => [
-                        'display_phone_number' => $message['wa_id'],
-                        'phone_number_id' => $message['phone_number_id'],
-                    ],
-                    'contacts' => [[
-                        'profile' => ['name' => $message['name']],
-                        'wa_id' => $message['wa_id'],
-                    ]],
-                    'messages' => [[
-                        'from' => $message['wa_id'],
-                        'id' => $message['message_id'],
-                        'timestamp' => '1712000000',
-                        'type' => 'text',
-                        'text' => ['body' => $message['text']],
-                    ]],
-                ],
-            ]],
-        ];
-    }
-
-    return json_encode([
-        'object' => 'whatsapp_business_account',
-        'entry' => $entries,
-    ], JSON_THROW_ON_ERROR);
-}
-
-/**
- * @return array<string, string>
- */
-function signedWebhookServer(string $body): array
-{
-    return [
-        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
-        'CONTENT_TYPE' => 'application/json',
-    ];
-}
 
 /**
  * @return array{0: Account, 1: User, 2: WhatsappPhoneNumberConnection}
@@ -145,7 +87,7 @@ test('get returns 403 when verify token does not match', function () {
 });
 test('post persists the delivery and returns 200', function () {
     $body = json_encode(['object' => 'whatsapp_business_account', 'entry' => []], JSON_THROW_ON_ERROR);
-    $header = sign($body);
+    $header = signMetaWebhook($body);
 
     $response = $this->call(
         method: 'POST',
@@ -186,7 +128,7 @@ test('raw body preserves byte exact payload not just decoded array', function ()
     // non-sorted keys) so json_decode normalises things the raw
     // body must keep.
     $body = '{"b":1,"a":2,"c":{"nested":[1,2,3]}}';
-    $header = sign($body);
+    $header = signMetaWebhook($body);
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
@@ -222,7 +164,7 @@ test('post returns 401 when signature is computed with a wrong secret', function
 test('post returns 401 when body has been tampered with after signing', function () {
     $original = json_encode(['object' => 'whatsapp_business_account', 'entry' => []], JSON_THROW_ON_ERROR);
     $tampered = json_encode(['object' => 'whatsapp_business_account', 'entry' => [['id' => 'inject']]], JSON_THROW_ON_ERROR);
-    $header = sign($original);
+    $header = signMetaWebhook($original);
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
@@ -274,7 +216,7 @@ test('post returns 401 when meta app secret is missing even with a valid signatu
     $this->assertDatabaseCount('whatsapp_webhook_deliveries', 0);
 });
 test('post retains an empty signed body for asynchronous classification', function () {
-    $header = sign('');
+    $header = signMetaWebhook('');
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
@@ -287,7 +229,7 @@ test('post retains an empty signed body for asynchronous classification', functi
 });
 test('post retains a signed body that is not valid json for asynchronous classification', function () {
     $body = 'not-json-at-all';
-    $header = sign($body);
+    $header = signMetaWebhook($body);
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
@@ -302,7 +244,7 @@ test('post retains a signed body that is not valid json for asynchronous classif
 });
 test('post returns 413 when content length exceeds the limit', function () {
     $body = json_encode(['object' => 'whatsapp_business_account'], JSON_THROW_ON_ERROR);
-    $header = sign($body);
+    $header = signMetaWebhook($body);
 
     $response = $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
@@ -317,7 +259,7 @@ test('duplicate signed deliveries each persist as a new row for idempotency in f
     // Meta may retry the same delivery; the inbox persists every
     // signed attempt. De-duplication of events is the #66 ticket.
     $body = json_encode(['object' => 'whatsapp_business_account'], JSON_THROW_ON_ERROR);
-    $header = sign($body);
+    $header = signMetaWebhook($body);
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
         'HTTP_X_HUB_SIGNATURE_256' => $header,
@@ -336,7 +278,7 @@ test('post rejects a body over 3 MB using actual bytes even without content leng
     $body = str_repeat('x', 3_145_729);
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
-        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'HTTP_X_HUB_SIGNATURE_256' => signMetaWebhook($body),
         'CONTENT_TYPE' => 'application/json',
     ], $body)->assertStatus(413);
 
@@ -349,7 +291,7 @@ test('post accepts a signed body exactly at the 3 MB limit', function () {
     $body = $prefix.str_repeat('a', 3_145_728 - strlen($prefix) - strlen($suffix)).$suffix;
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
-        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'HTTP_X_HUB_SIGNATURE_256' => signMetaWebhook($body),
         'CONTENT_TYPE' => 'application/json',
     ], $body)->assertOk();
 
@@ -364,7 +306,7 @@ test('post queues the delivery after the persistence transaction commits', funct
     $body = json_encode(['object' => 'whatsapp_business_account'], JSON_THROW_ON_ERROR);
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
-        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'HTTP_X_HUB_SIGNATURE_256' => signMetaWebhook($body),
         'CONTENT_TYPE' => 'application/json',
     ], $body)->assertOk();
 
@@ -389,7 +331,7 @@ test('post returns 503 without logging the signed payload when persistence fails
         ->with('Meta webhook delivery could not be persisted.');
 
     $this->call('POST', '/api/whatsapp/webhook', [], [], [], [
-        'HTTP_X_HUB_SIGNATURE_256' => sign($body),
+        'HTTP_X_HUB_SIGNATURE_256' => signMetaWebhook($body),
         'CONTENT_TYPE' => 'application/json',
     ], $body)->assertServiceUnavailable();
 });

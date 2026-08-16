@@ -14,8 +14,10 @@ import {
 } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
+import AssignLegacyWhatsappConversation from '@/actions/App/Domain/Meta/Actions/AssignLegacyWhatsappConversation';
 import ConnectWhatsappNumber from '@/actions/App/Domain/Meta/Actions/ConnectWhatsappNumber';
 import DisconnectWhatsappConnection from '@/actions/App/Domain/Meta/Actions/DisconnectWhatsappConnection';
+import DismissLegacyWhatsappIssue from '@/actions/App/Domain/Meta/Actions/DismissLegacyWhatsappIssue';
 import SetDefaultWhatsappConnection from '@/actions/App/Domain/Meta/Actions/SetDefaultWhatsappConnection';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -39,6 +41,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { overview as settingsOverview } from '@/routes/settings';
 
@@ -61,12 +70,35 @@ type Connection = {
   last_registration_error: string | null;
 };
 
+type LegacyIssue = {
+  id: string;
+  kind: string;
+  conversation_id: string | null;
+  contact_name: string | null;
+  action: string | null;
+  candidate_connections: number | null;
+};
+
 type PageProps = {
   canManage: boolean;
   connections: Connection[];
+  legacyIssues: LegacyIssue[];
   webhookUrl: string;
   status?: string | null;
   error?: string | null;
+};
+
+const ISSUE_LABELS: Record<string, string> = {
+  missing_legacy_connection:
+    'Esta conversación no tiene una conexión heredada única.',
+  ambiguous_conversation_connection:
+    'Hay más de una conexión posible. Elige cuál corresponde.',
+  waba_claimed_by_another_account:
+    'Este WABA ya pertenece a otro Account. Reconéctalo de forma explícita.',
+  phone_number_claimed_by_another_account:
+    'Este número ya pertenece a otro Account. Reconéctalo de forma explícita.',
+  incomplete_legacy_config:
+    'La configuración heredada está incompleta. Completa las credenciales y reconecta.',
 };
 
 type FormData = {
@@ -95,6 +127,7 @@ const STEP_LABELS: Record<Readiness, string> = {
 export default function Whatsapp({
   canManage,
   connections,
+  legacyIssues = [],
   webhookUrl,
   status,
   error,
@@ -172,6 +205,30 @@ export default function Whatsapp({
           </Alert>
         )}
 
+        {legacyIssues.length > 0 ? (
+          <Card data-testid="legacy-migration-issues">
+            <CardHeader>
+              <CardTitle>Remediación de migración</CardTitle>
+              <CardDescription>
+                Estos casos no se asignaron en silencio. Elige una conexión o
+                márcalos como atendidos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {legacyIssues.map((issue) => (
+                <LegacyIssueRow
+                  key={issue.id}
+                  issue={issue}
+                  connections={connections}
+                  canManage={canManage}
+                  busy={busyId === issue.id}
+                  onBusy={setBusyId}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
+
         {connections.length > 0 ? (
           <div className="grid gap-3">
             {connections.map((item) => (
@@ -227,6 +284,7 @@ export default function Whatsapp({
                     <Input
                       id={`${inputId}-phone-id`}
                       name="phone_number_id"
+                      data-testid="whatsapp-phone-number-id"
                       value={form.data.phone_number_id}
                       onChange={(event) =>
                         form.setData('phone_number_id', event.target.value)
@@ -242,6 +300,7 @@ export default function Whatsapp({
                     <Input
                       id={`${inputId}-waba-id`}
                       name="waba_id"
+                      data-testid="whatsapp-waba-id"
                       value={form.data.waba_id}
                       onChange={(event) =>
                         form.setData('waba_id', event.target.value)
@@ -262,6 +321,7 @@ export default function Whatsapp({
                     <Input
                       id={`${inputId}-access-token`}
                       name="access_token"
+                      data-testid="whatsapp-access-token"
                       type={showToken ? 'text' : 'password'}
                       value={form.data.access_token}
                       onChange={(event) =>
@@ -298,6 +358,7 @@ export default function Whatsapp({
                   <Input
                     id={`${inputId}-pin`}
                     name="pin"
+                    data-testid="whatsapp-pin"
                     inputMode="numeric"
                     maxLength={6}
                     value={form.data.pin}
@@ -318,7 +379,11 @@ export default function Whatsapp({
                     <LockKeyhole className="size-3.5" />
                     Solo Owner y Admin pueden gestionar las conexiones.
                   </p>
-                  <Button type="submit" disabled={form.processing}>
+                  <Button
+                    type="submit"
+                    disabled={form.processing}
+                    data-testid="whatsapp-connect-submit"
+                  >
                     {!!form.processing && (
                       <Loader2 className="size-4 animate-spin" />
                     )}
@@ -407,6 +472,122 @@ export default function Whatsapp({
   );
 }
 
+function LegacyIssueRow({
+  issue,
+  connections,
+  canManage,
+  busy,
+  onBusy,
+}: {
+  issue: LegacyIssue;
+  connections: Connection[];
+  canManage: boolean;
+  busy: boolean;
+  onBusy: (id: string | null) => void;
+}) {
+  const assignable =
+    issue.kind === 'ambiguous_conversation_connection' ||
+    issue.kind === 'missing_legacy_connection';
+  const [connectionId, setConnectionId] = useState(connections[0]?.id ?? '');
+
+  function assign() {
+    if (!connectionId) return;
+    onBusy(issue.id);
+    router.post(
+      AssignLegacyWhatsappConversation(issue.id),
+      { connection_id: connectionId },
+      {
+        preserveScroll: true,
+        onError: () => toast.error('No se pudo asignar la conversación.'),
+        onFinish: () => onBusy(null),
+      },
+    );
+  }
+
+  function dismiss() {
+    onBusy(issue.id);
+    router.post(
+      DismissLegacyWhatsappIssue(issue.id),
+      {},
+      {
+        preserveScroll: true,
+        onError: () => toast.error('No se pudo marcar el caso como atendido.'),
+        onFinish: () => onBusy(null),
+      },
+    );
+  }
+
+  return (
+    <div
+      className="grid gap-3 rounded-lg border p-3"
+      data-testid={`legacy-issue-${issue.id}`}
+    >
+      <div className="grid gap-1">
+        <p className="text-sm font-medium text-foreground">
+          {issue.contact_name ?? 'Configuración heredada'}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {ISSUE_LABELS[issue.kind] ?? issue.kind}
+        </p>
+      </div>
+
+      {canManage && assignable ? (
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="grid min-w-48 flex-1 gap-1">
+            <Label htmlFor={`legacy-connection-${issue.id}`}>Conexión</Label>
+            <Select
+              value={connectionId}
+              onValueChange={setConnectionId}
+              disabled={busy || connections.length === 0}
+            >
+              <SelectTrigger
+                id={`legacy-connection-${issue.id}`}
+                data-testid={`legacy-issue-connection-${issue.id}`}
+                className="w-full"
+              >
+                <SelectValue placeholder="Selecciona una conexión" />
+              </SelectTrigger>
+              <SelectContent>
+                {connections.map((connection) => (
+                  <SelectItem key={connection.id} value={connection.id}>
+                    {connection.phone_number_id ?? connection.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy || !connectionId}
+            onClick={assign}
+            data-testid={`legacy-issue-assign-${issue.id}`}
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+            Asignar
+          </Button>
+        </div>
+      ) : null}
+
+      {canManage && !assignable ? (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={dismiss}
+            data-testid={`legacy-issue-dismiss-${issue.id}`}
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+            Marcar como atendido
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ConnectionCard({
   connection,
   canManage,
@@ -428,7 +609,9 @@ function ConnectionCard({
     connection.readiness === 'disconnected';
 
   return (
-    <Card>
+    <Card
+      data-testid={`whatsapp-connection-${connection.phone_number_id ?? connection.id}`}
+    >
       <CardContent className="grid gap-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
@@ -447,6 +630,7 @@ function ConnectionCard({
               </Badge>
             ) : null}
             <Badge
+              data-testid={`whatsapp-readiness-${connection.phone_number_id ?? connection.id}`}
               variant={
                 attention
                   ? 'destructive'

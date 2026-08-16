@@ -23,8 +23,8 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { flows as flowsRoute } from '@/routes';
 import { runs, show } from '@/routes/flows';
-import type { Flow } from '../contracts';
-import { FLOW_TEMPLATES } from '../templates';
+import { FLOW_TEMPLATES } from '../constants/templates';
+import type { Flow } from '../types';
 
 const STATUS_LABELS: Record<Flow['status'], string> = {
   draft: 'Borrador',

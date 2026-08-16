@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { flows } from '@/routes';
 import { runs } from '@/routes/flows';
-import type { Flow } from '../contracts';
+import type { Flow } from '../types';
 
 export default function FlowEditorPage({ flow }: { flow: Flow }) {
   const nodes = flow.nodes ?? [];

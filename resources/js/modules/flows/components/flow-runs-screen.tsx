@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { flows } from '@/routes';
 import { show } from '@/routes/flows';
-import type { FlowRun, FlowRunEvent } from '../contracts';
+import type { FlowRun, FlowRunEvent } from '../types';
 
 const STATUS_META: Record<
   FlowRun['status'],

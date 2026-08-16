@@ -248,10 +248,8 @@ export function ConfirmRemoveMemberDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="secondary">
-              Cancelar
-            </Button>
+          <DialogClose render={<Button type="button" variant="secondary" />}>
+            Cancelar
           </DialogClose>
           <Button
             type="button"

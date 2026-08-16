@@ -181,27 +181,25 @@ function AutomationCard({ automation }: { automation: Automation }) {
 
         <div className="flex items-center">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Abrir menú"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  aria-label="Abrir menú"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                />
+              }
+            >
+              <MoreVertical className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={edit(automation.id)}>
-                  <Pencil className="h-4 w-4" />
-                  Editar
-                </Link>
+              <DropdownMenuItem render={<Link href={edit(automation.id)} />}>
+                <Pencil className="h-4 w-4" />
+                Editar
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={logs(automation.id)}>
-                  <FileText className="h-4 w-4" />
-                  Ver registros
-                </Link>
+              <DropdownMenuItem render={<Link href={logs(automation.id)} />}>
+                <FileText className="h-4 w-4" />
+                Ver registros
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

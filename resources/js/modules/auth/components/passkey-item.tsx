@@ -53,15 +53,17 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
       </div>
 
       <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Eliminar</span>
-          </Button>
+        <DialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            />
+          }
+        >
+          <Trash2 className="h-4 w-4" />
+          <span className="sr-only">Eliminar</span>
         </DialogTrigger>
         <DialogContent>
           <DialogTitle>Eliminar llave de acceso</DialogTitle>
@@ -70,8 +72,8 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
             {passkey.name}"? Ya no podrás usarla para iniciar sesión.
           </DialogDescription>
           <DialogFooter className="gap-2">
-            <DialogClose asChild>
-              <Button variant="secondary">Cancelar</Button>
+            <DialogClose render={<Button variant="secondary" />}>
+              Cancelar
             </DialogClose>
             <Button
               variant="destructive"

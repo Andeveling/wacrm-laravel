@@ -403,109 +403,148 @@ export default function Members({
           onConfirm={confirmRemove}
         />
 
-        <Dialog
-          open={invitationToRevoke !== null}
-          onOpenChange={(open) => !open && setInvitationToRevoke(null)}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>¿Revocar invitación?</DialogTitle>
-              <DialogDescription>
-                La invitación para{' '}
-                {invitationToRevoke?.email ?? 'este destinatario'} dejará de
-                funcionar inmediatamente.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">
-                  Cancelar
-                </Button>
-              </DialogClose>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={confirmRevokeInvitation}
-                disabled={
-                  invitationToRevoke !== null &&
-                  revokingInvitationId === invitationToRevoke.id
-                }
-                data-testid="confirm-revoke-invitation"
-              >
-                Revocar invitación
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Dialog
-          open={invitationToRegenerate !== null}
-          onOpenChange={(open) => !open && setInvitationToRegenerate(null)}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>¿Regenerar enlace de invitación?</DialogTitle>
-              <DialogDescription>
-                El enlace anterior dejará de funcionar. Se creará un enlace
-                nuevo para {invitationToRegenerate?.email ?? 'esta invitación'}{' '}
-                con siete días de vigencia.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">
-                  Cancelar
-                </Button>
-              </DialogClose>
-              <Button
-                type="button"
-                onClick={confirmRegenerate}
-                disabled={
-                  invitationToRegenerate !== null &&
-                  busyInvitationId === invitationToRegenerate.id
-                }
-                data-testid="confirm-regenerate-invitation"
-              >
-                <RefreshCw />
-                {invitationToRegenerate !== null &&
+        <InvitationActionDialogs
+          invitationToRevoke={invitationToRevoke}
+          onCloseRevoke={() => setInvitationToRevoke(null)}
+          onConfirmRevoke={confirmRevokeInvitation}
+          revokingInvitationId={revokingInvitationId}
+          invitationToRegenerate={invitationToRegenerate}
+          onCloseRegenerate={() => setInvitationToRegenerate(null)}
+          onConfirmRegenerate={confirmRegenerate}
+          busyInvitationId={busyInvitationId}
+          invitationUrl={invitation_url}
+          onCopyInvitationUrl={copyInvitationUrl}
+        />
+      </div>
+    </>
+  );
+}
+
+function InvitationActionDialogs({
+  invitationToRevoke,
+  onCloseRevoke,
+  onConfirmRevoke,
+  revokingInvitationId,
+  invitationToRegenerate,
+  onCloseRegenerate,
+  onConfirmRegenerate,
+  busyInvitationId,
+  invitationUrl,
+  onCopyInvitationUrl,
+}: {
+  invitationToRevoke: PendingInvitation | null;
+  onCloseRevoke: () => void;
+  onConfirmRevoke: () => void;
+  revokingInvitationId: string | null;
+  invitationToRegenerate: PendingInvitation | null;
+  onCloseRegenerate: () => void;
+  onConfirmRegenerate: () => void;
+  busyInvitationId: string | null;
+  invitationUrl: string | null;
+  onCopyInvitationUrl: () => void;
+}) {
+  return (
+    <>
+      <Dialog
+        open={invitationToRevoke !== null}
+        onOpenChange={(open) => !open && onCloseRevoke()}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Revocar invitación?</DialogTitle>
+            <DialogDescription>
+              La invitación para{' '}
+              {invitationToRevoke?.email ?? 'este destinatario'} dejará de
+              funcionar inmediatamente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="secondary" />}>
+              Cancelar
+            </DialogClose>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onConfirmRevoke}
+              disabled={
+                invitationToRevoke !== null &&
+                revokingInvitationId === invitationToRevoke.id
+              }
+              data-testid="confirm-revoke-invitation"
+            >
+              Revocar invitación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={invitationToRegenerate !== null}
+        onOpenChange={(open) => !open && onCloseRegenerate()}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Regenerar enlace de invitación?</DialogTitle>
+            <DialogDescription>
+              El enlace anterior dejará de funcionar. Se creará un enlace nuevo
+              para {invitationToRegenerate?.email ?? 'esta invitación'} con
+              siete días de vigencia.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="secondary" />}>
+              Cancelar
+            </DialogClose>
+            <Button
+              type="button"
+              onClick={onConfirmRegenerate}
+              disabled={
+                invitationToRegenerate !== null &&
                 busyInvitationId === invitationToRegenerate.id
-                  ? 'Regenerando…'
-                  : 'Regenerar enlace'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={invitation_url !== null}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Enlace de invitación nuevo</DialogTitle>
-              <DialogDescription>
-                Compártelo con la persona invitada. Solo se muestra una vez.
-              </DialogDescription>
-            </DialogHeader>
-            <p className="break-all rounded-md bg-muted p-3 font-mono text-xs">
-              {invitation_url}
-            </p>
-            <DialogFooter>
-              <Button
-                type="button"
-                onClick={copyInvitationUrl}
-                data-testid="copy-invitation-url"
-              >
-                Copiar enlace
-              </Button>
-              <DialogClose asChild>
+              }
+              data-testid="confirm-regenerate-invitation"
+            >
+              <RefreshCw />
+              {invitationToRegenerate !== null &&
+              busyInvitationId === invitationToRegenerate.id
+                ? 'Regenerando…'
+                : 'Regenerar enlace'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={invitationUrl !== null}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enlace de invitación nuevo</DialogTitle>
+            <DialogDescription>
+              Compártelo con la persona invitada. Solo se muestra una vez.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="break-all rounded-md bg-muted p-3 font-mono text-xs">
+            {invitationUrl}
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={onCopyInvitationUrl}
+              data-testid="copy-invitation-url"
+            >
+              Copiar enlace
+            </Button>
+            <DialogClose
+              render={
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => router.reload()}
-                >
-                  Cerrar
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+                />
+              }
+            >
+              Cerrar
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

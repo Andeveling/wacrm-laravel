@@ -307,20 +307,22 @@ function TagFilterPopover({
 }: TagFilterPopoverProps) {
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          data-testid="contacts-tag-filter"
-          variant="outline"
-          className="shrink-0"
-        >
-          <Filter className="size-4" />
-          Filtrar por etiqueta
-          {selectedTagIds.length > 0 ? (
-            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-              {selectedTagIds.length}
-            </span>
-          ) : null}
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            data-testid="contacts-tag-filter"
+            variant="outline"
+            className="shrink-0"
+          />
+        }
+      >
+        <Filter className="size-4" />
+        Filtrar por etiqueta
+        {selectedTagIds.length > 0 ? (
+          <span className="ml-1 inline-flex items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+            {selectedTagIds.length}
+          </span>
+        ) : null}
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
@@ -467,13 +469,8 @@ function ContactsTable({
           <TableRow>
             <TableHead className="w-10">
               <Checkbox
-                checked={
-                  allOnPageSelected
-                    ? true
-                    : someOnPageSelected
-                      ? 'indeterminate'
-                      : false
-                }
+                checked={allOnPageSelected}
+                indeterminate={someOnPageSelected && !allOnPageSelected}
                 onCheckedChange={onTogglePage}
                 disabled={rows.length === 0}
               />
@@ -641,15 +638,17 @@ function ContactActions({
   return (
     <TableCell>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            data-testid={`contact-actions-row-${rowIndex}`}
-            variant="ghost"
-            size="icon"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <MoreHorizontal className="size-4" />
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              data-testid={`contact-actions-row-${rowIndex}`}
+              variant="ghost"
+              size="icon"
+              onClick={(event) => event.stopPropagation()}
+            />
+          }
+        >
+          <MoreHorizontal className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem

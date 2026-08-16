@@ -71,17 +71,19 @@ export default function PipelinesPage({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted data-[popup-open]:bg-muted"
-                    >
-                      <GitBranch className="h-4 w-4 text-primary" />
-                      <span className="font-semibold">
-                        {selectedPipeline.name}
-                      </span>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    </button>
+                  <DropdownMenuTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted data-[popup-open]:bg-muted"
+                      />
+                    }
+                  >
+                    <GitBranch className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">
+                      {selectedPipeline.name}
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64">
                     <DropdownMenuItem className="text-primary">

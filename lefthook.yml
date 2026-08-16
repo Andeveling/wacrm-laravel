@@ -31,6 +31,11 @@ pre-commit:
       exclude: ['original-wacrm/*']
       run: php tools/lint/adr-layers.php
 
+    - name: quality-exceptions
+      glob: 'quality-exceptions.json'
+      exclude: ['original-wacrm/*']
+      run: node scripts/check-quality-exceptions.mjs
+
     # ADR 0004, enforced. Pure filesystem plus phpunit.xml — no framework
     # boot, no database. Also reads the working tree.
     - name: test-layout

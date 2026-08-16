@@ -9,7 +9,11 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['resources/js/**/*.test.ts', 'resources/js/**/*.test.tsx'],
+    include: [
+      'resources/js/**/*.test.ts',
+      'resources/js/**/*.test.tsx',
+      'scripts/**/*.test.mjs',
+    ],
     clearMocks: true,
   },
 });

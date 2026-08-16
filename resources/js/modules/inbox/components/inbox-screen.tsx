@@ -3,7 +3,7 @@ import { MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { inbox } from '@/routes';
 import { store as storeInboxMessage } from '@/routes/inbox/messages';
-import type { Conversation, InboxPageProps, Message } from '../contracts';
+import type { Conversation, InboxPageProps, Message } from '../types';
 import { ContactSidebar } from './contact-sidebar';
 import { ConversationList } from './conversation-list';
 import { MessageThread } from './message-thread';

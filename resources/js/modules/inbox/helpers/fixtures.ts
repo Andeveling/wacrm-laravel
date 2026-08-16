@@ -1,4 +1,4 @@
-import type { Conversation, Message } from './contracts';
+import type { Conversation, Message } from '../types';
 
 function mockContacts(count: number) {
   return Array.from({ length: count }, (_, index) => ({

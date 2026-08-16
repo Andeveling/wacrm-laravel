@@ -2,7 +2,7 @@ import { Check, CheckCheck, Clock, Send, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Conversation, Message } from '../contracts';
+import type { Conversation, Message } from '../types';
 
 function StatusIcon({ status }: { status: Message['status'] }) {
   switch (status) {

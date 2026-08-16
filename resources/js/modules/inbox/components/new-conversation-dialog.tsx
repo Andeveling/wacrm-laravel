@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { store } from '@/routes/inbox/conversations';
-import type { InboxConnection, InboxContact } from '../contracts';
+import type { InboxConnection, InboxContact } from '../types';
 
 interface NewConversationDialogProps {
   open: boolean;

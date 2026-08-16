@@ -1,7 +1,7 @@
 import { Building2, Mail, Phone } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import type { ConversationContact } from '../contracts';
+import type { ConversationContact } from '../types';
 
 function initials(name?: string, fallback?: string) {
   const source = (name || fallback || '?').trim();

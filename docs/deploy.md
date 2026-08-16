@@ -27,7 +27,7 @@ El job de deploy:
 2. `rsync --delete` sube el repo (excluye `.git`, `.env*`, `node_modules`, `storage`, `bootstrap/cache`, docs) a `/var/www/wacrm/`.
 3. En el servidor corre `scripts/deploy.sh`:
    - primer deploy: genera `.env` (APP_KEY, REVERB keys, DB_PASSWORD desde secret), migra y siembra el escenario demo;
-   - siempre: `migrate --force`, `config:cache` + `event:cache` (no `route:cache`: hay rutas con closures), `storage:link`, y reinicia workers con supervisor.
+   - siempre: `migrate --force`, `config:cache` + `event:cache` (no `route:cache`: hay rutas con closures), `storage:link`, recarga PHP-FPM para activar el código nuevo y vaciar OPcache, y reinicia workers con supervisor.
 
 Secrets de Actions: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DB_PASSWORD`. El `.env` del servidor es la fuente de verdad; `.env.production` local (gitignored) es el respaldo.
 

@@ -81,6 +81,9 @@ php artisan config:cache
 php artisan event:cache
 php artisan storage:link
 
+echo "[deploy] recargando php-fpm para activar el código nuevo y vaciar OPcache"
+sudo -n systemctl reload php8.4-fpm
+
 echo "[deploy] reiniciando workers"
 sudo -n supervisorctl restart wacrm-queue wacrm-reverb
 

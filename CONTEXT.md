@@ -42,6 +42,9 @@ Configuración operativa de WhatsApp perteneciente a un **Account**. Mantiene el
 ### Default WhatsApp Phone Number Connection
 Única conexión activa que un Account puede designar como opción predeterminada para iniciar interacciones. Nunca sustituye la conexión fijada por una conversación, broadcast o automatización, y Wacrm no elige silenciosamente otra si deja de estar disponible.
 
+### WhatsApp Remediation Issue
+Trabajo explícito que el migrador legado no mapearía en silencio: una conversación sin conexión única, varias conexiones candidatas, un WABA o número ya reclamado por otro Account, o una configuración incompleta. El operador lo ve como remediación; el front TypeScript dice Remediation. El modelo PHP `WhatsappLegacyMigrationIssue`, las Actions `AssignLegacy*` / `DismissLegacy*` y el prop Inertia `legacyIssues` conservan esos nombres de cable.
+
 ### WABA Subscription
 Vínculo entre la Meta App de la instalación y un WABA para recibir sus webhooks. Se comparte entre todos los números conectados de ese WABA y solo se retira cuando la integración deja de utilizarlo por completo.
 
@@ -179,6 +182,7 @@ Las sondas `pest --agent` son temporales: verifican backend o navegador dentro d
 - **BelongsToAccount** — marcador de que un modelo está escopeado por tenant.
 - **Datos operativos** — contactos, negocios, conversaciones (CRM).
 - **WhatsApp Phone Number** — número de WhatsApp Business de un Account, identificado por su `phone_number_id` de Meta.
+- **WhatsApp Remediation Issue** — caso que el migrador legado no mapearía en silencio; el operador lo remedia de forma explícita.
 
 ## Reglas de membresía
 

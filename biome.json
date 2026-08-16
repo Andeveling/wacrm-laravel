@@ -131,7 +131,9 @@
     {
       "includes": [
         "resources/js/modules/contacts/**",
-        "resources/js/pages/contacts.tsx"
+        "resources/js/pages/contacts.tsx",
+        "resources/js/modules/whatsapp/**",
+        "resources/js/pages/settings/whatsapp.tsx"
       ],
       "linter": {
         "rules": {

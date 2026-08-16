@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/currency';
 import { pipelines } from '@/routes';
-import type { ContactDeal, DealStatus } from '../contracts';
+import type { ContactDeal, DealStatus } from '../types';
 
 const DEAL_STATUS_LABEL: Record<DealStatus, string> = {
   open: 'Abierto',

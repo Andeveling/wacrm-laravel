@@ -1,4 +1,4 @@
-import type { Contact } from './contracts';
+import type { Contact } from './types';
 
 export interface ContactsFilterQuery {
   [key: string]: string | string[] | undefined;

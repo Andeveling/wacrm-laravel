@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import type { Tag } from '../contracts';
+import type { Tag } from '../types';
 
 interface TagPickerProps {
   tags: Tag[];

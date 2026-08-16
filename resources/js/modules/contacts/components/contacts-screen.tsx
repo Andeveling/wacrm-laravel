@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { useDialog } from '@/hooks/use-dialog';
 import { contacts } from '@/routes';
-import type { Contact, ContactsPageProps } from '../contracts';
+import type { Contact, ContactsPageProps } from '../types';
 import { ContactDetailView } from './contact-detail-view';
 import { ContactForm } from './contact-form';
 import { ContactsList } from './contacts-list';

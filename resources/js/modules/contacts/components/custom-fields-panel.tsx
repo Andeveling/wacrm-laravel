@@ -8,7 +8,7 @@ import updateCustomField from '@/actions/App/Domain/Contacts/Actions/UpdateCusto
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { CustomField } from '../contracts';
+import type { CustomField } from '../types';
 
 interface CustomFieldsPanelProps {
   fields: CustomField[];

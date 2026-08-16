@@ -24,7 +24,7 @@ import type {
   ContactNote,
   CustomField,
   Tag,
-} from '../contracts';
+} from '../types';
 import { ContactCustomValuesTab } from './contact-custom-values-tab';
 import { ContactDealsTab } from './contact-deals-tab';
 import { ContactNotesTab } from './contact-notes-tab';

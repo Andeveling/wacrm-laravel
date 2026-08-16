@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { CustomField } from '../contracts';
+import type { CustomField } from '../types';
 import { CustomFieldsPanel } from './custom-fields-panel';
 
 interface CustomFieldsManagerProps {

@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { overview as settingsOverview } from '@/routes/settings';
-import type { ContactFieldsPageProps } from '../contracts';
+import type { ContactFieldsPageProps } from '../types';
 import { CustomFieldsPanel } from './custom-fields-panel';
 import { TagManager } from './tag-manager';
 

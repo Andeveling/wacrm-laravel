@@ -6,7 +6,7 @@ import storeContactNote from '@/actions/App/Domain/Contacts/Actions/StoreContact
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import type { ContactNote } from '../contracts';
+import type { ContactNote } from '../types';
 
 interface ContactNotesTabProps {
   contactId: string;

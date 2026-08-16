@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { Tag } from '../contracts';
+import type { Tag } from '../types';
 
 const PRESET_COLORS = [
   { name: 'rojo', value: '#ef4444' },

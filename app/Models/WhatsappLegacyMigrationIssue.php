@@ -45,6 +45,14 @@ class WhatsappLegacyMigrationIssue extends Model
     }
 
     /**
+     * @return BelongsTo<Conversation, $this>
+     */
+    public function conversation(): BelongsTo
+    {
+        return $this->belongsTo(Conversation::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

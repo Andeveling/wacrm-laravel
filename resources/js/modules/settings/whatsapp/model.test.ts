@@ -3,7 +3,6 @@ import {
   canDesignateDefault,
   hasActiveDefault,
   needsAttention,
-  remediationVariant,
   STEP_LABELS,
   STEP_ORDER,
 } from './model';
@@ -47,29 +46,6 @@ describe('hasActiveDefault', () => {
 
   it('is false when there are no connections', () => {
     expect(hasActiveDefault([])).toBe(false);
-  });
-});
-
-describe('remediationVariant', () => {
-  it('assigns a connection when the conversation mapping is missing or ambiguous', () => {
-    expect(remediationVariant('missing_legacy_connection')).toBe('assign');
-    expect(remediationVariant('ambiguous_conversation_connection')).toBe(
-      'assign',
-    );
-  });
-
-  it('acknowledges claimed-WABA, claimed-number and incomplete-config issues', () => {
-    expect(remediationVariant('waba_claimed_by_another_account')).toBe(
-      'acknowledge',
-    );
-    expect(remediationVariant('phone_number_claimed_by_another_account')).toBe(
-      'acknowledge',
-    );
-    expect(remediationVariant('incomplete_legacy_config')).toBe('acknowledge');
-  });
-
-  it('acknowledges unknown kinds instead of inventing a mapping', () => {
-    expect(remediationVariant('something_unmapped')).toBe('acknowledge');
   });
 });
 

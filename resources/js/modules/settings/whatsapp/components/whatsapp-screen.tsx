@@ -11,13 +11,11 @@ import type { WhatsappSettingsPageProps } from '../types';
 import { ConnectForm, type ConnectFormHandle } from './connect-form';
 import { ConnectionActions, ConnectionCard } from './connection-card';
 import { DisconnectDialog } from './disconnect-dialog';
-import { RemediationList } from './remediation-list';
 import { WebhookCard } from './webhook-card';
 
 export default function WhatsappScreen({
   canManage,
   connections,
-  legacyIssues = [],
   webhookUrl,
   verifyToken = null,
   status,
@@ -53,14 +51,6 @@ export default function WhatsappScreen({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : null}
-
-        <RemediationList
-          issues={legacyIssues}
-          connections={connections}
-          busyId={settings.busyId}
-          onAssign={canManage ? settings.assign : undefined}
-          onAcknowledge={canManage ? settings.acknowledge : undefined}
-        />
 
         {hasConnections ? (
           <div className="grid gap-3">

@@ -20,8 +20,6 @@ class WhatsappPhoneNumberConnectionFactory extends Factory
     {
         return [
             'account_id' => Account::factory(),
-            // Nullable here also models a legacy row waiting for its WABA
-            // ownership conflict to be remediated.
             'waba_subscription_id' => null,
             'phone_number_id' => fake()->unique()->numerify('1#############'),
             'readiness' => WhatsappConnectionReadiness::CredentialsVerified,

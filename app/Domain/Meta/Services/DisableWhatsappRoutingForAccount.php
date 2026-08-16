@@ -32,7 +32,6 @@ final class DisableWhatsappRoutingForAccount
                 ->where('account_id', $accountId)
                 ->update([
                     'access_token' => null,
-                    'legacy_verify_token' => null,
                 ]);
         });
     }

@@ -1,9 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import AssignLegacyWhatsappConversation from '@/actions/App/Domain/Meta/Actions/AssignLegacyWhatsappConversation';
 import DisconnectWhatsappConnection from '@/actions/App/Domain/Meta/Actions/DisconnectWhatsappConnection';
-import DismissLegacyWhatsappIssue from '@/actions/App/Domain/Meta/Actions/DismissLegacyWhatsappIssue';
 import SetDefaultWhatsappConnection from '@/actions/App/Domain/Meta/Actions/SetDefaultWhatsappConnection';
 import type { WhatsappConnection } from '../types';
 
@@ -58,45 +56,11 @@ export function useWhatsappSettings() {
     });
   }
 
-  function assign(issueId: string, connectionId: string) {
-    if (!connectionId || !begin(issueId)) {
-      return;
-    }
-
-    router.post(
-      AssignLegacyWhatsappConversation(issueId),
-      { connection_id: connectionId },
-      {
-        preserveScroll: true,
-        onError: () => toast.error('No se pudo asignar la conversación.'),
-        onFinish: finish,
-      },
-    );
-  }
-
-  function acknowledge(issueId: string) {
-    if (!begin(issueId)) {
-      return;
-    }
-
-    router.post(
-      DismissLegacyWhatsappIssue(issueId),
-      {},
-      {
-        preserveScroll: true,
-        onError: () => toast.error('No se pudo marcar el caso como atendido.'),
-        onFinish: finish,
-      },
-    );
-  }
-
   return {
     busyId,
     connectionToDisconnect,
     setDefault,
     disconnect,
-    assign,
-    acknowledge,
     requestDisconnect: setConnectionToDisconnect,
     cancelDisconnect: () => setConnectionToDisconnect(null),
   };

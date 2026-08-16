@@ -13,7 +13,6 @@ return new class extends Migration
             $table->foreignUuid('account_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('integration_id')->nullable();
             $table->text('waba_id')->nullable()->unique();
-            $table->uuid('legacy_config_id')->nullable()->unique();
             $table->timestampTz('subscribed_apps_at')->nullable();
             $table->timestampsTz();
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Meta\Actions;
 
 use App\Models\Enums\WhatsappConnectionReadiness;
-use App\Models\WhatsappLegacyMigrationIssue;
 use App\Models\WhatsappPhoneNumberConnection;
 use App\Models\WhatsappWebhookEvent;
 use App\Support\CurrentAccount;
@@ -60,41 +59,11 @@ final class ShowWhatsappSettings
             ->values()
             ->all();
 
-        $legacyIssues = WhatsappLegacyMigrationIssue::query()
-            ->with('conversation.contact:id,name,phone')
-            ->whereNull('resolved_at')
-            ->latest()
-            ->get([
-                'id', 'conversation_id', 'kind', 'details', 'created_at',
-            ])
-            ->map(function (WhatsappLegacyMigrationIssue $issue): array {
-                $conversation = $issue->conversation;
-                $contact = $conversation === null ? null : $conversation->contact;
-
-                return [
-                    'id' => $issue->id,
-                    'kind' => $issue->kind->value,
-                    'conversation_id' => $issue->conversation_id,
-                    'contact_name' => $contact === null
-                        ? null
-                        : ($contact->name ?? $contact->phone),
-                    'action' => is_string($issue->details['action'] ?? null)
-                        ? $issue->details['action']
-                        : null,
-                    'candidate_connections' => is_int($issue->details['candidate_connections'] ?? null)
-                        ? $issue->details['candidate_connections']
-                        : null,
-                ];
-            })
-            ->values()
-            ->all();
-
         $verifyToken = (string) config('services.meta.webhook_verify_token', '');
 
         return Inertia::render('settings/whatsapp', [
             'canManage' => $account->isAdmin(),
             'connections' => $connectionPayload,
-            'legacyIssues' => $legacyIssues,
             'webhookUrl' => route('meta.webhook.verify'),
             'verifyToken' => $verifyToken !== '' ? $verifyToken : null,
             'status' => session('whatsapp_status'),

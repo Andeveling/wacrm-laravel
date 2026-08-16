@@ -14,20 +14,16 @@ use Illuminate\Support\Carbon;
 
 /**
  * A WABA subscribed to the installation's Meta App for one Account.
- * `waba_id` is nullable only while a legacy setup is awaiting remediation.
  *
  * @property string $id
  * @property string $account_id
  * @property string|null $integration_id
  * @property string|null $waba_id
- * @property string|null $legacy_config_id
  * @property Carbon|null $subscribed_apps_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable([
-    'account_id', 'integration_id', 'waba_id', 'legacy_config_id', 'subscribed_apps_at',
-])]
+#[Fillable(['account_id', 'integration_id', 'waba_id', 'subscribed_apps_at'])]
 class WabaSubscription extends Model
 {
     /** @use HasFactory<WabaSubscriptionFactory> */

@@ -24,7 +24,6 @@ use Illuminate\Support\Carbon;
  * @property WhatsappConnectionReadiness $readiness
  * @property bool $is_default
  * @property bool $pending_default
- * @property string|null $legacy_config_id
  * @property Carbon|null $connected_at
  * @property Carbon|null $registered_at
  * @property string|null $last_registration_error
@@ -33,7 +32,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'account_id', 'waba_subscription_id', 'phone_number_id', 'readiness', 'is_default',
-    'pending_default', 'legacy_config_id', 'connected_at', 'registered_at', 'last_registration_error',
+    'pending_default', 'connected_at', 'registered_at', 'last_registration_error',
 ])]
 class WhatsappPhoneNumberConnection extends Model
 {

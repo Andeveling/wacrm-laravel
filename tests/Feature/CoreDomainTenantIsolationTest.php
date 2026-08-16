@@ -14,9 +14,7 @@ use App\Models\QuickReply;
 use App\Models\Scopes\AccountScope;
 use App\Models\Tag;
 use App\Models\WabaSubscription;
-use App\Models\WhatsappConfig;
 use App\Models\WhatsappIntegration;
-use App\Models\WhatsappLegacyMigrationIssue;
 use App\Models\WhatsappPhoneNumberConnection;
 use Database\Factories\ContactFactory;
 use Database\Factories\ContactNoteFactory;
@@ -30,9 +28,7 @@ use Database\Factories\PipelineFactory;
 use Database\Factories\QuickReplyFactory;
 use Database\Factories\TagFactory;
 use Database\Factories\WabaSubscriptionFactory;
-use Database\Factories\WhatsappConfigFactory;
 use Database\Factories\WhatsappIntegrationFactory;
-use Database\Factories\WhatsappLegacyMigrationIssueFactory;
 use Database\Factories\WhatsappPhoneNumberConnectionFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\QueryException;
@@ -56,11 +52,9 @@ dataset('tenantScopedModels', function () {
         'tags' => [Tag::class, TagFactory::class],
         'custom_fields' => [CustomField::class, CustomFieldFactory::class],
         'contact_notes' => [ContactNote::class, ContactNoteFactory::class],
-        'whatsapp_config' => [WhatsappConfig::class, WhatsappConfigFactory::class],
         'whatsapp_integrations' => [WhatsappIntegration::class, WhatsappIntegrationFactory::class],
         'waba_subscriptions' => [WabaSubscription::class, WabaSubscriptionFactory::class],
         'whatsapp_phone_number_connections' => [WhatsappPhoneNumberConnection::class, WhatsappPhoneNumberConnectionFactory::class],
-        'whatsapp_legacy_migration_issues' => [WhatsappLegacyMigrationIssue::class, WhatsappLegacyMigrationIssueFactory::class],
         'conversations' => [Conversation::class, ConversationFactory::class],
         'quick_replies' => [QuickReply::class, QuickReplyFactory::class],
         'message_templates' => [MessageTemplate::class, MessageTemplateFactory::class],

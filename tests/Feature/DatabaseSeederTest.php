@@ -17,6 +17,7 @@ use App\Models\Enums\BroadcastStatus;
 use App\Models\Enums\ConversationStatus;
 use App\Models\Enums\DealStatus;
 use App\Models\Enums\FlowStatus;
+use App\Models\Enums\WhatsappConnectionReadiness;
 use App\Models\Flow;
 use App\Models\FlowNode;
 use App\Models\FlowRun;
@@ -27,6 +28,9 @@ use App\Models\PipelineStage;
 use App\Models\Scopes\AccountScope;
 use App\Models\Tag;
 use App\Models\User;
+use App\Models\WabaSubscription;
+use App\Models\WhatsappIntegration;
+use App\Models\WhatsappPhoneNumberConnection;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -93,6 +97,20 @@ test('demo contacts have tags and custom values', function () {
     $valuedCount = ContactCustomValue::whereIn('contact_id', $contacts->pluck('id'))
         ->distinct('contact_id')->count();
     expect($valuedCount)->toBe($contacts->count());
+});
+test('demo team has a connected default WhatsApp number', function () {
+    $team = seedAndBind();
+
+    $integration = WhatsappIntegration::where('account_id', $team->id)->firstOrFail();
+    $waba = WabaSubscription::where('account_id', $team->id)->firstOrFail();
+    $connection = WhatsappPhoneNumberConnection::where('account_id', $team->id)->firstOrFail();
+
+    expect($waba->integration_id)->toBe($integration->id)
+        ->and($connection->waba_subscription_id)->toBe($waba->id)
+        ->and($connection->is_default)->toBeTrue()
+        ->and($connection->readiness)->toBe(WhatsappConnectionReadiness::Active)
+        ->and(Conversation::where('account_id', $team->id)->where('connection_id', $connection->id)->count())
+        ->toBeGreaterThanOrEqual(4);
 });
 
 test('demo conversations have messages with ai generated and reactions', function () {

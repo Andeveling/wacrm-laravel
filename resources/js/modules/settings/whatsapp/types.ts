@@ -26,24 +26,6 @@ export type WhatsappConnection = {
   health?: WhatsappHealth;
 };
 
-export type WhatsappRemediationKind =
-  | 'missing_legacy_connection'
-  | 'ambiguous_conversation_connection'
-  | 'waba_claimed_by_another_account'
-  | 'phone_number_claimed_by_another_account'
-  | 'incomplete_legacy_config';
-
-export type WhatsappRemediationVariant = 'assign' | 'acknowledge';
-
-export type WhatsappRemediationIssue = {
-  id: string;
-  kind: WhatsappRemediationKind | string;
-  conversation_id: string | null;
-  contact_name: string | null;
-  action: string | null;
-  candidate_connections: number | null;
-};
-
 export type WhatsappConnectFormData = {
   phone_number_id: string;
   waba_id: string;
@@ -55,8 +37,6 @@ export type WhatsappConnectFormData = {
 export type WhatsappSettingsPageProps = {
   canManage: boolean;
   connections: WhatsappConnection[];
-  /** Wire name from Inertia. New TypeScript identifiers say Remediation. */
-  legacyIssues: WhatsappRemediationIssue[];
   webhookUrl: string;
   verifyToken?: string | null;
   status?: string | null;

@@ -1,1 +1,1 @@
-export { default } from '@/modules/whatsapp/components/whatsapp-screen';
+export { default } from '@/modules/settings/whatsapp/components/whatsapp-screen';

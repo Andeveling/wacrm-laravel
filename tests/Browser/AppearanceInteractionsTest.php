@@ -16,11 +16,10 @@ beforeEach(function () {
 test('appearance preferences apply, persist, and stay free of javascript errors', function () {
     signInAndSelectAccount($this->user);
 
-    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
     $page = $this->visit('/settings/appearance');
     $page->script("localStorage.clear(); document.cookie = 'appearance=;path=/;max-age=0'");
 
-    $page->reload()
+    $this->visit('/settings/appearance')
         ->assertNoSmoke()
         ->assertAttribute('html', 'data-mode', 'dark')
         ->assertAttribute('html', 'data-theme', 'violet')
@@ -32,8 +31,9 @@ test('appearance preferences apply, persist, and stay free of javascript errors'
         ->assertScript("document.documentElement.dataset.mode === (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')")
         ->click('[data-testid="appearance-theme-rose"]')
         ->assertAttribute('html', 'data-theme', 'rose')
-        ->assertNoSmoke()
-        ->reload()
+        ->assertNoSmoke();
+
+    $this->visit('/settings/appearance')
         ->assertScript("document.documentElement.dataset.mode === (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')")
         ->assertAttribute('html', 'data-theme', 'rose')
         ->assertNoSmoke();

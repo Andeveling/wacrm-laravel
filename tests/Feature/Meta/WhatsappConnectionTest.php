@@ -27,6 +27,17 @@ function fakeMetaConnectionRequests(bool $registrationSucceeds = true): void
     Http::fake(function (HttpRequest $request) use ($registrationSucceeds) {
         $url = $request->url();
 
+        if (str_contains($url, '/debug_token')) {
+            return Http::response([
+                'data' => [
+                    'scopes' => [
+                        'whatsapp_business_management',
+                        'whatsapp_business_messaging',
+                    ],
+                ],
+            ]);
+        }
+
         if (str_ends_with($url, '/phone-123') || str_contains($url, '/phone-123?')) {
             return Http::response([
                 'id' => 'phone-123',
@@ -132,6 +143,16 @@ test('a subscription failure preserves verified credentials for a retry', functi
     Http::fake(function (HttpRequest $request) {
         $url = $request->url();
 
+        if (str_contains($url, '/debug_token')) {
+            return Http::response([
+                'data' => [
+                    'scopes' => [
+                        'whatsapp_business_management',
+                        'whatsapp_business_messaging',
+                    ],
+                ],
+            ]);
+        }
         if (str_ends_with($url, '/phone-123') || str_contains($url, '/phone-123?')) {
             return Http::response(['id' => 'phone-123', 'whatsapp_business_account' => ['id' => 'waba-123']]);
         }
@@ -180,7 +201,7 @@ test('a registration failure preserves the subscribed step', function () {
     $response->assertRedirect(route('settings.whatsapp'));
     expect(WabaSubscription::withoutGlobalScopes()->sole()->subscribed_apps_at)->not->toBeNull()
         ->and(WhatsappPhoneNumberConnection::withoutGlobalScopes()->sole()->readiness)
-        ->toBe(WhatsappConnectionReadiness::Subscribed)
+        ->toBe(WhatsappConnectionReadiness::AttentionRequired)
         ->and(session('whatsapp_error'))->toContain('registrar');
 });
 
@@ -303,7 +324,7 @@ test('disconnecting a number keeps its conversation and leaves a sibling WABA su
     Http::assertNothingSent();
 });
 
-test('disconnecting a connection pauses legacy unpinned outbound work', function () {
+test('disconnecting a connection pauses only outbound work pinned to that connection', function () {
     [$admin, $account, , $waba, $sales] = seededConnection(phoneNumberId: 'phone-sales');
     $support = WhatsappPhoneNumberConnection::factory()->forWaba($waba)->create([
         'account_id' => $account->id,
@@ -312,17 +333,11 @@ test('disconnecting a connection pauses legacy unpinned outbound work', function
     ]);
 
     $legacyDraft = Broadcast::factory()->for($account)->create(['connection_id' => null, 'status' => BroadcastStatus::Draft]);
-    $legacyScheduled = Broadcast::factory()->for($account)->create(['connection_id' => null, 'status' => BroadcastStatus::Scheduled]);
     $pinnedSending = Broadcast::factory()->for($account)->create(['connection_id' => $sales->id, 'status' => BroadcastStatus::Sending]);
     $unaffected = Broadcast::factory()->for($account)->create(['connection_id' => $support->id, 'status' => BroadcastStatus::Draft]);
     $legacyAutomation = Automation::factory()->for($account)->active()->create([
         'user_id' => $admin->id,
         'connection_mode' => AutomationConnectionMode::Pinned,
-        'connection_id' => null,
-    ]);
-    $triggerAutomation = Automation::factory()->for($account)->active()->create([
-        'user_id' => $admin->id,
-        'connection_mode' => AutomationConnectionMode::Trigger,
         'connection_id' => null,
     ]);
     $pinnedAutomation = Automation::factory()->for($account)->active()->create(['user_id' => $admin->id, 'connection_id' => $sales->id]);
@@ -334,12 +349,10 @@ test('disconnecting a connection pauses legacy unpinned outbound work', function
         ->delete(route('settings.whatsapp.disconnect', $sales))
         ->assertRedirect(route('settings.whatsapp'));
 
-    expect($legacyDraft->fresh()->status)->toBe(BroadcastStatus::Paused)
-        ->and($legacyScheduled->fresh()->status)->toBe(BroadcastStatus::Paused)
+    expect($legacyDraft->fresh()->status)->toBe(BroadcastStatus::Draft)
         ->and($pinnedSending->fresh()->status)->toBe(BroadcastStatus::Paused)
         ->and($unaffected->fresh()->status)->toBe(BroadcastStatus::Draft)
-        ->and($legacyAutomation->fresh()->is_active)->toBeFalse()
-        ->and($triggerAutomation->fresh()->is_active)->toBeTrue()
+        ->and($legacyAutomation->fresh()->is_active)->toBeTrue()
         ->and($pinnedAutomation->fresh()->is_active)->toBeFalse()
         ->and($unaffectedAutomation->fresh()->is_active)->toBeTrue();
 });
@@ -384,6 +397,16 @@ test('admin can add a second number from another WABA without duplicating the fi
     Http::fake(function (HttpRequest $request) {
         $url = $request->url();
 
+        if (str_contains($url, '/debug_token')) {
+            return Http::response([
+                'data' => [
+                    'scopes' => [
+                        'whatsapp_business_management',
+                        'whatsapp_business_messaging',
+                    ],
+                ],
+            ]);
+        }
         if (str_ends_with($url, '/phone-support') || str_contains($url, '/phone-support?')) {
             return Http::response([
                 'id' => 'phone-support',
@@ -471,7 +494,7 @@ test('only one active connection can be the default and disconnecting it clears 
         ->and($sales->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active);
 });
 
-test('disconnecting the last number of a WABA unsubscribes it and keeps history', function () {
+test('disconnecting the last number of a WABA keeps the subscription and history', function () {
     [$admin, $account, , $waba, $sales] = seededConnection(phoneNumberId: 'phone-sales');
     $contact = Contact::factory()->create([
         'account_id' => $account->id,
@@ -483,32 +506,6 @@ test('disconnecting the last number of a WABA unsubscribes it and keeps history'
         'contact_id' => $contact->id,
         'connection_id' => $sales->id,
     ]);
-    Http::fake(function (HttpRequest $request) {
-        if ($request->method() === 'DELETE' && str_ends_with($request->url(), '/waba-123/subscribed_apps')) {
-            return Http::response(['success' => true]);
-        }
-
-        return Http::response(['error' => ['code' => 1, 'message' => 'Unexpected request']], 500);
-    });
-
-    $this->actingAs($admin)
-        ->withSession(['current_account_id' => $account->id])
-        ->delete(route('settings.whatsapp.disconnect', $sales))
-        ->assertRedirect(route('settings.whatsapp'));
-
-    expect($sales->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Disconnected)
-        ->and($conversation->fresh()?->connection_id)->toBe($sales->id)
-        ->and($waba->fresh()->subscribed_apps_at)->toBeNull();
-    Http::assertSent(fn (HttpRequest $request) => $request->method() === 'DELETE'
-        && str_ends_with($request->url(), '/waba-123/subscribed_apps'));
-});
-
-test('disconnecting twice is idempotent and does not unsubscribe again', function () {
-    [$admin, $account, , $waba, $sales] = seededConnection(phoneNumberId: 'phone-sales');
-    $sales->readiness = WhatsappConnectionReadiness::Disconnected;
-    $sales->save();
-    $waba->subscribed_apps_at = null;
-    $waba->save();
     Http::fake();
 
     $this->actingAs($admin)
@@ -517,7 +514,25 @@ test('disconnecting twice is idempotent and does not unsubscribe again', functio
         ->assertRedirect(route('settings.whatsapp'));
 
     expect($sales->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Disconnected)
-        ->and(WhatsappPhoneNumberConnection::query()->withoutGlobalScopes()->count())->toBe(1);
+        ->and($conversation->fresh()?->connection_id)->toBe($sales->id)
+        ->and($waba->fresh()->subscribed_apps_at)->not->toBeNull();
+    Http::assertNothingSent();
+});
+
+test('disconnecting twice is idempotent', function () {
+    [$admin, $account, , $waba, $sales] = seededConnection(phoneNumberId: 'phone-sales');
+    $sales->readiness = WhatsappConnectionReadiness::Disconnected;
+    $sales->save();
+    Http::fake();
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->delete(route('settings.whatsapp.disconnect', $sales))
+        ->assertRedirect(route('settings.whatsapp'));
+
+    expect($sales->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Disconnected)
+        ->and(WhatsappPhoneNumberConnection::query()->withoutGlobalScopes()->count())->toBe(1)
+        ->and($waba->fresh()->subscribed_apps_at)->not->toBeNull();
     Http::assertNothingSent();
 });
 
@@ -594,4 +609,173 @@ test('a connection from another account cannot be disconnected or set as default
 
     expect($foreign->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active)
         ->and($foreign->fresh()->is_default)->toBeFalse();
+});
+
+test('settings exposes the webhook url and verify token without secrets', function () {
+    config()->set('services.meta.webhook_verify_token', 'instance-verify-token');
+    [$admin, $account] = memberWithRole('admin');
+    $integration = WhatsappIntegration::factory()->for($account)->create([
+        'access_token' => 'never-return-this-token',
+    ]);
+    $waba = WabaSubscription::factory()->forIntegration($integration)->create([
+        'account_id' => $account->id,
+        'waba_id' => 'waba-123',
+    ]);
+    WhatsappPhoneNumberConnection::factory()->forWaba($waba)->create([
+        'account_id' => $account->id,
+        'phone_number_id' => 'phone-123',
+        'readiness' => WhatsappConnectionReadiness::AttentionRequired,
+        'last_registration_error' => 'Meta no pudo registrar el número.',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->get(route('settings.whatsapp'));
+
+    $response->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('settings/whatsapp')
+        ->where('verifyToken', 'instance-verify-token')
+        ->where('webhookUrl', route('meta.webhook.verify'))
+        ->where('connections.0.health', 'attention')
+        ->where('connections.0.last_failure', 'Meta no pudo registrar el número.')
+        ->missing('connections.0.access_token')
+    );
+
+    expect($response->getContent())->not->toContain('never-return-this-token');
+});
+
+test('confirming default on first connection marks pending default until active', function () {
+    [$admin, $account] = memberWithRole('admin');
+    fakeMetaConnectionRequests();
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('settings.whatsapp.connect'), [
+            'phone_number_id' => 'phone-123',
+            'waba_id' => 'waba-123',
+            'access_token' => 'secret-meta-token',
+            'pin' => '123456',
+            'confirm_default' => true,
+        ])
+        ->assertRedirect(route('settings.whatsapp'));
+
+    $connection = WhatsappPhoneNumberConnection::withoutGlobalScopes()->sole();
+
+    expect($connection->readiness)->toBe(WhatsappConnectionReadiness::WebhookWaiting)
+        ->and($connection->pending_default)->toBeTrue()
+        ->and($connection->is_default)->toBeFalse();
+});
+
+test('a disconnected number can be reclaimed by another account without leaking the previous owner', function () {
+    [, $foreignAccount, , , $claimed] = seededConnection(
+        role: 'owner',
+        phoneNumberId: 'phone-reclaim',
+        wabaId: 'waba-reclaim',
+    );
+    $claimed->readiness = WhatsappConnectionReadiness::Disconnected;
+    $claimed->save();
+
+    [$admin, $account] = memberWithRole('admin');
+    Http::fake(function (HttpRequest $request) {
+        $url = $request->url();
+
+        if (str_contains($url, '/debug_token')) {
+            return Http::response([
+                'data' => [
+                    'scopes' => [
+                        'whatsapp_business_management',
+                        'whatsapp_business_messaging',
+                    ],
+                ],
+            ]);
+        }
+        if (str_contains($url, '/phone-reclaim')) {
+            return Http::response([
+                'id' => 'phone-reclaim',
+                'whatsapp_business_account' => ['id' => 'waba-reclaim'],
+            ]);
+        }
+        if (str_contains($url, '/waba-reclaim/subscribed_apps')) {
+            return Http::response(['success' => true]);
+        }
+        if (str_contains($url, '/waba-reclaim')) {
+            return Http::response(['id' => 'waba-reclaim']);
+        }
+        if (str_ends_with($url, '/phone-reclaim/register') || str_contains($url, '/phone-reclaim/register')) {
+            return Http::response(['success' => true]);
+        }
+
+        return Http::response(['error' => ['code' => 1, 'message' => 'Unexpected request']], 500);
+    });
+
+    $response = $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->from(route('settings.whatsapp'))
+        ->post(route('settings.whatsapp.connect'), [
+            'phone_number_id' => 'phone-reclaim',
+            'waba_id' => 'waba-reclaim',
+            'access_token' => 'secret-meta-token',
+            'pin' => '123456',
+        ]);
+
+    $response->assertRedirect(route('settings.whatsapp'))
+        ->assertSessionHasNoErrors();
+
+    $reclaimed = WhatsappPhoneNumberConnection::query()
+        ->withoutGlobalScopes()
+        ->where('account_id', $account->id)
+        ->where('phone_number_id', 'phone-reclaim')
+        ->first();
+
+    expect($reclaimed)->not->toBeNull()
+        ->and($reclaimed->readiness)->toBe(WhatsappConnectionReadiness::WebhookWaiting)
+        ->and($claimed->fresh()->phone_number_id)->toBeNull()
+        ->and($response->getContent())->not->toContain($foreignAccount->id)
+        ->and($response->getContent())->not->toContain($foreignAccount->name);
+});
+
+test('a token missing a required permission family is rejected before persisting', function () {
+    [$admin, $account] = memberWithRole('admin');
+    Http::fake(function (HttpRequest $request) {
+        if (str_contains($request->url(), '/debug_token')) {
+            return Http::response([
+                'data' => [
+                    'scopes' => ['whatsapp_business_management'],
+                ],
+            ]);
+        }
+
+        return Http::response(['error' => ['code' => 1, 'message' => 'Unexpected request']], 500);
+    });
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->from(route('settings.whatsapp'))
+        ->post(route('settings.whatsapp.connect'), [
+            'phone_number_id' => 'phone-123',
+            'waba_id' => 'waba-123',
+            'access_token' => 'secret-meta-token',
+            'pin' => '123456',
+        ])
+        ->assertRedirect(route('settings.whatsapp'));
+
+    expect(session('whatsapp_error'))->toContain('familias de permisos')
+        ->and(WhatsappIntegration::withoutGlobalScopes()->count())->toBe(0)
+        ->and(WhatsappPhoneNumberConnection::withoutGlobalScopes()->count())->toBe(0);
+});
+
+test('deleting the sole owner disables whatsapp routing and strips encrypted tokens', function () {
+    [$owner, $account, $integration, , $connection] = seededConnection(role: 'owner', isDefault: true);
+
+    $this->actingAs($owner)
+        ->delete(route('profile.destroy'), [
+            'password' => 'password',
+        ])
+        ->assertRedirect(route('home'));
+
+    $this->assertGuest();
+    expect($owner->fresh())->toBeNull()
+        ->and($connection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Disconnected)
+        ->and($connection->fresh()->is_default)->toBeFalse()
+        ->and($integration->fresh()->access_token)->toBeNull();
 });

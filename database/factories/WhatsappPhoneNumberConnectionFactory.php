@@ -26,6 +26,7 @@ class WhatsappPhoneNumberConnectionFactory extends Factory
             'phone_number_id' => fake()->unique()->numerify('1#############'),
             'readiness' => WhatsappConnectionReadiness::CredentialsVerified,
             'is_default' => false,
+            'pending_default' => false,
         ];
     }
 

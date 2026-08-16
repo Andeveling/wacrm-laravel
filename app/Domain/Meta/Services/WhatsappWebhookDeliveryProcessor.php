@@ -554,6 +554,17 @@ final class WhatsappWebhookDeliveryProcessor
         }
 
         $connection->readiness = WhatsappConnectionReadiness::Active;
+
+        if ($connection->pending_default) {
+            WhatsappPhoneNumberConnection::query()
+                ->whereKeyNot($connection->id)
+                ->where('is_default', true)
+                ->update(['is_default' => false, 'pending_default' => false]);
+
+            $connection->is_default = true;
+            $connection->pending_default = false;
+        }
+
         $connection->save();
     }
 
@@ -579,6 +590,8 @@ final class WhatsappWebhookDeliveryProcessor
             ->first();
 
         if ($message === null) {
+            $this->activateWaitingConnection($connection);
+
             return WhatsappWebhookEvent::CLASSIFICATION_UNCORRELATED;
         }
 
@@ -586,6 +599,8 @@ final class WhatsappWebhookDeliveryProcessor
             $message->status = $incoming;
             $message->save();
         }
+
+        $this->activateWaitingConnection($connection);
 
         return WhatsappWebhookEvent::CLASSIFICATION_PROCESSED;
     }

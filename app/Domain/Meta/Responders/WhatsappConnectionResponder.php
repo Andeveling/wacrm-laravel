@@ -12,7 +12,7 @@ final class WhatsappConnectionResponder
     public function respond(WhatsappConnectionResult $result): RedirectResponse
     {
         return to_route('settings.whatsapp')->with(
-            $result->succeeded ? 'whatsapp_status' : 'whatsapp_error',
+            $result->succeeded() ? 'whatsapp_status' : 'whatsapp_error',
             $result->message,
         );
     }

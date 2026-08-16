@@ -24,6 +24,8 @@ final class MetaGraphClient implements MetaGraphClientContract
      */
     public function verifyPhoneAndWaba(string $phoneNumberId, string $wabaId, string $token): array
     {
+        $this->assertRequiredPermissionFamilies($token);
+
         $phone = $this->get(
             $phoneNumberId,
             $token,
@@ -51,6 +53,71 @@ final class MetaGraphClient implements MetaGraphClientContract
                 ? $phone['verified_name']
                 : null,
         ];
+    }
+
+    /**
+     * Require both WhatsApp permission families before trusting the token for setup.
+     */
+    private function assertRequiredPermissionFamilies(string $token): void
+    {
+        $query = ['input_token' => $token];
+        $appId = config('services.meta.app_id');
+        $appSecret = config('services.meta.app_secret');
+
+        if (is_string($appId) && $appId !== '' && is_string($appSecret) && $appSecret !== '') {
+            $query['access_token'] = $appId.'|'.$appSecret;
+        }
+
+        try {
+            $response = Http::acceptJson()
+                ->connectTimeout(5)
+                ->timeout(10)
+                ->retry(2, 200, throw: false)
+                ->get($this->url('debug_token'), $query);
+        } catch (ConnectionException) {
+            throw new MetaGraphException(
+                'permissions',
+                'No se pudo contactar a Meta. Revisa la red e intenta de nuevo.',
+            );
+        }
+
+        if (! $response->successful()) {
+            $this->throwForResponse($response, 'permissions');
+        }
+
+        $scopes = data_get($response->json(), 'data.scopes', data_get($response->json(), 'data.granular_scopes', []));
+
+        if (! is_array($scopes)) {
+            throw new MetaGraphException(
+                'permissions',
+                'El token de Meta no expone los permisos requeridos.',
+            );
+        }
+
+        $normalized = collect($scopes)
+            ->map(function (mixed $scope): ?string {
+                if (is_string($scope)) {
+                    return $scope;
+                }
+
+                if (is_array($scope) && is_string($scope['scope'] ?? null)) {
+                    return $scope['scope'];
+                }
+
+                return null;
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        foreach (['whatsapp_business_management', 'whatsapp_business_messaging'] as $scope) {
+            if (! in_array($scope, $normalized, true)) {
+                throw new MetaGraphException(
+                    'permissions',
+                    'El token de Meta no tiene las dos familias de permisos requeridas (gestión y mensajería).',
+                );
+            }
+        }
     }
 
     public function subscribeWaba(string $wabaId, string $token): void

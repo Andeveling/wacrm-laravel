@@ -65,9 +65,12 @@ type Connection = {
   waba_id: string | null;
   readiness: Readiness;
   is_default: boolean;
+  pending_default?: boolean;
   connected_at: string | null;
   registered_at: string | null;
   last_registration_error: string | null;
+  last_failure?: string | null;
+  health?: 'healthy' | 'pending' | 'attention' | 'disconnected';
 };
 
 type LegacyIssue = {
@@ -84,6 +87,7 @@ type PageProps = {
   connections: Connection[];
   legacyIssues: LegacyIssue[];
   webhookUrl: string;
+  verifyToken?: string | null;
   status?: string | null;
   error?: string | null;
 };
@@ -106,6 +110,7 @@ type FormData = {
   waba_id: string;
   access_token: string;
   pin: string;
+  confirm_default: boolean;
 };
 
 const STEP_ORDER: Readiness[] = [
@@ -129,6 +134,7 @@ export default function Whatsapp({
   connections,
   legacyIssues = [],
   webhookUrl,
+  verifyToken = null,
   status,
   error,
 }: PageProps) {
@@ -139,11 +145,15 @@ export default function Whatsapp({
   const [connectionToDisconnect, setConnectionToDisconnect] =
     useState<Connection | null>(null);
   const hasConnections = connections.length > 0;
+  const hasActiveDefault = connections.some(
+    (connection) => connection.is_default && connection.readiness === 'active',
+  );
   const form = useForm<FormData>({
     phone_number_id: '',
     waba_id: '',
     access_token: '',
     pin: '',
+    confirm_default: !hasActiveDefault,
   });
 
   useEffect(() => {
@@ -162,6 +172,11 @@ export default function Whatsapp({
 
   async function copyWebhookUrl() {
     if (await copy(webhookUrl)) toast.success('URL copiada.');
+  }
+
+  async function copyVerifyToken() {
+    if (!verifyToken) return;
+    if (await copy(verifyToken)) toast.success('Verify token copiado.');
   }
 
   function setDefault(connection: Connection) {
@@ -374,6 +389,31 @@ export default function Whatsapp({
                   <InputError message={form.errors.pin} />
                 </div>
 
+                {!hasActiveDefault ? (
+                  <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      name="confirm_default"
+                      data-testid="whatsapp-confirm-default"
+                      className="mt-1"
+                      checked={form.data.confirm_default}
+                      onChange={(event) =>
+                        form.setData('confirm_default', event.target.checked)
+                      }
+                    />
+                    <span>
+                      <span className="font-medium text-foreground">
+                        Usar como remitente predeterminado
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        Se aplicará cuando la conexión pase a Active tras el
+                        primer evento enrutado. No se elige otro número en
+                        silencio.
+                      </span>
+                    </span>
+                  </label>
+                ) : null}
+
                 <div className="flex items-center justify-between gap-3 border-t pt-4">
                   <p className="flex items-center gap-2 text-xs text-muted-foreground">
                     <LockKeyhole className="size-3.5" />
@@ -412,28 +452,60 @@ export default function Whatsapp({
           <CardHeader>
             <CardTitle>Webhook global</CardTitle>
             <CardDescription>
-              Configura esta URL una sola vez en tu Meta App. El enrutamiento
-              usa el Phone Number ID de cada entrega.
+              Configura esta URL y el verify token una sola vez en tu Meta App.
+              El enrutamiento usa el Phone Number ID de cada entrega.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                readOnly
-                value={webhookUrl}
-                className="font-mono text-sm text-muted-foreground"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={copyWebhookUrl}
-                className="shrink-0"
-                aria-label="Copiar URL del webhook"
-              >
-                <Copy className="size-4" />
-              </Button>
+          <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+              <Label>Callback URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={webhookUrl}
+                  data-testid="whatsapp-webhook-url"
+                  className="font-mono text-sm text-muted-foreground"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={copyWebhookUrl}
+                  className="shrink-0"
+                  aria-label="Copiar URL del webhook"
+                >
+                  <Copy className="size-4" />
+                </Button>
+              </div>
             </div>
+            {verifyToken ? (
+              <div className="grid gap-2">
+                <Label>Verify token</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={verifyToken}
+                    data-testid="whatsapp-verify-token"
+                    className="font-mono text-sm text-muted-foreground"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={copyVerifyToken}
+                    className="shrink-0"
+                    aria-label="Copiar verify token"
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                El verify token se configura en el entorno de la instalación
+                (`META_WEBHOOK_VERIFY_TOKEN`).
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -669,9 +741,21 @@ function ConnectionCard({
           })}
         </div>
 
-        {!!connection.last_registration_error && (
+        {connection.health ? (
+          <p
+            className={`text-xs ${connection.health === 'attention' || connection.health === 'disconnected' ? 'text-destructive' : 'text-muted-foreground'}`}
+            data-testid={`whatsapp-health-${connection.phone_number_id ?? connection.id}`}
+          >
+            Salud: {connection.health}
+            {connection.pending_default
+              ? ' · Se marcará como predeterminado al activarse'
+              : ''}
+          </p>
+        ) : null}
+
+        {!!(connection.last_failure || connection.last_registration_error) && (
           <p className="text-xs text-destructive">
-            {connection.last_registration_error}
+            {connection.last_failure || connection.last_registration_error}
           </p>
         )}
 

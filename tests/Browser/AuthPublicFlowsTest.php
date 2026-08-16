@@ -3,7 +3,6 @@
 use App\Models\User;
 
 test('registration uses the shared public auth form presentation', function () {
-    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
     $this->visit('/register')
         ->assertSee('Crear una cuenta')
         ->assertSee('Nombre')
@@ -19,7 +18,6 @@ test('email verification preserves the shared public auth presentation', functio
 
     signIn($user, $password);
 
-    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
     $this->visit('/email/verify')
         ->assertSee('Verifica tu correo electrónico')
         ->assertSee('Reenviar correo de verificación')

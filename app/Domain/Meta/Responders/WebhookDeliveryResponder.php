@@ -12,10 +12,9 @@ use Illuminate\Http\Response;
 /**
  * Maps a {@see WebhookDeliveryResult} to the HTTP contract Meta expects:
  *
- *   200 — delivery persisted.
- *   400 — empty or malformed JSON body after a valid signature.
+ *   200 — delivery persisted (including malformed signed bodies).
  *   401 — signature absent / invalid / META_APP_SECRET not configured.
- *   413 — Content-Length above the 1 MB limit.
+ *   413 — body above the 3 MB limit.
  *   503 — persistence failed; Meta retries.
  *
  * Transport only: it never re-checks a signature or re-reads the body.
@@ -41,12 +40,6 @@ final readonly class WebhookDeliveryResponder
                 $result->status,
                 'Signature verification failed.',
                 Response::HTTP_UNAUTHORIZED,
-            ),
-
-            WebhookDeliveryStatus::InvalidBody => $this->error(
-                $result->status,
-                'Body must be JSON.',
-                Response::HTTP_BAD_REQUEST,
             ),
 
             WebhookDeliveryStatus::PersistenceFailed => $this->error(

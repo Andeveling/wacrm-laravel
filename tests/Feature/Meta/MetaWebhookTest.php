@@ -742,6 +742,29 @@ test('a status for an unknown message id is uncorrelated and does not invent a m
     app()->forgetInstance(AccountScope::CONTAINER_KEY);
 });
 
+test('a routed status activates a waiting connection and honors pending default', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+    $connection->pending_default = true;
+    $connection->save();
+
+    $body = inboundStatusesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'message_id' => 'wamid.missing-activate',
+        'status' => 'delivered',
+        'recipient_id' => '573001112233',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    $connection = $connection->fresh();
+
+    expect($connection->readiness)->toBe(WhatsappConnectionReadiness::Active)
+        ->and($connection->is_default)->toBeTrue()
+        ->and($connection->pending_default)->toBeFalse()
+        ->and(WhatsappWebhookEvent::query()->sole()->classification)
+        ->toBe(WhatsappWebhookEvent::CLASSIFICATION_UNCORRELATED);
+});
+
 test('a delivered status advances a sent outbound message', function () {
     [$account, $owner, $connection] = waitingConnection('phone-sales');
     $connection->readiness = WhatsappConnectionReadiness::Active;

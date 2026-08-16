@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Domain\Inbox\Actions;
 
+use App\Domain\Meta\Services\ActiveWhatsappConnectionResolver;
 use App\Models\Contact;
 use App\Models\Conversation;
-use App\Models\Enums\WhatsappConnectionReadiness;
 use App\Models\Message;
-use App\Models\WhatsappPhoneNumberConnection;
 use Inertia\Inertia;
 use Inertia\Response;
 
 final class ShowInbox
 {
+    public function __construct(private ActiveWhatsappConnectionResolver $connections) {}
+
     public function __invoke(): Response
     {
         $conversations = Conversation::query()
@@ -76,11 +77,7 @@ final class ShowInbox
                 ->orderBy('name')
                 ->get(['id', 'name', 'phone'])
                 ->all(),
-            'connections' => WhatsappPhoneNumberConnection::query()
-                ->where('readiness', WhatsappConnectionReadiness::Active)
-                ->orderBy('phone_number_id')
-                ->get(['id', 'phone_number_id', 'is_default'])
-                ->all(),
+            'connections' => $this->connections->list()->all(),
         ]);
     }
 }

@@ -23,7 +23,6 @@ test('login page renders with correct elements', function () {
 });
 
 test('login offers an accessible compact appearance toggle', function () {
-    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
     $this->visit('/login')
         ->assertAttribute('html', 'data-mode', 'dark')
         ->click('[data-testid="auth-appearance-toggle"]')
@@ -32,7 +31,6 @@ test('login offers an accessible compact appearance toggle', function () {
 });
 
 test('login uses the shared public auth form scale', function () {
-    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
     $this->visit('/login')
         ->assertScript("getComputedStyle(document.querySelector('[data-testid=auth-form-panel]')).maxWidth === '448px'")
         ->assertScript("getComputedStyle(document.querySelector('input[name=email]')).height === '48px'")

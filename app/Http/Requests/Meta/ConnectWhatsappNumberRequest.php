@@ -23,6 +23,7 @@ final class ConnectWhatsappNumberRequest extends FormRequest
             'waba_id' => ['required', 'string', 'max:128'],
             'access_token' => ['nullable', 'string', 'max:8192'],
             'pin' => ['nullable', 'digits:6'],
+            'confirm_default' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -41,6 +42,7 @@ final class ConnectWhatsappNumberRequest extends FormRequest
             'pin' => is_string($this->input('pin'))
                 ? trim($this->input('pin'))
                 : $this->input('pin'),
+            'confirm_default' => $this->boolean('confirm_default'),
         ]);
     }
 }

@@ -21,6 +21,17 @@ function fakeCriticalMetaGraph(): void
     Http::fake(function (HttpRequest $request) {
         $url = $request->url();
 
+        if (str_contains($url, '/debug_token')) {
+            return Http::response([
+                'data' => [
+                    'scopes' => [
+                        'whatsapp_business_management',
+                        'whatsapp_business_messaging',
+                    ],
+                ],
+            ]);
+        }
+
         if (str_ends_with($url, '/phone-123') || str_contains($url, '/phone-123?')) {
             return Http::response([
                 'id' => CRITICAL_PHONE,
@@ -68,7 +79,6 @@ test('owner configures a number and sees the routed contact after the controlled
 
     fakeCriticalMetaGraph();
 
-    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
     $this->visit('/settings/whatsapp')
         ->assertNoSmoke()
         ->assertSee('Conectar primer número')
@@ -103,7 +113,6 @@ test('owner configures a number and sees the routed contact after the controlled
         $body,
     )->assertOk();
 
-    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
     $this->visit('/settings/whatsapp')
         ->assertNoSmoke()
         ->assertSee('Activo')
@@ -111,7 +120,6 @@ test('owner configures a number and sees the routed contact after the controlled
 
     expect($connection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active);
 
-    /** @phpstan-ignore-next-line Browser visit is supplied by Pest at runtime. */
     $this->visit('/inbox')
         ->assertNoSmoke()
         ->assertSee('Ana Pérez')

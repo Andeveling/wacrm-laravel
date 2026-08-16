@@ -125,7 +125,7 @@ ADR 0001: **Action / Domain / Responder**. Las Actions viven en `app/Domain/<Con
 
 `app/Http/Controllers/` ya no existe: los contextos `Accounts`, `Contacts`, `Dashboard`, `Invitations`, `Meta` y `Settings` viven completos bajo `app/Domain/`. `app/Http/` conserva solo lo que es realmente HTTP: `Middleware/` y `Requests/` (los FormRequest siguen siendo el input boundary).
 
-Los endpoints que solo renderizan una página o aplican una regla única no llevan Result ni Responder — la Action devuelve la respuesta directamente (regla 4 del ADR 0001). Result + Responder se reservan para flujos con varios desenlaces legales: los tres de membresía (`MemberActionResult`), `RedeemInvitation` (302 / 401 / 409 / 422) y `ReceiveMetaWebhook` (200 / 400 / 401 / 413 / 503).
+Los endpoints que solo renderizan una página o aplican una regla única no llevan Result ni Responder — la Action devuelve la respuesta directamente (regla 4 del ADR 0001). Result + Responder se reservan para flujos con varios desenlaces legales: los tres de membresía (`MemberActionResult`), `RedeemInvitation` (302 / 401 / 409 / 422) y `ReceiveMetaWebhook` (200 / 401 / 413 / 503). Un cuerpo firmado malformado se persiste y responde 200; no hay desenlace HTTP 400 en el ingreso.
 
 ADR 0005: **el Responder se comparte cuando el Result se comparte**. Los tres flujos de membresía devuelven el mismo `MemberActionResult`, así que los atiende un único `MemberActionResponder` que recibe el resultado y el destino. Dos flujos con Results distintos siguen teniendo Responders distintos.
 

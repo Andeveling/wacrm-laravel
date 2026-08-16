@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $phone_number_id
  * @property WhatsappConnectionReadiness $readiness
  * @property bool $is_default
+ * @property bool $pending_default
  * @property string|null $legacy_config_id
  * @property Carbon|null $connected_at
  * @property Carbon|null $registered_at
@@ -32,7 +33,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'account_id', 'waba_subscription_id', 'phone_number_id', 'readiness', 'is_default',
-    'legacy_config_id', 'connected_at', 'registered_at', 'last_registration_error',
+    'pending_default', 'legacy_config_id', 'connected_at', 'registered_at', 'last_registration_error',
 ])]
 class WhatsappPhoneNumberConnection extends Model
 {
@@ -45,6 +46,7 @@ class WhatsappPhoneNumberConnection extends Model
     protected $attributes = [
         'readiness' => WhatsappConnectionReadiness::CredentialsVerified->value,
         'is_default' => false,
+        'pending_default' => false,
     ];
 
     /**
@@ -79,6 +81,7 @@ class WhatsappPhoneNumberConnection extends Model
         return [
             'readiness' => WhatsappConnectionReadiness::class,
             'is_default' => 'boolean',
+            'pending_default' => 'boolean',
             'connected_at' => 'datetime',
             'registered_at' => 'datetime',
         ];

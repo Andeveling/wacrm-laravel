@@ -43,11 +43,6 @@ final readonly class WebhookDeliveryResult
         return new self(WebhookDeliveryStatus::SignatureInvalid);
     }
 
-    public static function invalidBody(): self
-    {
-        return new self(WebhookDeliveryStatus::InvalidBody);
-    }
-
     public static function persistenceFailed(): self
     {
         return new self(WebhookDeliveryStatus::PersistenceFailed);

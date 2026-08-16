@@ -2,8 +2,10 @@
 
 use App\Domain\Broadcasts\Actions\ShowMessageTemplates;
 use App\Domain\Contacts\Actions\ShowContactFields;
+use App\Domain\Meta\Actions\AssignLegacyWhatsappConversation;
 use App\Domain\Meta\Actions\ConnectWhatsappNumber;
 use App\Domain\Meta\Actions\DisconnectWhatsappConnection;
+use App\Domain\Meta\Actions\DismissLegacyWhatsappIssue;
 use App\Domain\Meta\Actions\SetDefaultWhatsappConnection;
 use App\Domain\Meta\Actions\ShowWhatsappSettings;
 use App\Domain\Settings\Actions\DestroyApiKey;
@@ -50,6 +52,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('settings/whatsapp', ConnectWhatsappNumber::class)->name('settings.whatsapp.connect');
         Route::delete('settings/whatsapp/{connection}', DisconnectWhatsappConnection::class)->name('settings.whatsapp.disconnect');
         Route::patch('settings/whatsapp/{connection}/default', SetDefaultWhatsappConnection::class)->name('settings.whatsapp.default');
+        Route::post('settings/whatsapp/legacy-issues/{issue}/assign', AssignLegacyWhatsappConversation::class)
+            ->name('settings.whatsapp.legacy-issues.assign');
+        Route::post('settings/whatsapp/legacy-issues/{issue}/dismiss', DismissLegacyWhatsappIssue::class)
+            ->name('settings.whatsapp.legacy-issues.dismiss');
         Route::get('settings/api-keys', ShowApiKeys::class)->name('settings.api-keys');
         Route::post('settings/api-keys', StoreApiKey::class)->name('settings.api-keys.store');
         Route::delete('settings/api-keys/{apiKey}', DestroyApiKey::class)->name('settings.api-keys.destroy');

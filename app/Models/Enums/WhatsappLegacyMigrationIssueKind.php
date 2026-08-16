@@ -9,4 +9,17 @@ enum WhatsappLegacyMigrationIssueKind: string
     case WabaClaimedByAnotherAccount = 'waba_claimed_by_another_account';
     case PhoneNumberClaimedByAnotherAccount = 'phone_number_claimed_by_another_account';
     case IncompleteLegacyConfig = 'incomplete_legacy_config';
+
+    public function canAssignConnection(): bool
+    {
+        return $this === self::AmbiguousConversationConnection
+            || $this === self::MissingLegacyConnection;
+    }
+
+    public function canDismiss(): bool
+    {
+        return $this === self::WabaClaimedByAnotherAccount
+            || $this === self::PhoneNumberClaimedByAnotherAccount
+            || $this === self::IncompleteLegacyConfig;
+    }
 }

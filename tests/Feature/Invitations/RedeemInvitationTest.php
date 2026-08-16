@@ -4,6 +4,7 @@ use App\Models\Account;
 use App\Models\Contact;
 use App\Models\Invitation;
 use App\Models\User;
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -86,4 +87,10 @@ test('invitee cannot redeem while their personal account already has domain data
 test('guest cannot redeem an invitation', function () {
     $this->post(route('invitations.redeem', Str::random(48)))
         ->assertRedirect(route('login'));
+});
+
+test('unauthenticated redeem returns 401 at the action seam', function () {
+    $this->withoutMiddleware(Authenticate::class)
+        ->post(route('invitations.redeem', Str::random(48)))
+        ->assertUnauthorized();
 });

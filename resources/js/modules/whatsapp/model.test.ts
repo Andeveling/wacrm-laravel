@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import type { WhatsappConnection, WhatsappReadiness } from './contracts';
 import {
   canDesignateDefault,
   hasActiveDefault,
@@ -8,6 +7,7 @@ import {
   STEP_LABELS,
   STEP_ORDER,
 } from './model';
+import type { WhatsappConnection, WhatsappReadiness } from './types';
 
 const connection = (
   overrides: Partial<WhatsappConnection> = {},

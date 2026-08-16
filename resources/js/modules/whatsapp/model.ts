@@ -3,7 +3,7 @@ import type {
   WhatsappReadiness,
   WhatsappRemediationKind,
   WhatsappRemediationVariant,
-} from './contracts';
+} from './types';
 
 export const STEP_ORDER: WhatsappReadiness[] = [
   'credentials_verified',

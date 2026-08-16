@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { WhatsappConnectFormData, WhatsappConnection } from '../contracts';
+import type { WhatsappConnectFormData, WhatsappConnection } from '../types';
 import {
   AccessTokenField,
   ConfirmDefaultField,

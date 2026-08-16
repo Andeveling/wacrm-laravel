@@ -1,7 +1,7 @@
 import { CheckCircle2, ShieldCheck, Star, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { WhatsappConnection } from '../contracts';
 import { needsAttention, STEP_LABELS } from '../model';
+import type { WhatsappConnection } from '../types';
 
 export function ConnectionHeader({
   connection,

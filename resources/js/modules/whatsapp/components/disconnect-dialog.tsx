@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { WhatsappConnection } from '../contracts';
+import type { WhatsappConnection } from '../types';
 
 export function DisconnectDialog({
   connection,

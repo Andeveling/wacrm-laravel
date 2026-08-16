@@ -1,4 +1,4 @@
-import type { WhatsappConnection } from '../contracts';
+import type { WhatsappConnection } from '../types';
 
 export function ConnectionHealth({
   connection,

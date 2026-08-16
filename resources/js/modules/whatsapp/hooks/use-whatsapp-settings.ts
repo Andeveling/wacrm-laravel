@@ -5,7 +5,7 @@ import AssignLegacyWhatsappConversation from '@/actions/App/Domain/Meta/Actions/
 import DisconnectWhatsappConnection from '@/actions/App/Domain/Meta/Actions/DisconnectWhatsappConnection';
 import DismissLegacyWhatsappIssue from '@/actions/App/Domain/Meta/Actions/DismissLegacyWhatsappIssue';
 import SetDefaultWhatsappConnection from '@/actions/App/Domain/Meta/Actions/SetDefaultWhatsappConnection';
-import type { WhatsappConnection } from './contracts';
+import type { WhatsappConnection } from '../types';
 
 export function useWhatsappSettings() {
   const [busyId, setBusyId] = useState<string | null>(null);

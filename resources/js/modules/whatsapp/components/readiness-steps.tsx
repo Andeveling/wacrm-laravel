@@ -1,5 +1,5 @@
-import type { WhatsappReadiness } from '../contracts';
 import { needsAttention, STEP_LABELS, STEP_ORDER } from '../model';
+import type { WhatsappReadiness } from '../types';
 
 export function ReadinessSteps({
   readiness,

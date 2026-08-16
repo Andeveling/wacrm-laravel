@@ -16,11 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type {
-  WhatsappConnection,
-  WhatsappRemediationIssue,
-} from '../contracts';
 import { issueLabel, remediationVariant } from '../model';
+import type { WhatsappConnection, WhatsappRemediationIssue } from '../types';
 
 export function RemediationList({
   issues,

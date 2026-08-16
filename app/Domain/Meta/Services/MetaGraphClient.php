@@ -60,26 +60,7 @@ final class MetaGraphClient implements MetaGraphClientContract
      */
     private function assertRequiredPermissionFamilies(string $token): void
     {
-        $query = ['input_token' => $token];
-        $appId = config('services.meta.app_id');
-        $appSecret = config('services.meta.app_secret');
-
-        if (is_string($appId) && $appId !== '' && is_string($appSecret) && $appSecret !== '') {
-            $query['access_token'] = $appId.'|'.$appSecret;
-        }
-
-        try {
-            $response = Http::acceptJson()
-                ->connectTimeout(5)
-                ->timeout(10)
-                ->retry(2, 200, throw: false)
-                ->get($this->url('debug_token'), $query);
-        } catch (ConnectionException) {
-            throw new MetaGraphException(
-                'permissions',
-                'No se pudo contactar a Meta. Revisa la red e intenta de nuevo.',
-            );
-        }
+        $response = $this->debugToken($token);
 
         if (! $response->successful()) {
             $this->throwForResponse($response, 'permissions');
@@ -94,30 +75,77 @@ final class MetaGraphClient implements MetaGraphClientContract
             );
         }
 
+        if (! $this->hasRequiredPermissionFamilies($scopes)) {
+            throw new MetaGraphException(
+                'permissions',
+                'El token de Meta no tiene las dos familias de permisos requeridas (gestión y mensajería).',
+            );
+        }
+    }
+
+    private function debugToken(string $token): Response
+    {
+        try {
+            return Http::acceptJson()
+                ->connectTimeout(5)
+                ->timeout(10)
+                ->retry(2, 200, throw: false)
+                ->get($this->url('debug_token'), $this->debugTokenQuery($token));
+        } catch (ConnectionException) {
+            throw new MetaGraphException(
+                'permissions',
+                'No se pudo contactar a Meta. Revisa la red e intenta de nuevo.',
+            );
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function debugTokenQuery(string $token): array
+    {
+        $query = ['input_token' => $token];
+        $appId = config('services.meta.app_id');
+        $appSecret = config('services.meta.app_secret');
+
+        if (is_string($appId) && $appId !== '' && is_string($appSecret) && $appSecret !== '') {
+            $query['access_token'] = $appId.'|'.$appSecret;
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $scopes
+     */
+    private function hasRequiredPermissionFamilies(array $scopes): bool
+    {
         $normalized = collect($scopes)
-            ->map(function (mixed $scope): ?string {
-                if (is_string($scope)) {
-                    return $scope;
-                }
-
-                if (is_array($scope) && is_string($scope['scope'] ?? null)) {
-                    return $scope['scope'];
-                }
-
-                return null;
-            })
+            ->map($this->permissionScopeName(...))
             ->filter()
             ->values()
             ->all();
 
         foreach (['whatsapp_business_management', 'whatsapp_business_messaging'] as $scope) {
             if (! in_array($scope, $normalized, true)) {
-                throw new MetaGraphException(
-                    'permissions',
-                    'El token de Meta no tiene las dos familias de permisos requeridas (gestión y mensajería).',
-                );
+                return false;
             }
         }
+
+        return true;
+    }
+
+    private function permissionScopeName(mixed $scope): ?string
+    {
+        if (is_string($scope)) {
+            return $scope;
+        }
+
+        if (is_array($scope) && is_string($scope['scope'] ?? null)) {
+            return $scope['scope'];
+        }
+
+        return null;
     }
 
     public function subscribeWaba(string $wabaId, string $token): void

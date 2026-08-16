@@ -29,6 +29,10 @@ export const broadcastStatusConfig: Record<BroadcastStatus, StatusDisplay> = {
     label: 'Fallido',
     classes: 'bg-red-500/10 text-red-400 border-red-500/20',
   },
+  paused: {
+    label: 'Pausado',
+    classes: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  },
 };
 
 export const recipientStatusConfig: Record<RecipientStatus, StatusDisplay> = {

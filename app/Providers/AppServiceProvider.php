@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Meta\Services\MetaGraphClient;
+use App\Domain\Meta\Services\MetaGraphClientContract;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(MetaGraphClientContract::class, MetaGraphClient::class);
     }
 
     /**

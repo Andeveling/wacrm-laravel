@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Inbox\Actions;
 
+use App\Domain\Meta\Services\ActiveWhatsappConnectionResolver;
+use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Message;
 use Inertia\Inertia;
@@ -11,6 +13,8 @@ use Inertia\Response;
 
 final class ShowInbox
 {
+    public function __construct(private ActiveWhatsappConnectionResolver $connections) {}
+
     public function __invoke(): Response
     {
         $conversations = Conversation::query()
@@ -31,6 +35,7 @@ final class ShowInbox
             ->get([
                 'id',
                 'contact_id',
+                'connection_id',
                 'status',
                 'last_message_text',
                 'last_message_at',
@@ -44,6 +49,7 @@ final class ShowInbox
             'conversations' => $conversations->map(fn (Conversation $conversation): array => [
                 'id' => $conversation->id,
                 'contact_id' => $conversation->contact_id,
+                'connection_id' => $conversation->connection_id,
                 'contact' => $conversation->contact === null ? null : [
                     ...$conversation->contact->only(['id', 'name', 'phone', 'email', 'company']),
                 ],
@@ -67,6 +73,11 @@ final class ShowInbox
                 })
                 ->values()
                 ->all(),
+            'contacts' => Contact::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'phone'])
+                ->all(),
+            'connections' => $this->connections->list()->all(),
         ]);
     }
 }

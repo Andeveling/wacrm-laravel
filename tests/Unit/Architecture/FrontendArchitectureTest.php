@@ -47,6 +47,19 @@ function normalizeFrontendPath(string $path): string
     return '/'.implode('/', $segments);
 }
 
+/**
+ * @return list<string>
+ */
+function architectureExceptionPaths(): array
+{
+    $exceptions = json_decode((string) file_get_contents(base_path('quality-exceptions.json')), true, flags: JSON_THROW_ON_ERROR);
+
+    return array_values(array_merge(...array_map(
+        fn (array $exception): array => $exception['paths'] ?? [],
+        $exceptions['architecture'],
+    )));
+}
+
 test('Inertia pages are adapters for frontend modules', function () {
     foreach (frontendFiles('pages') as $file) {
         $source = $file->getContents();
@@ -121,26 +134,7 @@ test('shared frontend code does not import domain modules', function () {
 });
 
 test('frontend module UI does not import fixtures', function () {
-    // ponytail: allowlist open until #86-93 replace these screens' fixtures
-    // with real Account data; each entry drops when its ticket closes.
-    $pendingRealData = [
-        'automations/ui/automation-logs-screen.tsx',
-        'automations/ui/automations-screen.tsx',
-        'automations/ui/edit-automation-screen.tsx',
-        'broadcasts/ui/broadcast-screen.tsx',
-        'broadcasts/ui/broadcasts-screen.tsx',
-        'broadcasts/ui/step1-choose-template.tsx',
-        'broadcasts/ui/step2-select-audience.tsx',
-        'broadcasts/ui/step4-schedule-send.tsx',
-        'broadcasts/ui/templates-screen.tsx',
-        'dashboard/ui/dashboard-screen.tsx',
-        'flows/ui/flow-editor-screen.tsx',
-        'flows/ui/flow-runs-screen.tsx',
-        'flows/ui/flows-screen.tsx',
-        'inbox/ui/inbox-screen.tsx',
-        'pipelines/ui/deal-form.tsx',
-        'pipelines/ui/pipelines-screen.tsx',
-    ];
+    $pendingRealData = architectureExceptionPaths();
 
     foreach (frontendFiles('modules') as $file) {
         $relativePath = str_replace('\\', '/', $file->getRelativePathname());

@@ -19,7 +19,64 @@ Invitación para que un User existente se una a un Team Account. Tiene token has
 Token Bearer para acceso programático. Pertenece a un Account y carga un conjunto de **ApiScope**. Es inmutable tras crearse (no tiene `updated_at`). Implementa `AuthenticatableContract`: la key misma es la identidad del guard.
 
 ### Contact
-Persona con la que el Account conversa por WhatsApp. Su **proyección pública** — `id`, `phone`, `name`, `email`, `company`, `avatar_url`, `created_at`, `updated_at` y sus `tags` — está definida una sola vez y es idéntica en todos los transportes: pantalla web, tools MCP y (cuando exista) la API REST. Agregar un campo al Contact público es editar ese único lugar. El detalle que devuelve MCP es esa misma proyección más `notes` y `conversations`.
+Persona con la que el Account conversa por WhatsApp. Su identidad WhatsApp canónica dentro del Account es el `wa_id` que Meta entrega; números introducidos manualmente se normalizan antes de buscar coincidencias y una coincidencia ambigua nunca fusiona contactos automáticamente. Un mismo Contact puede tener conversaciones independientes mediante distintas **WhatsApp Phone Number Connections** del Account; no se duplica por cada número receptor. Su **proyección pública** — `id`, `phone`, `name`, `email`, `company`, `avatar_url`, `created_at`, `updated_at` y sus `tags` — está definida una sola vez y es idéntica en todos los transportes: pantalla web, tools MCP y (cuando exista) la API REST. Agregar un campo al Contact público es editar ese único lugar. El detalle que devuelve MCP es esa misma proyección más `notes` y `conversations`.
+
+### Conversation
+Hilo entre un **Contact** y una **WhatsApp Phone Number Connection** concreta dentro de un Account. El mismo Contact puede mantener una conversación con ventas y otra con soporte cuando escribe a números distintos. Toda respuesta usa la conexión de la conversación; iniciar un hilo nuevo requiere seleccionar una conexión o usar una predeterminada explícita.
+
+### WhatsApp Phone Number
+Número de WhatsApp Business conectado a un **Account** e identificado de forma única por el `phone_number_id` de Meta. Un Account puede conectar varios números; un `phone_number_id` pertenece a exactamente un Account. El webhook usa este identificador para asignar cada entrega entrante al Account correcto.
+
+### WhatsApp Business Account (WABA)
+Contenedor de Meta que agrupa uno o varios **WhatsApp Phone Numbers**. No es un tenant de Wacrm: un **Account** puede conectar números de uno o varios WABA, pero dentro de una instalación cada WABA pertenece a un único Account. El aislamiento operativo siempre se determina por el Account propietario del WABA y de sus números.
+
+### WhatsApp Phone Number Connection
+Vínculo entre un **Account** y un **WhatsApp Phone Number** habilitado para operar mediante Wacrm. Conserva la identidad del número y del WABA al que pertenece. Es la unidad que el webhook resuelve mediante `phone_number_id`; no debe llamarse “cuenta de WhatsApp” porque ese término confunde Account, WABA y número.
+
+### Meta App
+Aplicación de Meta propia de una instalación de Wacrm. Su App Secret y verify token protegen el endpoint global de webhooks de esa instalación; no pertenecen a un Account ni a un número particular.
+
+### WhatsApp Integration
+Configuración operativa de WhatsApp perteneciente a un **Account**. Mantiene el acceso del tenant a Meta y agrupa sus **WhatsApp Phone Number Connections**, evitando duplicar las mismas credenciales en cada número.
+
+### Default WhatsApp Phone Number Connection
+Única conexión activa que un Account puede designar como opción predeterminada para iniciar interacciones. Nunca sustituye la conexión fijada por una conversación, broadcast o automatización, y Wacrm no elige silenciosamente otra si deja de estar disponible.
+
+### WABA Subscription
+Vínculo entre la Meta App de la instalación y un WABA para recibir sus webhooks. Se comparte entre todos los números conectados de ese WABA y solo se retira cuando la integración deja de utilizarlo por completo.
+
+### Webhook Delivery
+Sobre HTTP firmado que Meta entrega al endpoint global de una instalación. Se conserva antes de confirmar la recepción y puede contener varios **Webhook Events**; no pertenece necesariamente a un único Account.
+
+### Webhook Event
+Cambio individual extraído de un **Webhook Delivery**. Se asigna a un Account resolviendo el `phone_number_id` contra una **WhatsApp Phone Number Connection** antes de modificar datos operativos.
+
+### Unresolved Webhook Event
+**Webhook Event** auténtico cuyo `phone_number_id` todavía no corresponde a una conexión conocida. Su recepción se confirma a Meta, pero queda pendiente y visible para el operador hasta que pueda enrutarse o descartarse explícitamente.
+
+### Estados de WhatsApp Phone Number Connection
+
+- **Credentials Verified** — las credenciales y permisos requeridos son válidos.
+- **Subscribed** — la Meta App está suscrita al WABA.
+- **Webhook Waiting** — la conexión está configurada, pero Wacrm todavía no ha observado una entrega para el número.
+- **Active** — Wacrm recibió y enrutó correctamente al menos un evento del número.
+- **Attention Required** — la conexión necesita intervención, por ejemplo por credenciales vencidas o procesamiento bloqueado.
+- **Disconnected** — Wacrm dejó de operar el número, pero conserva sus datos históricos.
+
+### Instance Operator
+Persona que administra una instalación de Wacrm y su Meta App. Configura los secretos globales, la URL pública y la infraestructura de procesamiento; no equivale a un Owner de Account.
+
+### Failed Webhook Event
+**Webhook Event** que agotó sus reintentos internos sin completar su efecto. Permanece disponible para diagnóstico y replay; no provoca que Meta reenvíe una entrega que Wacrm ya confirmó de forma durable.
+
+### Unsupported Webhook Event
+**Webhook Event** auténtico cuyo tipo todavía no tiene un consumidor en Wacrm. Se conserva como recibido y no se considera un fallo ni consume reintentos internos.
+
+### Blocked Webhook Event
+**Webhook Event** enrutado a una conexión conocida que está desconectada. Se conserva sin modificar datos operativos y puede reprocesarse después de reconectar el número.
+
+### Uncorrelated Message Status
+Actualización auténtica de estado para un message ID que Wacrm todavía no conoce. Se conserva sin inventar un mensaje y puede correlacionarse posteriormente mediante replay o sincronización.
 
 ## Roles (AccountRole)
 
@@ -68,7 +125,7 @@ ADR 0001: **Action / Domain / Responder**. Las Actions viven en `app/Domain/<Con
 
 `app/Http/Controllers/` ya no existe: los contextos `Accounts`, `Contacts`, `Dashboard`, `Invitations`, `Meta` y `Settings` viven completos bajo `app/Domain/`. `app/Http/` conserva solo lo que es realmente HTTP: `Middleware/` y `Requests/` (los FormRequest siguen siendo el input boundary).
 
-Los endpoints que solo renderizan una página o aplican una regla única no llevan Result ni Responder — la Action devuelve la respuesta directamente (regla 4 del ADR 0001). Result + Responder se reservan para flujos con varios desenlaces legales: los tres de membresía (`MemberActionResult`), `RedeemInvitation` (302 / 401 / 409 / 422) y `ReceiveMetaWebhook` (200 / 400 / 401 / 413 / 503).
+Los endpoints que solo renderizan una página o aplican una regla única no llevan Result ni Responder — la Action devuelve la respuesta directamente (regla 4 del ADR 0001). Result + Responder se reservan para flujos con varios desenlaces legales: los tres de membresía (`MemberActionResult`), `RedeemInvitation` (302 / 401 / 409 / 422) y `ReceiveMetaWebhook` (200 / 401 / 413 / 503). Un cuerpo firmado malformado se persiste y responde 200; no hay desenlace HTTP 400 en el ingreso.
 
 ADR 0005: **el Responder se comparte cuando el Result se comparte**. Los tres flujos de membresía devuelven el mismo `MemberActionResult`, así que los atiende un único `MemberActionResponder` que recibe el resultado y el destino. Dos flujos con Results distintos siguen teniendo Responders distintos.
 
@@ -99,6 +156,8 @@ Lo hace cumplir `tools/lint/test-layout.php` en el `pre-commit`; las reglas est�
 | Sonda backend temporal | `sail pest --agent='\App\Models\User::factory()->count(1)->create(); expect(\App\Models\User::count())->toBe(1);'` |
 | Sonda full-stack temporal | `sail pest --agent='visit("/")->assertNoJavaScriptErrors();'` |
 | Vitest solo | `sail pnpm test` |
+| Allowlist de excepciones de calidad | `sail pnpm check:quality-exceptions` |
+| Duplicación PHP + TypeScript | `sail pnpm check:duplication` |
 
 `sail composer test` es el mismo comando que corre el job `ci` en CI; `sail composer test:browser`, el job `browser`. Ambos son obligatorios en cada pull request.
 
@@ -119,6 +178,7 @@ Las sondas `pest --agent` son temporales: verifican backend o navegador dentro d
 - **Current Account** — el account en el que el User está "actuando" en este request.
 - **BelongsToAccount** — marcador de que un modelo está escopeado por tenant.
 - **Datos operativos** — contactos, negocios, conversaciones (CRM).
+- **WhatsApp Phone Number** — número de WhatsApp Business de un Account, identificado por su `phone_number_id` de Meta.
 
 ## Reglas de membresía
 

@@ -12,6 +12,7 @@ export type ConversationStatus = 'open' | 'pending' | 'closed';
 export interface Conversation {
   id: string;
   contact_id: string;
+  connection_id?: string | null;
   contact?: ConversationContact;
   status: ConversationStatus;
   last_message_text?: string;
@@ -24,6 +25,20 @@ export interface Conversation {
 export interface InboxPageProps {
   conversations: Conversation[];
   messages: Message[];
+  contacts: InboxContact[];
+  connections: InboxConnection[];
+}
+
+export interface InboxContact {
+  id: string;
+  name?: string | null;
+  phone: string;
+}
+
+export interface InboxConnection {
+  id: string;
+  phone_number_id: string;
+  is_default: boolean;
 }
 
 export type SenderType = 'customer' | 'agent' | 'bot';

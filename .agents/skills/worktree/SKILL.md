@@ -51,14 +51,11 @@ test "${HERDR_ENV:-}" = 1 && \
 
 The script creates the Herdr worktree, provisions its local dependencies, initializes a private CodeGraph index with `codegraph init -i <worktree-path>`, writes an isolated Compose project name and ephemeral host ports to its ignored `.env`, starts only `laravel.test` and its database/Redis dependencies, and installs the branch's locked dependencies. Read the Herdr JSON instead of guessing IDs. Do not focus the new workspace unless the user asks.
 
-Once the worktree is ready, the script resolves that workspace's pane and starts the implementation agent inside it:
+Once the worktree is ready, the script resolves that workspace's pane and opens an idle `opencode2` session there so the user can continue:
 
 ```bash
-herdr pane run <pane-id> opencode run -i \
-  --command implement --model openai/gpt-5.6-luna --variant high <issue-number>
+herdr pane run <pane-id> opencode2
 ```
-
-Override the model or reasoning effort only when the user asks, through `WORKTREE_AGENT_MODEL` and `WORKTREE_AGENT_VARIANT`. The agent works the issue in its own tab; do not run `/implement` for that issue in this session as well.
 
 Creation is complete only when all of these are true:
 
@@ -69,7 +66,7 @@ Creation is complete only when all of these are true:
 - Its Compose project, containers, network, volumes, and bind mount belong only to the new path.
 - Its `.codegraph/` index exists inside the new worktree and is not shared with another checkout.
 - Its Sail services are running and ready for tests.
-- Its pane runs `opencode` on `/implement <issue-number>`.
+- Its pane runs idle `opencode2`.
 - The final response includes path, branch, workspace ID, pane ID, base commit, and clean status.
 
 ## Sail

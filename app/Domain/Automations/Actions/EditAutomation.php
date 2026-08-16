@@ -21,6 +21,8 @@ final class EditAutomation
                 'name' => $automation->name,
                 'description' => $automation->description,
                 'trigger_type' => $automation->trigger_type,
+                'connection_mode' => $automation->connection_mode->value,
+                'connection_id' => $automation->connection_id,
                 'is_active' => $automation->is_active,
                 'execution_count' => $automation->execution_count,
                 'last_executed_at' => $automation->last_executed_at?->toISOString(),

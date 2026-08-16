@@ -22,7 +22,10 @@ test('two factor challenge page renders with OTP input', function () {
     $this->visit('/two-factor-challenge')
         ->assertNoSmoke()
         ->assertSee('Código de autenticación')
-        ->assertPresent('input[name="code"]');
+        ->assertPresent('input[name="code"]')
+        ->assertScript("getComputedStyle(document.querySelector('[data-testid=two-factor-otp-slot]')).height === '48px'")
+        ->assertScript("getComputedStyle(document.querySelector('[data-testid=two-factor-otp-slot]')).fontSize === '16px'")
+        ->assertScript("getComputedStyle(document.querySelector('[data-testid=two-factor-recovery-toggle]')).height === '48px'");
 });
 
 test('two factor toggle switches to recovery code mode', function () {

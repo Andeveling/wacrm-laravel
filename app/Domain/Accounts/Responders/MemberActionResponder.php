@@ -26,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
  *  - $toast — Inertia toast copy, or null for a flow that shows none.
  *  - $route — the named route to land on; null redirects back, which is
  *    what a flow triggered from a modal wants.
+ *  - $redirectData — optional one-request data for the destination page.
  *
  * The status mapping itself is fixed and shared:
  *  - Success → 302 to $route (or back) carrying $flash.
@@ -40,25 +41,33 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final readonly class MemberActionResponder
 {
+    /**
+     * @param  array<string, mixed>  $redirectData
+     */
     public function __invoke(
         MemberActionResult $result,
         string $flash,
         ?string $toast = null,
         ?string $route = null,
+        array $redirectData = [],
     ): Response {
         return match ($result->status) {
-            MemberActionStatus::Success => $this->success($result, $flash, $toast, $route),
+            MemberActionStatus::Success => $this->success($result, $flash, $toast, $route, $redirectData),
             MemberActionStatus::LastOwnerBlocked => $this->lastOwnerBlocked($result, $route),
             MemberActionStatus::Forbidden => $this->forbidden(),
             MemberActionStatus::NotMember => $this->notMember(),
         };
     }
 
+    /**
+     * @param  array<string, mixed>  $redirectData
+     */
     private function success(
         MemberActionResult $result,
         string $flash,
         ?string $toast,
         ?string $route,
+        array $redirectData,
     ): RedirectResponse {
         if ($toast !== null) {
             Inertia::flash('toast', [
@@ -67,7 +76,9 @@ final readonly class MemberActionResponder
             ]);
         }
 
-        return $this->redirect($result, $route)->with($flash, true);
+        return $this->redirect($result, $route)
+            ->with($flash, true)
+            ->with($redirectData);
     }
 
     private function lastOwnerBlocked(MemberActionResult $result, ?string $route): RedirectResponse

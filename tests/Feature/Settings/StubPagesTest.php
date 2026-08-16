@@ -46,10 +46,11 @@ test('overview page marks api keys as disponible', function () {
         );
 });
 
-test('whatsapp stub page is displayed', function () {
-    $user = User::factory()->create();
+test('whatsapp settings page is displayed for the current account', function () {
+    [$user, $account] = memberWithRole('admin');
 
     $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
         ->get(route('settings.whatsapp'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page

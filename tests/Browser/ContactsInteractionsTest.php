@@ -160,8 +160,6 @@ test('contacts detail stays open when an edit removes the contact from the filte
     expect(Contact::query()->where('name', 'Nombre fuera del filtro')->exists())->toBeTrue();
 });
 
-// Deleting redirects to the unfiltered index, so the roster comes back whole
-// while the search box still shows the term that was typed.
 test('contacts page deletes a contact through the page seam', function () {
     signInAndSelectAccount($this->owner);
 
@@ -176,8 +174,10 @@ test('contacts page deletes a contact through the page seam', function () {
         ->assertVisible('[data-testid="contacts-delete-confirm"]')
         ->click('[data-testid="contacts-delete-confirm"]')
         ->assertSee('Contacto eliminado.')
-        ->assertSee('23 contactos')
-        ->assertDontSee('Contacto 5');
+        ->assertSee('Sin contactos todavía')
+        ->assertSee('Ningún contacto coincide con el filtro.')
+        ->assertQueryStringHas('search', 'Contacto 5')
+        ->assertDontSee('Contacto 1');
 
     expect(Contact::query()->count())->toBe(23);
 });
@@ -230,7 +230,8 @@ test('contacts page bulk deletes selections retained after filtering', function 
         ->assertSee('¿Eliminar 10 contactos seleccionados?')
         ->click('[data-testid="contacts-bulk-delete-confirm"]')
         ->assertSee('10 contactos eliminados.')
-        ->assertSee('14 contactos')
+        ->assertSee('1 contactos')
+        ->assertQueryStringHas('search', 'Laura Gómez')
         ->assertDontSee('seleccionados');
 
     expect(Contact::query()->count())->toBe(14);

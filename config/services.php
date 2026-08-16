@@ -55,6 +55,7 @@ return [
     | multimedia); la URL por defecto apunta al cluster público.
     */
     'meta' => [
+        'app_id' => env('META_APP_ID'),
         'app_secret' => env('META_APP_SECRET'),
         'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'),
         'graph_api_url' => env('META_GRAPH_API_URL', 'https://graph.facebook.com'),

@@ -15,6 +15,5 @@ enum WebhookDeliveryStatus: string
     case Received = 'received';
     case PayloadTooLarge = 'payload_too_large';
     case SignatureInvalid = 'signature_invalid';
-    case InvalidBody = 'invalid_body';
     case PersistenceFailed = 'persistence_failed';
 }

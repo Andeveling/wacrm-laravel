@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\WhatsappWebhookDelivery;
+use App\Models\WhatsappWebhookEvent;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 
 /**
@@ -40,6 +42,11 @@ class PruneWhatsappWebhookDeliveries extends Command
 
         $deleted = WhatsappWebhookDelivery::query()
             ->where('received_at', '<', $cutoff)
+            ->settled()
+            ->whereDoesntHave('events', function (Builder $query): void {
+                /** @var Builder<WhatsappWebhookEvent> $query */
+                $query->classifiable();
+            })
             ->delete();
 
         $this->info("Pruned {$deleted} webhook delivery row(s) older than {$days} day(s).");

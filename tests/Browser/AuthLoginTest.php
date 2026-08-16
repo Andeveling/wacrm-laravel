@@ -13,6 +13,7 @@ beforeEach(function () {
 test('login page renders with correct elements', function () {
     $this->visit('/login')
         ->assertNoSmoke()
+        ->assertSee('Wacrm')
         ->assertSee('Iniciar sesión')
         ->assertSee('Correo electrónico')
         ->assertSee('Contraseña')
@@ -21,18 +22,34 @@ test('login page renders with correct elements', function () {
         ->assertSee('Iniciar sesión con llave de acceso');
 });
 
+test('login offers an accessible compact appearance toggle', function () {
+    $this->visit('/login')
+        ->assertAttribute('html', 'data-mode', 'dark')
+        ->click('[data-testid="auth-appearance-toggle"]')
+        ->assertAttribute('html', 'data-mode', 'light')
+        ->assertNoSmoke();
+});
+
+test('login uses the shared public auth form scale', function () {
+    $this->visit('/login')
+        ->assertScript("getComputedStyle(document.querySelector('[data-testid=auth-form-panel]')).maxWidth === '448px'")
+        ->assertScript("getComputedStyle(document.querySelector('input[name=email]')).height === '48px'")
+        ->assertScript("getComputedStyle(document.querySelector('[data-test=login-button]')).height === '48px'")
+        ->assertNoSmoke();
+});
+
 test('successful login redirects to dashboard', function () {
     $this->visit('/login')
-        ->type('input#email', $this->user->email)
-        ->type('input#password', $this->password)
+        ->type('input[name="email"]', $this->user->email)
+        ->type('input[name="password"]', $this->password)
         ->press('button[type="submit"]')
         ->assertNoSmoke();
 });
 
 test('failed login shows error message', function () {
     $this->visit('/login')
-        ->type('input#email', $this->user->email)
-        ->type('input#password', 'wrong-password')
+        ->type('input[name="email"]', $this->user->email)
+        ->type('input[name="password"]', 'wrong-password')
         ->press('button[type="submit"]')
         ->assertSee(trans('auth.failed'));
 });

@@ -7,15 +7,16 @@ namespace App\Domain\Contacts\Actions;
 use App\Domain\Contacts\Responders\ContactRedirectResponder;
 use App\Models\Contact;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 final readonly class DestroyContact
 {
     public function __construct(private ContactRedirectResponder $responder) {}
 
-    public function __invoke(Contact $contact): RedirectResponse
+    public function __invoke(Request $request, Contact $contact): RedirectResponse
     {
         $contact->delete();
 
-        return $this->responder->success();
+        return $this->responder->success($request->query());
     }
 }

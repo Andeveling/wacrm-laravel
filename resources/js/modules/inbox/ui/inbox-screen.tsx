@@ -1,11 +1,13 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { inbox } from '@/routes';
+import { store as storeInboxMessage } from '@/routes/inbox/messages';
 import type { Conversation, InboxPageProps, Message } from '../contracts';
 import { ContactSidebar } from './contact-sidebar';
 import { ConversationList } from './conversation-list';
 import { MessageThread } from './message-thread';
+import { NewConversationDialog } from './new-conversation-dialog';
 
 function groupMessages(messages: Message[]): Record<string, Message[]> {
   return messages.reduce<Record<string, Message[]>>((groups, message) => {
@@ -19,6 +21,8 @@ function groupMessages(messages: Message[]): Record<string, Message[]> {
 export default function InboxPage({
   conversations: initialConversations,
   messages: initialMessages,
+  contacts,
+  connections,
 }: InboxPageProps) {
   const [conversations, setConversations] = useState<Conversation[]>(
     () => initialConversations,
@@ -26,13 +30,12 @@ export default function InboxPage({
   const [activeId, setActiveId] = useState<string | null>(
     () => initialConversations[0]?.id ?? null,
   );
-  const [messagesByConv, setMessagesByConv] = useState<
-    Record<string, Message[]>
-  >(() => groupMessages(initialMessages));
+  const [newConversationOpen, setNewConversationOpen] = useState(false);
+  const messagesByConversation = groupMessages(initialMessages);
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? null;
-  const messages = activeId ? (messagesByConv[activeId] ?? []) : [];
+  const messages = activeId ? (messagesByConversation[activeId] ?? []) : [];
 
   function selectConversation(conversation: Conversation) {
     setActiveId(conversation.id);
@@ -45,29 +48,10 @@ export default function InboxPage({
 
   function sendMessage(text: string) {
     if (!activeId) return;
-    const message: Message = {
-      id: `${activeId}-msg-${Date.now()}`,
-      conversation_id: activeId,
-      sender_type: 'agent',
+
+    router.post(storeInboxMessage.url(activeId), {
       content_text: text,
-      status: 'sent',
-      created_at: new Date().toISOString(),
-    };
-    setMessagesByConv((prev) => ({
-      ...prev,
-      [activeId]: [...(prev[activeId] ?? []), message],
-    }));
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === activeId
-          ? {
-              ...c,
-              last_message_text: text,
-              last_message_at: message.created_at,
-            }
-          : c,
-      ),
-    );
+    });
   }
 
   return (
@@ -79,6 +63,7 @@ export default function InboxPage({
           conversations={conversations}
           activeConversationId={activeId}
           onSelect={selectConversation}
+          onNewConversation={() => setNewConversationOpen(true)}
         />
 
         {activeConversation ? (
@@ -88,9 +73,9 @@ export default function InboxPage({
               messages={messages}
               onSend={sendMessage}
             />
-            {activeConversation.contact && (
+            {activeConversation.contact ? (
               <ContactSidebar contact={activeConversation.contact} />
-            )}
+            ) : null}
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
@@ -103,6 +88,12 @@ export default function InboxPage({
           </div>
         )}
       </div>
+      <NewConversationDialog
+        open={newConversationOpen}
+        onOpenChange={setNewConversationOpen}
+        contacts={contacts}
+        connections={connections}
+      />
     </>
   );
 }

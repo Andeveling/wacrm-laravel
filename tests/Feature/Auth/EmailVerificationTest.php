@@ -62,10 +62,11 @@ test('email is not verified with invalid user id', function () {
 
     Event::fake();
 
+    // Use an id that cannot collide with auto-increment ids from the suite.
     $verificationUrl = URL::temporarySignedRoute(
         'verification.verify',
         now()->addMinutes(60),
-        ['id' => 123, 'hash' => sha1($user->email)],
+        ['id' => 2_147_483_647, 'hash' => sha1($user->email)],
     );
 
     $this->actingAs($user)->get($verificationUrl);

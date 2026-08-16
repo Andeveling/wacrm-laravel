@@ -9,7 +9,8 @@ export type BroadcastStatus =
   | 'scheduled'
   | 'sending'
   | 'sent'
-  | 'failed';
+  | 'failed'
+  | 'paused';
 export type RecipientStatus =
   | 'pending'
   | 'sent'
@@ -20,6 +21,7 @@ export type RecipientStatus =
 
 export interface Broadcast {
   id: string;
+  connection_id?: string | null;
   name: string;
   template_name: string;
   template_language: string;
@@ -70,4 +72,16 @@ export interface MessageTemplate {
   footer_text?: string;
   status?: MessageTemplateStatus;
   rejection_reason?: string;
+}
+
+export interface BroadcastTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface BroadcastConnection {
+  id: string;
+  phone_number_id: string;
+  is_default: boolean;
 }

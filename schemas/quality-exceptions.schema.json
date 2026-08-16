@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["architecture", "coverage", "mutation", "crap", "duplication"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "architecture": { "$ref": "#/$defs/exceptions" },
+    "coverage": { "$ref": "#/$defs/exceptions" },
+    "mutation": { "$ref": "#/$defs/exceptions" },
+    "crap": { "$ref": "#/$defs/exceptions" },
+    "duplication": {
+      "allOf": [
+        { "$ref": "#/$defs/exceptions" },
+        { "minItems": 1, "maxItems": 1 }
+      ]
+    }
+  },
+  "$defs": {
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason", "issue", "expires"],
+        "properties": {
+          "paths": { "type": "array", "items": { "type": "string" } },
+          "baseline": {
+            "type": "object",
+            "required": [
+              "clones",
+              "duplicatedLines",
+              "duplicatedTokens",
+              "cloneFingerprints"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "clones": { "type": "integer", "minimum": 0 },
+              "duplicatedLines": { "type": "integer", "minimum": 0 },
+              "duplicatedTokens": { "type": "integer", "minimum": 0 },
+              "cloneFingerprints": {
+                "type": "array",
+                "items": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+              }
+            }
+          },
+          "reason": { "type": "string", "minLength": 1 },
+          "issue": { "type": "integer", "minimum": 1 },
+          "expires": { "type": "string", "format": "date" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -24,6 +24,7 @@ class InvitationFactory extends Factory
             'account_id' => Account::factory(),
             'token_hash' => hash('sha256', Str::random(48)),
             'role' => 'member',
+            'email' => null,
             'invited_by' => User::factory(),
             'label' => null,
             'expires_at' => now()->addDays(7),

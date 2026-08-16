@@ -87,7 +87,12 @@ export default function TwoFactorChallenge() {
                     >
                       <InputOTPGroup>
                         {Array.from({ length: OTP_MAX_LENGTH }, (_, index) => (
-                          <InputOTPSlot key={index} index={index} />
+                          <InputOTPSlot
+                            key={index}
+                            index={index}
+                            className="size-12 text-base"
+                            data-testid="two-factor-otp-slot"
+                          />
                         ))}
                       </InputOTPGroup>
                     </InputOTP>
@@ -104,8 +109,9 @@ export default function TwoFactorChallenge() {
                 <span>o puedes </span>
                 <button
                   type="button"
-                  className="cursor-pointer text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                  className="h-12 cursor-pointer text-base text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
                   onClick={() => toggleRecoveryMode(clearErrors)}
+                  data-testid="two-factor-recovery-toggle"
                 >
                   {authConfigContent.toggleText}
                 </button>

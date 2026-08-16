@@ -53,6 +53,8 @@ class InvitationIssuer
     ): array {
         $token = Str::random(43);
 
+        $email = $email !== null ? Str::of($email)->trim()->lower()->toString() : null;
+
         $invitation = Invitation::create([
             'account_id' => $accountId,
             'token_hash' => hash('sha256', $token),

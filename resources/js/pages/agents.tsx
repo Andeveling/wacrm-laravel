@@ -1,1 +1,1 @@
-export { default } from '@/modules/agents/ui/agents-screen';
+export { default } from '@/modules/agents/components/agents-screen';

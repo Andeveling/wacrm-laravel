@@ -11,7 +11,7 @@ import type { ComponentType } from 'react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { inbox } from '@/routes';
-import type { ActivityItem, ActivityKind } from '../contracts';
+import type { ActivityItem, ActivityKind } from '../types';
 import { EmptyState } from './empty-state';
 import { Skeleton } from './skeleton';
 

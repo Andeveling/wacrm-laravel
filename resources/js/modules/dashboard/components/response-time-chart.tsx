@@ -1,7 +1,7 @@
 import { Clock } from 'lucide-react';
 import { BarChart } from '@/components/tremor/bar-chart';
-import type { ResponseTimeSummary } from '../contracts';
-import { DOW_SHORT_MON_FIRST } from '../date-utils';
+import { DOW_SHORT_MON_FIRST } from '../helpers/date-utils';
+import type { ResponseTimeSummary } from '../types';
 import { EmptyState } from './empty-state';
 import { Skeleton } from './skeleton';
 

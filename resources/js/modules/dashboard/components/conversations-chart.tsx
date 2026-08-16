@@ -1,7 +1,7 @@
 import { MessageSquare } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { ConversationsSeriesPoint } from '../contracts';
+import type { ConversationsSeriesPoint } from '../types';
 import { EmptyState } from './empty-state';
 import { Skeleton } from './skeleton';
 
@@ -89,6 +89,8 @@ export function ConversationsChart({
   );
 }
 
+type HoverState = { idx: number; tooltipLeftPx: number };
+
 function LineSvg({
   data,
   maxY,
@@ -98,10 +100,7 @@ function LineSvg({
   maxY: number;
   ticks: number[];
 }) {
-  const [hover, setHover] = useState<{
-    idx: number;
-    tooltipLeftPx: number;
-  } | null>(null);
+  const [hover, setHover] = useState<HoverState | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -110,9 +109,7 @@ function LineSvg({
 
   const stepX = data.length > 1 ? chartW / (data.length - 1) : 0;
   const yFor = (v: number) =>
-    maxY === 0
-      ? PADDING.top + chartH
-      : PADDING.top + chartH - (v / maxY) * chartH;
+    PADDING.top + chartH - (maxY === 0 ? 0 : (v / maxY) * chartH);
   const xFor = (i: number) => PADDING.left + i * stepX;
 
   const incomingPath = data
@@ -165,7 +162,6 @@ function LineSvg({
 
   const hovered = hover !== null ? data[hover.idx] : null;
   const hoverX = hover !== null ? xFor(hover.idx) : 0;
-
   const labelStride = Math.max(1, Math.ceil(data.length / 6));
 
   return (
@@ -177,108 +173,185 @@ function LineSvg({
         role="img"
         aria-label="Gráfico de conversaciones"
       >
-        {ticks.map((tick) => {
-          const y = yFor(tick);
-          return (
-            <g key={tick}>
-              <line
-                x1={PADDING.left}
-                x2={VB_W - PADDING.right}
-                y1={y}
-                y2={y}
-                stroke="var(--border)"
-                strokeDasharray="3 3"
-              />
-              <text
-                x={PADDING.left - 8}
-                y={y}
-                textAnchor="end"
-                dominantBaseline="middle"
-                className="fill-muted-foreground text-[10px]"
-              >
-                {tick}
-              </text>
-            </g>
-          );
-        })}
-
-        {data.map((p, i) =>
-          i % labelStride === 0 ? (
-            <text
-              key={p.day}
-              x={xFor(i)}
-              y={VB_H - 8}
-              textAnchor="middle"
-              className="fill-muted-foreground text-[10px]"
-            >
-              {shortDayLabel(p.day)}
-            </text>
-          ) : null,
-        )}
-
-        <path
-          d={outgoingPath}
-          fill="none"
-          stroke="#7c3aed"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <ChartGrid ticks={ticks} yFor={yFor} />
+        <ChartXAxisLabels data={data} labelStride={labelStride} xFor={xFor} />
+        <ChartPaths incomingPath={incomingPath} outgoingPath={outgoingPath} />
+        <ChartHoverOverlay
+          data={data}
+          hover={hover}
+          hoverX={hoverX}
+          chartH={chartH}
+          yFor={yFor}
         />
-        <path
-          d={incomingPath}
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {hover !== null && (
-          <g pointerEvents="none">
-            <line
-              x1={hoverX}
-              x2={hoverX}
-              y1={PADDING.top}
-              y2={PADDING.top + chartH}
-              stroke="var(--muted-foreground)"
-              strokeDasharray="3 3"
-            />
-            <circle
-              cx={hoverX}
-              cy={yFor(data[hover.idx].incoming)}
-              r={3.5}
-              fill="#3b82f6"
-            />
-            <circle
-              cx={hoverX}
-              cy={yFor(data[hover.idx].outgoing)}
-              r={3.5}
-              fill="#7c3aed"
-            />
-          </g>
-        )}
       </svg>
 
-      {hovered && hover !== null && (
-        <div
-          className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] shadow-lg"
-          style={{ left: `${hover.tooltipLeftPx}px` }}
-        >
-          <div className="font-medium text-popover-foreground">
-            {longDayLabel(hovered.day)}
-          </div>
-          <div className="mt-1 flex flex-col gap-0.5">
-            <span className="flex items-center gap-1.5 text-blue-300">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" />
-              {hovered.incoming} entrantes
-            </span>
-            <span className="flex items-center gap-1.5 text-primary">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-              {hovered.outgoing} salientes
-            </span>
-          </div>
-        </div>
+      <ChartTooltip hover={hover} hovered={hovered} />
+    </div>
+  );
+}
+
+function ChartGrid({
+  ticks,
+  yFor,
+}: {
+  ticks: number[];
+  yFor: (value: number) => number;
+}) {
+  return (
+    <>
+      {ticks.map((tick) => {
+        const y = yFor(tick);
+        return (
+          <g key={tick}>
+            <line
+              x1={PADDING.left}
+              x2={VB_W - PADDING.right}
+              y1={y}
+              y2={y}
+              stroke="var(--border)"
+              strokeDasharray="3 3"
+            />
+            <text
+              x={PADDING.left - 8}
+              y={y}
+              textAnchor="end"
+              dominantBaseline="middle"
+              className="fill-muted-foreground text-[10px]"
+            >
+              {tick}
+            </text>
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+function ChartXAxisLabels({
+  data,
+  labelStride,
+  xFor,
+}: {
+  data: ConversationsSeriesPoint[];
+  labelStride: number;
+  xFor: (index: number) => number;
+}) {
+  return (
+    <>
+      {data.map((p, i) =>
+        i % labelStride === 0 ? (
+          <text
+            key={p.day}
+            x={xFor(i)}
+            y={VB_H - 8}
+            textAnchor="middle"
+            className="fill-muted-foreground text-[10px]"
+          >
+            {shortDayLabel(p.day)}
+          </text>
+        ) : null,
       )}
+    </>
+  );
+}
+
+function ChartPaths({
+  incomingPath,
+  outgoingPath,
+}: {
+  incomingPath: string;
+  outgoingPath: string;
+}) {
+  return (
+    <>
+      <path
+        d={outgoingPath}
+        fill="none"
+        stroke="#7c3aed"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d={incomingPath}
+        fill="none"
+        stroke="#3b82f6"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </>
+  );
+}
+
+function ChartHoverOverlay({
+  data,
+  hover,
+  hoverX,
+  chartH,
+  yFor,
+}: {
+  data: ConversationsSeriesPoint[];
+  hover: HoverState | null;
+  hoverX: number;
+  chartH: number;
+  yFor: (value: number) => number;
+}) {
+  if (hover === null) return null;
+
+  return (
+    <g pointerEvents="none">
+      <line
+        x1={hoverX}
+        x2={hoverX}
+        y1={PADDING.top}
+        y2={PADDING.top + chartH}
+        stroke="var(--muted-foreground)"
+        strokeDasharray="3 3"
+      />
+      <circle
+        cx={hoverX}
+        cy={yFor(data[hover.idx].incoming)}
+        r={3.5}
+        fill="#3b82f6"
+      />
+      <circle
+        cx={hoverX}
+        cy={yFor(data[hover.idx].outgoing)}
+        r={3.5}
+        fill="#7c3aed"
+      />
+    </g>
+  );
+}
+
+function ChartTooltip({
+  hover,
+  hovered,
+}: {
+  hover: HoverState | null;
+  hovered: ConversationsSeriesPoint | null;
+}) {
+  if (!hovered || hover === null) return null;
+
+  return (
+    <div
+      className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] shadow-lg"
+      style={{ left: `${hover.tooltipLeftPx}px` }}
+    >
+      <div className="font-medium text-popover-foreground">
+        {longDayLabel(hovered.day)}
+      </div>
+      <div className="mt-1 flex flex-col gap-0.5">
+        <span className="flex items-center gap-1.5 text-blue-300">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" />
+          {hovered.incoming} entrantes
+        </span>
+        <span className="flex items-center gap-1.5 text-primary">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+          {hovered.outgoing} salientes
+        </span>
+      </div>
     </div>
   );
 }
@@ -315,10 +388,7 @@ function niceCeil(max: number): number {
   if (max <= 0) return 4;
   const pow = 10 ** Math.floor(Math.log10(max));
   const normalised = max / pow;
-  let nice: number;
-  if (normalised <= 1) nice = 1;
-  else if (normalised <= 2) nice = 2;
-  else if (normalised <= 5) nice = 5;
-  else nice = 10;
+  const nice =
+    normalised <= 1 ? 1 : normalised <= 2 ? 2 : normalised <= 5 ? 5 : 10;
   return nice * pow;
 }

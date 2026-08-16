@@ -3,7 +3,7 @@ import { DollarSign, MessageSquare, Send, UserPlus } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { formatCurrency } from '@/lib/currency';
 import { dashboard } from '@/routes';
-import type { ConversationsSeriesPoint } from '../contracts';
+import type { ConversationsSeriesPoint } from '../types';
 import { ActivityFeed } from './activity-feed';
 import { ConversationsChart } from './conversations-chart';
 import { MetricCard } from './metric-card';

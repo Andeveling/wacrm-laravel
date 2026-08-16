@@ -1,6 +1,6 @@
 import { GitBranch } from 'lucide-react';
 import { formatCurrencyShort } from '@/lib/currency';
-import type { PipelineDonutData } from '../contracts';
+import type { PipelineDonutData } from '../types';
 import { EmptyState } from './empty-state';
 import { Skeleton } from './skeleton';
 

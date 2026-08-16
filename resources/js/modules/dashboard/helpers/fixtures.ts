@@ -4,7 +4,7 @@ import type {
   MetricsBundle,
   PipelineDonutData,
   ResponseTimeSummary,
-} from './contracts';
+} from '../types';
 import { lastNDayKeys } from './date-utils';
 
 /** Static placeholder data — this page has no backend wired up yet. */

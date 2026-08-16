@@ -1,21 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": [
-    "architecture",
-    "coverage",
-    "mutation",
-    "crap",
-    "duplication",
-    "phpstan"
-  ],
+  "required": ["architecture", "coverage", "mutation", "crap", "duplication"],
   "additionalProperties": false,
   "properties": {
+    "$schema": { "type": "string" },
     "architecture": { "$ref": "#/$defs/exceptions" },
     "coverage": { "$ref": "#/$defs/exceptions" },
     "mutation": { "$ref": "#/$defs/exceptions" },
     "crap": { "$ref": "#/$defs/exceptions" },
-    "phpstan": { "$ref": "#/$defs/exceptions" },
     "duplication": {
       "allOf": [
         { "$ref": "#/$defs/exceptions" },

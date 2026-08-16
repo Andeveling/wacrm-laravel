@@ -1,15 +1,20 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const categories = [
-  'architecture',
-  'coverage',
-  'mutation',
-  'crap',
-  'duplication',
-  'phpstan',
-];
+const schema = JSON.parse(
+  readFileSync(
+    resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      '../schemas/quality-exceptions.schema.json',
+    ),
+    'utf8',
+  ),
+);
+
+const categories = Object.keys(schema.properties).filter(
+  (key) => key !== '$schema',
+);
 
 function isIsoDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value ?? '')) {
@@ -25,6 +30,12 @@ function isIsoDate(value) {
 
 export function validateQualityExceptions(exceptions, today = new Date()) {
   const errors = [];
+
+  for (const key of Object.keys(exceptions)) {
+    if (key !== '$schema' && !categories.includes(key)) {
+      errors.push(`${key} is not a quality-exception category.`);
+    }
+  }
 
   for (const category of categories) {
     if (!Array.isArray(exceptions[category])) {

@@ -2,33 +2,27 @@
 
 declare(strict_types=1);
 
+$domainHttpDenyList = [
+    'App\\Http',
+    'Illuminate\\Http',
+    'Inertia',
+];
+
 arch('application security')
     ->preset()
     ->security();
 
 arch('domain support is framework and transport independent')
     ->expect('App\\Domain\\*\\Support')
-    ->not->toUse([
-        'App\\Http',
-        'Illuminate\\Http',
-        'Inertia',
-    ]);
+    ->not->toUse($domainHttpDenyList);
 
 arch('domain results are transport independent')
     ->expect('App\\Domain\\*\\Results')
-    ->not->toUse([
-        'App\\Http',
-        'Illuminate\\Http',
-        'Inertia',
-    ]);
+    ->not->toUse($domainHttpDenyList);
 
 arch('domain services stay isolated from HTTP')
     ->expect('App\\Domain\\*\\Services')
-    ->not->toUse([
-        'App\\Http',
-        'Illuminate\\Http',
-        'Inertia',
-    ]);
+    ->not->toUse($domainHttpDenyList);
 
 arch('responders stay isolated from persistence')
     ->expect('App\\Domain\\*\\Responders')

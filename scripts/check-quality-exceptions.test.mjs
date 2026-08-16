@@ -10,7 +10,6 @@ const valid = {
   coverage: [],
   mutation: [],
   crap: [],
-  phpstan: [],
   duplication: [
     {
       baseline: {
@@ -31,6 +30,15 @@ describe('quality exception validation', () => {
     expect(
       validateQualityExceptions(valid, new Date('2026-01-01T00:00:00Z')),
     ).toEqual([]);
+  });
+
+  it('rejects categories outside the schema', () => {
+    const extra = structuredClone(valid);
+    extra.phpstan = [];
+
+    expect(
+      validateQualityExceptions(extra, new Date('2026-01-01T00:00:00Z')),
+    ).toContain('phpstan is not a quality-exception category.');
   });
 
   it('rejects expired and invalid expiry dates', () => {

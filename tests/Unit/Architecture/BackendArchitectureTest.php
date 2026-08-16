@@ -2,9 +2,14 @@
 
 declare(strict_types=1);
 
+// Transport HTTP (requests/responses/Inertia), not the outbound Http client
+// used by Graph/Meta adapters inside Domain Services.
 $domainHttpDenyList = [
     'App\\Http',
-    'Illuminate\\Http',
+    'Illuminate\\Http\\Request',
+    'Illuminate\\Http\\Response',
+    'Illuminate\\Http\\JsonResponse',
+    'Illuminate\\Http\\RedirectResponse',
     'Inertia',
 ];
 
@@ -20,7 +25,7 @@ arch('domain results are transport independent')
     ->expect('App\\Domain\\*\\Results')
     ->not->toUse($domainHttpDenyList);
 
-arch('domain services stay isolated from HTTP')
+arch('domain services stay isolated from HTTP transport')
     ->expect('App\\Domain\\*\\Services')
     ->not->toUse($domainHttpDenyList);
 

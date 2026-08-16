@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import type { Passkey } from '../contracts';
+import type { Passkey } from '../types';
 
 type Props = {
   passkey: Passkey;

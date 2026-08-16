@@ -1,1 +1,1 @@
-export { default } from '@/modules/auth/ui/reset-password-screen';
+export { default } from '@/modules/auth/components/reset-password-screen';

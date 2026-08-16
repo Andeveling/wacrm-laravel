@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { disable, enable } from '@/routes/two-factor';
-import { useTwoFactorAuth } from '../use-two-factor-auth';
+import { useTwoFactorAuth } from '../hooks/use-two-factor-auth';
 import TwoFactorRecoveryCodes from './two-factor-recovery-codes';
 import TwoFactorSetupModal from './two-factor-setup-modal';
 

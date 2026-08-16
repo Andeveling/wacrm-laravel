@@ -1,1 +1,1 @@
-export { default } from '@/modules/auth/ui/confirm-password-screen';
+export { default } from '@/modules/auth/components/confirm-password-screen';

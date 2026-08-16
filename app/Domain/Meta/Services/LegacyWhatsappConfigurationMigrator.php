@@ -89,6 +89,23 @@ final class LegacyWhatsappConfigurationMigrator
      */
     private function migrateConfig(array $legacy): void
     {
+        $integration = $this->resolveIntegration($legacy);
+
+        if ($integration === null) {
+            return;
+        }
+
+        $waba = $this->migrateWaba($legacy, (string) $integration['id']);
+        $this->migratePhoneConnection($legacy, $waba['id'] ?? null);
+        $this->recordMissingLegacyFields($legacy);
+    }
+
+    /**
+     * @param  LegacyConfig  $legacy
+     * @return array{id: string, account_id: string, legacy_config_id: string}|null
+     */
+    private function resolveIntegration(array $legacy): ?array
+    {
         $integration = DB::table((new WhatsappIntegration)->getTable())
             ->where('legacy_config_id', $legacy['id'])
             ->first();
@@ -102,7 +119,7 @@ final class LegacyWhatsappConfigurationMigrator
                 details: ['resource' => 'whatsapp_integration', 'action' => 'explicit_remediation_required'],
             );
 
-            return;
+            return null;
         }
 
         $matchedByLegacyId = $integration !== null;
@@ -114,70 +131,92 @@ final class LegacyWhatsappConfigurationMigrator
         }
 
         if ($integration === null) {
-            $integrationId = (string) str()->uuid();
-            $plainToken = $this->nullableString($legacy['access_token']);
+            return $this->insertIntegration($legacy);
+        }
 
-            DB::table((new WhatsappIntegration)->getTable())->insert([
-                'id' => $integrationId,
-                'account_id' => $legacy['account_id'],
-                'created_by' => $legacy['user_id'],
-                'access_token' => $plainToken === null ? null : Crypt::encryptString($plainToken),
+        $integrationId = (string) $integration->id;
+
+        if (! $matchedByLegacyId) {
+            $this->copyLegacyTokens($legacy, $integrationId);
+        }
+
+        return [
+            'id' => $integrationId,
+            'account_id' => (string) $integration->account_id,
+            'legacy_config_id' => $legacy['id'],
+        ];
+    }
+
+    /**
+     * @param  LegacyConfig  $legacy
+     * @return array{id: string, account_id: string, legacy_config_id: string}
+     */
+    private function insertIntegration(array $legacy): array
+    {
+        $integrationId = (string) str()->uuid();
+        $plainToken = $this->nullableString($legacy['access_token']);
+
+        DB::table((new WhatsappIntegration)->getTable())->insert([
+            'id' => $integrationId,
+            'account_id' => $legacy['account_id'],
+            'created_by' => $legacy['user_id'],
+            'access_token' => $plainToken === null ? null : Crypt::encryptString($plainToken),
+            'legacy_verify_token' => $legacy['verify_token'] === null
+                ? null
+                : Crypt::encryptString($legacy['verify_token']),
+            'legacy_config_id' => $legacy['id'],
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [
+            'id' => $integrationId,
+            'account_id' => $legacy['account_id'],
+            'legacy_config_id' => $legacy['id'],
+        ];
+    }
+
+    /**
+     * @param  LegacyConfig  $legacy
+     */
+    private function copyLegacyTokens(array $legacy, string $integrationId): void
+    {
+        DB::table((new WhatsappIntegration)->getTable())
+            ->where('id', $integrationId)
+            ->update([
+                'access_token' => $legacy['access_token'] === null
+                    ? null
+                    : Crypt::encryptString($legacy['access_token']),
                 'legacy_verify_token' => $legacy['verify_token'] === null
                     ? null
                     : Crypt::encryptString($legacy['verify_token']),
                 'legacy_config_id' => $legacy['id'],
-                'created_at' => now(),
                 'updated_at' => now(),
             ]);
+    }
 
-            $integration = [
-                'id' => $integrationId,
-                'account_id' => $legacy['account_id'],
-                'legacy_config_id' => $legacy['id'],
-            ];
-        } else {
-            $integrationId = (string) $integration->id;
-
-            if (! $matchedByLegacyId) {
-                DB::table((new WhatsappIntegration)->getTable())
-                    ->where('id', $integrationId)
-                    ->update([
-                        'access_token' => $legacy['access_token'] === null
-                            ? null
-                            : Crypt::encryptString($legacy['access_token']),
-                        'legacy_verify_token' => $legacy['verify_token'] === null
-                            ? null
-                            : Crypt::encryptString($legacy['verify_token']),
-                        'legacy_config_id' => $legacy['id'],
-                        'updated_at' => now(),
-                    ]);
-            }
-
-            $integration = [
-                'id' => $integrationId,
-                'account_id' => (string) $integration->account_id,
-                'legacy_config_id' => $legacy['id'],
-            ];
-        }
-
-        $waba = $this->migrateWaba($legacy, (string) $integration['id']);
-        $this->migratePhoneConnection($legacy, $waba['id'] ?? null);
-
+    /**
+     * @param  LegacyConfig  $legacy
+     */
+    private function recordMissingLegacyFields(array $legacy): void
+    {
         $missing = array_values(array_filter([
             $this->nullableString($legacy['access_token']) === null ? 'access_token' : null,
             $this->nullableString($legacy['waba_id']) === null ? 'waba_id' : null,
             $this->nullableString($legacy['phone_number_id']) === null ? 'phone_number_id' : null,
         ]));
 
-        if ($missing !== []) {
-            $this->recordIssue(
-                accountId: $legacy['account_id'],
-                kind: WhatsappLegacyMigrationIssueKind::IncompleteLegacyConfig,
-                legacyConfigId: $legacy['id'],
-                conversationId: null,
-                details: ['missing' => $missing],
-            );
+        if ($missing === []) {
+            return;
         }
+
+        $this->recordIssue(
+            accountId: $legacy['account_id'],
+            kind: WhatsappLegacyMigrationIssueKind::IncompleteLegacyConfig,
+            legacyConfigId: $legacy['id'],
+            conversationId: null,
+            details: ['missing' => $missing],
+        );
     }
 
     /**

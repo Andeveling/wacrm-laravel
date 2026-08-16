@@ -4,6 +4,7 @@
 /bootstrap/ssr
 /node_modules
 /public/build
+/reports/php/
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage

@@ -95,122 +95,216 @@ final class WhatsappWebhookDeliveryProcessor
     private function extractEvents(WhatsappWebhookDelivery $delivery): array
     {
         $payload = $delivery->raw_payload;
+        $entries = is_array($payload) ? Arr::get($payload, 'entry', []) : null;
 
-        if (! is_array($payload)) {
-            return [[
-                'fingerprint' => 'malformed:'.$delivery->id,
-                'phone_number_id' => null,
-                'kind' => 'malformed',
-                'payload' => [],
-            ]];
+        if (! is_array($payload) || ! is_array($entries)) {
+            return [$this->malformedEvent($delivery)];
         }
 
         $events = [];
-        $entries = Arr::get($payload, 'entry', []);
-
-        if (! is_array($entries)) {
-            return [[
-                'fingerprint' => 'malformed:'.$delivery->id,
-                'phone_number_id' => null,
-                'kind' => 'malformed',
-                'payload' => [],
-            ]];
-        }
 
         foreach ($entries as $entryIndex => $entry) {
             if (! is_array($entry)) {
                 continue;
             }
 
-            $changes = Arr::get($entry, 'changes', []);
-            if (! is_array($changes)) {
+            $events = [...$events, ...$this->eventsFromEntry($delivery, $entry, $entryIndex)];
+        }
+
+        return $events;
+    }
+
+    /**
+     * @param  array<string, mixed>  $entry
+     * @return list<array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}>
+     */
+    private function eventsFromEntry(WhatsappWebhookDelivery $delivery, array $entry, int|string $entryIndex): array
+    {
+        $changes = Arr::get($entry, 'changes', []);
+
+        if (! is_array($changes)) {
+            return [];
+        }
+
+        $events = [];
+
+        foreach ($changes as $changeIndex => $change) {
+            if (! is_array($change)) {
                 continue;
             }
 
-            foreach ($changes as $changeIndex => $change) {
-                if (! is_array($change)) {
-                    continue;
-                }
+            $events = [...$events, ...$this->eventsFromChange($delivery, $change, $entryIndex, $changeIndex)];
+        }
 
-                $field = is_string($change['field'] ?? null) ? $change['field'] : '';
-                $value = is_array($change['value'] ?? null) ? $change['value'] : [];
-                $rawPhoneNumberId = Arr::get($value, 'metadata.phone_number_id');
-                $phoneNumberId = is_string($rawPhoneNumberId) ? $rawPhoneNumberId : null;
+        return $events;
+    }
 
-                if ($field !== 'messages') {
-                    $events[] = [
-                        'fingerprint' => 'unsupported:'.$delivery->id.':'.$entryIndex.':'.$changeIndex,
-                        'phone_number_id' => $phoneNumberId,
-                        'kind' => 'unsupported',
-                        'payload' => ['field' => $field],
-                    ];
+    /**
+     * @param  array<string, mixed>  $change
+     * @return list<array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}>
+     */
+    private function eventsFromChange(
+        WhatsappWebhookDelivery $delivery,
+        array $change,
+        int|string $entryIndex,
+        int|string $changeIndex,
+    ): array {
+        $field = is_string($change['field'] ?? null) ? $change['field'] : '';
+        $value = is_array($change['value'] ?? null) ? $change['value'] : [];
+        $phoneNumberId = $this->phoneNumberIdFromValue($value);
 
-                    continue;
-                }
+        if ($field !== 'messages') {
+            return [$this->unsupportedEvent($delivery, $phoneNumberId, $field, $entryIndex, $changeIndex)];
+        }
 
-                $messages = Arr::get($value, 'messages', []);
-                $statuses = Arr::get($value, 'statuses', []);
-                $hasMessages = is_array($messages) && $messages !== [];
-                $hasStatuses = is_array($statuses) && $statuses !== [];
+        return $this->messageFieldEvents($delivery, $value, $phoneNumberId, $field, $entryIndex, $changeIndex);
+    }
 
-                if (! $hasMessages && ! $hasStatuses) {
-                    $events[] = [
-                        'fingerprint' => 'unsupported:'.$delivery->id.':'.$entryIndex.':'.$changeIndex,
-                        'phone_number_id' => $phoneNumberId,
-                        'kind' => 'unsupported',
-                        'payload' => ['field' => $field],
-                    ];
+    /**
+     * @param  array<string, mixed>  $value
+     */
+    private function phoneNumberIdFromValue(array $value): ?string
+    {
+        $rawPhoneNumberId = Arr::get($value, 'metadata.phone_number_id');
 
-                    continue;
-                }
+        return is_string($rawPhoneNumberId) ? $rawPhoneNumberId : null;
+    }
 
-                $contacts = is_array(Arr::get($value, 'contacts')) ? $value['contacts'] : [];
+    /**
+     * @param  array<string, mixed>  $value
+     * @return list<array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}>
+     */
+    private function messageFieldEvents(
+        WhatsappWebhookDelivery $delivery,
+        array $value,
+        ?string $phoneNumberId,
+        string $field,
+        int|string $entryIndex,
+        int|string $changeIndex,
+    ): array {
+        $messages = Arr::get($value, 'messages', []);
+        $statuses = Arr::get($value, 'statuses', []);
 
-                if ($hasMessages) {
-                    foreach ($messages as $messageIndex => $message) {
-                        if (! is_array($message)) {
-                            continue;
-                        }
+        if (! $this->hasItems($messages) && ! $this->hasItems($statuses)) {
+            return [$this->unsupportedEvent($delivery, $phoneNumberId, $field, $entryIndex, $changeIndex)];
+        }
 
-                        $messageId = is_string($message['id'] ?? null) ? $message['id'] : null;
-                        $indexedContact = $contacts[$messageIndex] ?? null;
-                        $firstContact = $contacts[0] ?? null;
-                        $contact = is_array($indexedContact)
-                            ? $indexedContact
-                            : (is_array($firstContact) ? $firstContact : []);
+        $contacts = is_array(Arr::get($value, 'contacts')) ? $value['contacts'] : [];
 
-                        $events[] = [
-                            'fingerprint' => $messageId !== null ? 'message:'.$messageId : 'message:'.$delivery->id.':'.$entryIndex.':'.$messageIndex,
-                            'phone_number_id' => $phoneNumberId,
-                            'kind' => 'inbound_message',
-                            'payload' => [
-                                'message' => $message,
-                                'contact' => $contact,
-                            ],
-                        ];
-                    }
-                }
+        return [
+            ...($this->hasItems($messages)
+                ? $this->inboundMessageEvents($delivery, $messages, $contacts, $phoneNumberId, $entryIndex)
+                : []),
+            ...($this->hasItems($statuses)
+                ? $this->statusEvents($delivery, $statuses, $phoneNumberId, $entryIndex)
+                : []),
+        ];
+    }
 
-                if ($hasStatuses) {
-                    foreach ($statuses as $statusIndex => $status) {
-                        if (! is_array($status)) {
-                            continue;
-                        }
+    private function hasItems(mixed $items): bool
+    {
+        return is_array($items) && $items !== [];
+    }
 
-                        $statusId = is_string($status['id'] ?? null) ? $status['id'] : null;
-                        $statusValue = is_string($status['status'] ?? null) ? $status['status'] : null;
+    /**
+     * @return array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}
+     */
+    private function malformedEvent(WhatsappWebhookDelivery $delivery): array
+    {
+        return [
+            'fingerprint' => 'malformed:'.$delivery->id,
+            'phone_number_id' => null,
+            'kind' => 'malformed',
+            'payload' => [],
+        ];
+    }
 
-                        $events[] = [
-                            'fingerprint' => $statusId !== null && $statusValue !== null
-                                ? 'status:'.$statusId.':'.$statusValue
-                                : 'status:'.$delivery->id.':'.$entryIndex.':'.$statusIndex,
-                            'phone_number_id' => $phoneNumberId,
-                            'kind' => 'message_status',
-                            'payload' => ['status' => $status],
-                        ];
-                    }
-                }
+    /**
+     * @return array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}
+     */
+    private function unsupportedEvent(
+        WhatsappWebhookDelivery $delivery,
+        ?string $phoneNumberId,
+        string $field,
+        int|string $entryIndex,
+        int|string $changeIndex,
+    ): array {
+        return [
+            'fingerprint' => 'unsupported:'.$delivery->id.':'.$entryIndex.':'.$changeIndex,
+            'phone_number_id' => $phoneNumberId,
+            'kind' => 'unsupported',
+            'payload' => ['field' => $field],
+        ];
+    }
+
+    /**
+     * @param  array<mixed>  $messages
+     * @param  array<mixed>  $contacts
+     * @return list<array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}>
+     */
+    private function inboundMessageEvents(
+        WhatsappWebhookDelivery $delivery,
+        array $messages,
+        array $contacts,
+        ?string $phoneNumberId,
+        int|string $entryIndex,
+    ): array {
+        $events = [];
+
+        foreach ($messages as $messageIndex => $message) {
+            if (! is_array($message)) {
+                continue;
             }
+
+            $messageId = is_string($message['id'] ?? null) ? $message['id'] : null;
+            $indexedContact = $contacts[$messageIndex] ?? null;
+            $firstContact = $contacts[0] ?? null;
+            $contact = is_array($indexedContact)
+                ? $indexedContact
+                : (is_array($firstContact) ? $firstContact : []);
+
+            $events[] = [
+                'fingerprint' => $messageId !== null ? 'message:'.$messageId : 'message:'.$delivery->id.':'.$entryIndex.':'.$messageIndex,
+                'phone_number_id' => $phoneNumberId,
+                'kind' => 'inbound_message',
+                'payload' => [
+                    'message' => $message,
+                    'contact' => $contact,
+                ],
+            ];
+        }
+
+        return $events;
+    }
+
+    /**
+     * @param  array<mixed>  $statuses
+     * @return list<array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}>
+     */
+    private function statusEvents(
+        WhatsappWebhookDelivery $delivery,
+        array $statuses,
+        ?string $phoneNumberId,
+        int|string $entryIndex,
+    ): array {
+        $events = [];
+
+        foreach ($statuses as $statusIndex => $status) {
+            if (! is_array($status)) {
+                continue;
+            }
+
+            $statusId = is_string($status['id'] ?? null) ? $status['id'] : null;
+            $statusValue = is_string($status['status'] ?? null) ? $status['status'] : null;
+
+            $events[] = [
+                'fingerprint' => $statusId !== null && $statusValue !== null
+                    ? 'status:'.$statusId.':'.$statusValue
+                    : 'status:'.$delivery->id.':'.$entryIndex.':'.$statusIndex,
+                'phone_number_id' => $phoneNumberId,
+                'kind' => 'message_status',
+                'payload' => ['status' => $status],
+            ];
         }
 
         return $events;
@@ -273,21 +367,14 @@ final class WhatsappWebhookDeliveryProcessor
         $phoneNumberId = $extracted['phone_number_id'];
 
         if ($extracted['kind'] !== 'inbound_message' && $extracted['kind'] !== 'message_status') {
-            return [
-                'classification' => WhatsappWebhookEvent::CLASSIFICATION_UNSUPPORTED,
-                'account_id' => null,
-                'connection_id' => null,
-                'phone_number_id' => is_string($phoneNumberId) ? $phoneNumberId : null,
-            ];
+            return $this->classification(
+                WhatsappWebhookEvent::CLASSIFICATION_UNSUPPORTED,
+                phoneNumberId: is_string($phoneNumberId) ? $phoneNumberId : null,
+            );
         }
 
         if (! is_string($phoneNumberId) || $phoneNumberId === '') {
-            return [
-                'classification' => WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED,
-                'account_id' => null,
-                'connection_id' => null,
-                'phone_number_id' => null,
-            ];
+            return $this->classification(WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED);
         }
 
         $connection = WhatsappPhoneNumberConnection::query()
@@ -296,44 +383,68 @@ final class WhatsappWebhookDeliveryProcessor
             ->first();
 
         if ($connection === null) {
-            return [
-                'classification' => WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED,
-                'account_id' => null,
-                'connection_id' => null,
-                'phone_number_id' => $phoneNumberId,
-            ];
+            return $this->classification(
+                WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED,
+                phoneNumberId: $phoneNumberId,
+            );
         }
 
         if ($connection->readiness === WhatsappConnectionReadiness::Disconnected) {
-            return [
-                'classification' => WhatsappWebhookEvent::CLASSIFICATION_BLOCKED,
-                'account_id' => $connection->account_id,
-                'connection_id' => $connection->id,
-                'phone_number_id' => $phoneNumberId,
-            ];
+            return $this->classification(
+                WhatsappWebhookEvent::CLASSIFICATION_BLOCKED,
+                $connection->account_id,
+                $connection->id,
+                $phoneNumberId,
+            );
         }
 
+        return $this->classification(
+            $this->applyExtractedAgainstConnection($connection, $extracted),
+            $connection->account_id,
+            $connection->id,
+            $phoneNumberId,
+        );
+    }
+
+    /**
+     * @return array{classification: string, account_id: string|null, connection_id: string|null, phone_number_id: string|null}
+     */
+    private function classification(
+        string $classification,
+        ?string $accountId = null,
+        ?string $connectionId = null,
+        ?string $phoneNumberId = null,
+    ): array {
+        return [
+            'classification' => $classification,
+            'account_id' => $accountId,
+            'connection_id' => $connectionId,
+            'phone_number_id' => $phoneNumberId,
+        ];
+    }
+
+    /**
+     * @param  array{fingerprint: string, phone_number_id: string|null, kind: string, payload: array<string, mixed>}  $extracted
+     */
+    private function applyExtractedAgainstConnection(
+        WhatsappPhoneNumberConnection $connection,
+        array $extracted,
+    ): string {
         app()->instance(AccountScope::CONTAINER_KEY, $connection->account_id);
 
         try {
-            $classification = $extracted['kind'] === 'message_status'
+            return $extracted['kind'] === 'message_status'
                 ? $this->applyStatusUpdate($connection, $extracted['payload'])
                 : ($this->applyInboundMessage($connection, $extracted['payload'])
                     ? WhatsappWebhookEvent::CLASSIFICATION_PROCESSED
                     : WhatsappWebhookEvent::CLASSIFICATION_UNRESOLVED);
         } catch (Throwable $exception) {
             report($exception);
-            $classification = WhatsappWebhookEvent::CLASSIFICATION_FAILED;
+
+            return WhatsappWebhookEvent::CLASSIFICATION_FAILED;
         } finally {
             app()->forgetInstance(AccountScope::CONTAINER_KEY);
         }
-
-        return [
-            'classification' => $classification,
-            'account_id' => $connection->account_id,
-            'connection_id' => $connection->id,
-            'phone_number_id' => $phoneNumberId,
-        ];
     }
 
     /**
@@ -343,77 +454,107 @@ final class WhatsappWebhookDeliveryProcessor
     {
         $message = is_array($payload['message'] ?? null) ? $payload['message'] : [];
         $contactPayload = is_array($payload['contact'] ?? null) ? $payload['contact'] : [];
+        $waId = $this->inboundWaId($contactPayload, $message);
 
+        if ($waId === null) {
+            return false;
+        }
+
+        $conversation = $this->conversationForInbound($connection, $waId, $contactPayload);
+        $this->storeInboundMessage($conversation, $message);
+        $this->activateWaitingConnection($connection);
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $contactPayload
+     * @param  array<string, mixed>  $message
+     */
+    private function inboundWaId(array $contactPayload, array $message): ?string
+    {
         $waId = is_string($contactPayload['wa_id'] ?? null)
             ? $contactPayload['wa_id']
             : (is_string($message['from'] ?? null) ? $message['from'] : null);
 
-        if (! is_string($waId) || $waId === '') {
-            return false;
-        }
+        return is_string($waId) && $waId !== '' ? $waId : null;
+    }
 
+    /**
+     * @param  array<string, mixed>  $contactPayload
+     */
+    private function conversationForInbound(
+        WhatsappPhoneNumberConnection $connection,
+        string $waId,
+        array $contactPayload,
+    ): Conversation {
         $normalized = Str::of($waId)->replaceMatches('/\D/', '')->toString();
         $rawName = Arr::get($contactPayload, 'profile.name');
         $name = is_string($rawName) ? $rawName : null;
-        $rawText = Arr::get($message, 'text.body');
-        $text = is_string($rawText) ? $rawText : null;
-        $metaMessageId = is_string($message['id'] ?? null) ? $message['id'] : null;
         $ownerUserId = $this->ownerUserId($connection);
 
-        $contact = Contact::query()->where('phone_normalized', $normalized)->first();
-
-        if ($contact === null) {
-            $contact = Contact::query()->create([
+        $contact = Contact::query()->where('phone_normalized', $normalized)->first()
+            ?? Contact::query()->create([
                 'account_id' => $connection->account_id,
                 'user_id' => $ownerUserId,
                 'phone' => $waId,
                 'name' => $name,
             ]);
-        }
 
-        $conversation = Conversation::query()
+        return Conversation::query()
             ->where('contact_id', $contact->id)
             ->where('connection_id', $connection->id)
             ->lockForUpdate()
-            ->first();
-
-        if ($conversation === null) {
-            $conversation = Conversation::query()->create([
+            ->first()
+            ?? Conversation::query()->create([
                 'account_id' => $connection->account_id,
                 'user_id' => $ownerUserId,
                 'contact_id' => $contact->id,
                 'connection_id' => $connection->id,
                 'status' => ConversationStatus::Open,
             ]);
-        }
+    }
 
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function storeInboundMessage(Conversation $conversation, array $message): void
+    {
+        $rawText = Arr::get($message, 'text.body');
+        $text = is_string($rawText) ? $rawText : null;
+        $metaMessageId = is_string($message['id'] ?? null) ? $message['id'] : null;
         $alreadyStored = $metaMessageId !== null && Message::query()
             ->where('conversation_id', $conversation->id)
             ->where('message_id', $metaMessageId)
             ->exists();
 
-        if (! $alreadyStored) {
-            Message::query()->create([
-                'conversation_id' => $conversation->id,
-                'sender_type' => 'customer',
-                'content_type' => 'text',
-                'content_text' => $text,
-                'message_id' => $metaMessageId,
-                'status' => MessageStatus::Delivered,
-            ]);
-
-            $conversation->last_message_text = $text;
-            $conversation->last_message_at = Carbon::now();
-            $conversation->unread_count = $conversation->unread_count + 1;
-            $conversation->save();
+        if ($alreadyStored) {
+            return;
         }
 
-        if ($connection->readiness === WhatsappConnectionReadiness::WebhookWaiting) {
-            $connection->readiness = WhatsappConnectionReadiness::Active;
-            $connection->save();
+        Message::query()->create([
+            'conversation_id' => $conversation->id,
+            'sender_type' => 'customer',
+            'content_type' => 'text',
+            'content_text' => $text,
+            'message_id' => $metaMessageId,
+            'status' => MessageStatus::Delivered,
+        ]);
+
+        $conversation->last_message_text = $text;
+        $conversation->last_message_at = Carbon::now();
+        $conversation->unread_count = $conversation->unread_count + 1;
+        $conversation->save();
+    }
+
+    private function activateWaitingConnection(WhatsappPhoneNumberConnection $connection): void
+    {
+        if ($connection->readiness !== WhatsappConnectionReadiness::WebhookWaiting) {
+            return;
         }
 
-        return true;
+        $connection->readiness = WhatsappConnectionReadiness::Active;
+        $connection->save();
     }
 
     /**

@@ -1,4 +1,4 @@
-import type { AutomationTriggerType } from './contracts';
+import type { AutomationTriggerType } from '../types';
 
 export interface TriggerMeta {
   label: string;

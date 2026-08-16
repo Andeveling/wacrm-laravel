@@ -20,9 +20,9 @@ import {
 import { cn } from '@/lib/utils';
 import { automations } from '@/routes';
 import { edit, logs, newMethod } from '@/routes/automations';
-import type { Automation } from '../contracts';
-import { AUTOMATION_TEMPLATES } from '../templates';
-import { formatRelative, triggerMeta } from '../trigger-meta';
+import { AUTOMATION_TEMPLATES } from '../constants/templates';
+import { formatRelative, triggerMeta } from '../constants/trigger-meta';
+import type { Automation } from '../types';
 
 const TEMPLATE_ICON: Record<string, typeof Zap> = {
   welcome_message: MessageCircle,

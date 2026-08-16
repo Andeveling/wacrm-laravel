@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { automations } from '@/routes';
-import type { Automation } from '../contracts';
+import type { Automation } from '../types';
 
 export default function EditAutomationPage({
   automation,

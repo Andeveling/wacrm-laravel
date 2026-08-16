@@ -3,8 +3,8 @@ import { ArrowLeft, Check, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { automations } from '@/routes';
-import type { AutomationLog, AutomationLogStepResult } from '../contracts';
-import { formatRelative } from '../trigger-meta';
+import { formatRelative } from '../constants/trigger-meta';
+import type { AutomationLog, AutomationLogStepResult } from '../types';
 
 const STATUS_LABEL: Record<AutomationLog['status'], string> = {
   success: 'Éxito',

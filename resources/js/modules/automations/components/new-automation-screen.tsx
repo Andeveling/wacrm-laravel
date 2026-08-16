@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { automations } from '@/routes';
 import { store } from '@/routes/automations';
-import type { AutomationConnection, AutomationTriggerType } from '../contracts';
-import { TRIGGER_META } from '../trigger-meta';
+import { TRIGGER_META } from '../constants/trigger-meta';
+import type { AutomationConnection, AutomationTriggerType } from '../types';
 
 const INBOUND_TRIGGERS: AutomationTriggerType[] = [
   'new_message_received',

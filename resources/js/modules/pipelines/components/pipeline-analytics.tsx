@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatCurrency } from '@/lib/currency';
-import type { Deal, PipelineStage } from '../contracts';
+import type { Deal, PipelineStage } from '../types';
 
 interface PipelineAnalyticsProps {
   stages: PipelineStage[];

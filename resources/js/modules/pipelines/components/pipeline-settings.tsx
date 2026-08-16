@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Pipeline } from '../contracts';
+import type { Pipeline } from '../types';
 
 interface PipelineSettingsProps {
   open: boolean;

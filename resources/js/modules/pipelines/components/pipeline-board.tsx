@@ -15,7 +15,7 @@ import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/currency';
-import type { Deal, PipelineStage } from '../contracts';
+import type { Deal, PipelineStage } from '../types';
 import { DealCard } from './deal-card';
 
 interface PipelineBoardProps {

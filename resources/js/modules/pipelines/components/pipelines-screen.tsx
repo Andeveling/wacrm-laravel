@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { pipelines as pipelinesRoute } from '@/routes';
-import type { Deal, PipelinesPageProps } from '../contracts';
+import type { Deal, PipelinesPageProps } from '../types';
 import { DealForm } from './deal-form';
 import { PipelineAnalytics } from './pipeline-analytics';
 import { PipelineBoard } from './pipeline-board';

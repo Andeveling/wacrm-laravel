@@ -1,6 +1,6 @@
 import { Calendar, Check, UserRound, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
-import type { Deal, PipelineStage } from '../contracts';
+import type { Deal, PipelineStage } from '../types';
 
 interface DealCardProps {
   deal: Deal;

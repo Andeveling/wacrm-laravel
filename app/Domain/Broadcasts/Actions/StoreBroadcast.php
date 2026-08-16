@@ -10,7 +10,9 @@ use App\Models\Broadcast;
 use App\Models\BroadcastRecipient;
 use App\Models\Enums\BroadcastStatus;
 use App\Models\Enums\MessageTemplateStatus;
+use App\Models\Enums\WhatsappConnectionReadiness;
 use App\Models\MessageTemplate;
+use App\Models\WhatsappPhoneNumberConnection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +25,7 @@ final readonly class StoreBroadcast
 
     public function __invoke(StoreBroadcastRequest $request): RedirectResponse
     {
-        /** @var array{name: string, template_id: string, audience_type: 'all'|'tags', tag_ids?: list<string>, template_variables: array<string, string>, scheduled_at?: string|null} $data */
+        /** @var array{name: string, template_id: string, connection_id: string, audience_type: 'all'|'tags', tag_ids?: list<string>, template_variables: array<string, string>, scheduled_at?: string|null} $data */
         $data = $request->validated();
         $tagIds = $data['audience_type'] === 'all'
             ? []
@@ -43,17 +45,26 @@ final readonly class StoreBroadcast
                 throw ValidationException::withMessages(['template_id' => 'La plantilla seleccionada no está aprobada o no está disponible.']);
             }
 
-            $contacts = $this->audience->contacts($tagIds)
-                ->lockForUpdate()
-                ->get(['id']);
-            $recipientCount = $contacts->count();
+            $connection = WhatsappPhoneNumberConnection::query()
+                ->whereKey($data['connection_id'])
+                ->where('readiness', WhatsappConnectionReadiness::Active)
+                ->first();
 
-            if ($recipientCount === 0) {
+            if ($connection === null) {
+                throw ValidationException::withMessages(['connection_id' => 'Selecciona una conexión WhatsApp activa.']);
+            }
+
+            $contactIds = $this->audience->contacts($tagIds)
+                ->lockForUpdate()
+                ->pluck('id');
+
+            if ($contactIds->isEmpty()) {
                 throw ValidationException::withMessages(['audience' => 'La audiencia seleccionada no tiene contactos.']);
             }
 
             $broadcast = Broadcast::create([
                 'user_id' => $request->user()->id,
+                'connection_id' => $connection->id,
                 'name' => $data['name'],
                 'template_name' => $template->name,
                 'template_language' => $template->language ?? 'en_US',
@@ -63,14 +74,14 @@ final readonly class StoreBroadcast
                 'status' => ($data['scheduled_at'] ?? null) === null
                     ? BroadcastStatus::Draft
                     : BroadcastStatus::Scheduled,
-                'total_recipients' => $recipientCount,
+                'total_recipients' => $contactIds->count(),
             ]);
 
-            $contacts->chunk(200)->each(function (Collection $contacts) use ($broadcast): void {
-                BroadcastRecipient::query()->insert($contacts->map(fn ($contact): array => [
+            $contactIds->chunk(200)->each(function (Collection $ids) use ($broadcast): void {
+                BroadcastRecipient::query()->insert($ids->map(fn (string $contactId): array => [
                     'id' => (string) Str::uuid(),
                     'broadcast_id' => $broadcast->id,
-                    'contact_id' => $contact->id,
+                    'contact_id' => $contactId,
                     'status' => 'pending',
                     'created_at' => now(),
                 ])->all());

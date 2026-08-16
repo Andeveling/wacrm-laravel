@@ -19,6 +19,8 @@ export interface Automation {
   name: string;
   description?: string | null;
   trigger_type: AutomationTriggerType;
+  connection_mode?: 'pinned' | 'trigger';
+  connection_id?: string | null;
   is_active: boolean;
   execution_count: number;
   last_executed_at?: string | null;

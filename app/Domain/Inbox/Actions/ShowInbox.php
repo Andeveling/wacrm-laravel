@@ -31,6 +31,7 @@ final class ShowInbox
             ->get([
                 'id',
                 'contact_id',
+                'connection_id',
                 'status',
                 'last_message_text',
                 'last_message_at',
@@ -44,6 +45,7 @@ final class ShowInbox
             'conversations' => $conversations->map(fn (Conversation $conversation): array => [
                 'id' => $conversation->id,
                 'contact_id' => $conversation->contact_id,
+                'connection_id' => $conversation->connection_id,
                 'contact' => $conversation->contact === null ? null : [
                     ...$conversation->contact->only(['id', 'name', 'phone', 'email', 'company']),
                 ],

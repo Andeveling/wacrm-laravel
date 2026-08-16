@@ -16,7 +16,12 @@ El aprovisionamiento del VPS está versionado en `scripts/provision-server.sh` (
 
 ## Cómo se despliega
 
-Cada push a `main` dispara `.github/workflows/deploy.yml` (además de los tests):
+`develop` es la rama de integración (issues y PRs diarios). `main` es el
+corte que se despliega. Cada push a `main` dispara `.github/workflows/deploy.yml`.
+Los tests corren en push a `develop`/`main` y en todo pull request. El deploy
+no se dispara al mergear a `develop`.
+
+El job de deploy:
 
 1. En un runner de GitHub se instala PHP 8.4 + `composer install --no-dev` y `pnpm build`. La VPS **no compila nada** (no tiene node/pnpm).
 2. `rsync --delete` sube el repo (excluye `.git`, `.env*`, `node_modules`, `storage`, `bootstrap/cache`, docs) a `/var/www/wacrm/`.

@@ -27,9 +27,15 @@ test('invite member shows success feedback', function () {
     $this->visit('/accounts/'.$data['account']->id.'/members')
         ->assertNoSmoke()
         ->assertSee('Invitar miembro')
+        ->assertSee('Crea un enlace de invitación para compartir')
+        ->assertDontSee('Envía una invitación por email')
         ->type('input#invite-email', 'nuevo@gmail.com')
         ->click('[data-testid="invite-member-submit"]')
-        ->assertSee('Invitación creada');
+        ->assertSee('Invitación creada')
+        ->assertSee('Enlace de invitación nuevo')
+        ->assertSee('Solo se muestra una vez.')
+        ->assertSee('/join/')
+        ->assertPresent('[data-testid="copy-invitation-url"]');
 
     $invitations = Invitation::withoutGlobalScopes()->where('account_id', $data['account']->id)->get();
 

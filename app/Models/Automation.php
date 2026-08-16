@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToAccount;
+use App\Models\Enums\AutomationConnectionMode;
 use Database\Factories\AutomationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -25,6 +26,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $description
  * @property string $trigger_type
  * @property array<string, mixed> $trigger_config
+ * @property AutomationConnectionMode $connection_mode
+ * @property string|null $connection_id
  * @property bool $is_active
  * @property int $execution_count
  * @property Carbon|null $last_executed_at
@@ -32,7 +35,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'user_id', 'account_id', 'name', 'description', 'trigger_type', 'trigger_config', 'is_active',
+    'user_id', 'account_id', 'name', 'description', 'trigger_type', 'trigger_config',
+    'connection_mode', 'connection_id', 'is_active',
 ])]
 class Automation extends Model
 {
@@ -40,11 +44,28 @@ class Automation extends Model
     use BelongsToAccount, HasFactory, HasUuids;
 
     /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'connection_mode' => 'trigger',
+        'is_active' => false,
+        'execution_count' => 0,
+    ];
+
+    /**
      * @return BelongsTo<Account, $this>
      */
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    /**
+     * @return BelongsTo<WhatsappPhoneNumberConnection, $this>
+     */
+    public function whatsappPhoneNumberConnection(): BelongsTo
+    {
+        return $this->belongsTo(WhatsappPhoneNumberConnection::class, 'connection_id');
     }
 
     /**
@@ -70,6 +91,7 @@ class Automation extends Model
     {
         return [
             'trigger_config' => 'array',
+            'connection_mode' => AutomationConnectionMode::class,
             'is_active' => 'boolean',
             'last_executed_at' => 'datetime',
         ];

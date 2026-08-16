@@ -25,6 +25,7 @@ class AutomationFactory extends Factory
             'name' => fake()->sentence(3),
             'trigger_type' => 'message_received',
             'trigger_config' => [],
+            'connection_mode' => 'trigger',
             'is_active' => false,
         ];
     }

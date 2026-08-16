@@ -87,6 +87,36 @@ final class MetaGraphClient implements MetaGraphClientContract
         $this->throwForResponse($response, 'unsubscription');
     }
 
+    public function sendTextMessage(string $phoneNumberId, string $token, string $to, string $body): string
+    {
+        $response = $this->post(
+            $phoneNumberId.'/messages',
+            $token,
+            [
+                'messaging_product' => 'whatsapp',
+                'to' => $to,
+                'type' => 'text',
+                'text' => ['body' => $body],
+            ],
+            'send',
+        );
+
+        if (! $response->successful()) {
+            $this->throwForResponse($response, 'send');
+        }
+
+        $whatsappMessageId = $response->json('messages.0.id');
+
+        if (! is_string($whatsappMessageId) || $whatsappMessageId === '') {
+            throw new MetaGraphException(
+                'send',
+                'Meta no devolvió un identificador de mensaje.',
+            );
+        }
+
+        return $whatsappMessageId;
+    }
+
     public function registerPhoneNumber(string $phoneNumberId, string $token, string $pin): void
     {
         $response = $this->post(
@@ -139,7 +169,7 @@ final class MetaGraphClient implements MetaGraphClientContract
     }
 
     /**
-     * @param  array<string, scalar>  $payload
+     * @param  array<string, mixed>  $payload
      */
     private function post(string $resource, string $token, array $payload, string $operation): Response
     {
@@ -196,6 +226,7 @@ final class MetaGraphClient implements MetaGraphClientContract
             'permissions' => $this->permissionsMessage($code),
             'subscription' => 'Meta no pudo suscribir el WABA a los webhooks. Revisa los permisos del token.',
             'unsubscription' => 'Meta no pudo desuscribir el WABA. El número ya quedó desconectado.',
+            'send' => 'Meta no pudo enviar el mensaje. Revisa la conexión e intenta de nuevo.',
             'registration' => $this->registrationMessage($code),
             default => 'Meta no pudo completar la operación.',
         };

@@ -10,7 +10,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import type { BroadcastTag, MessageTemplate } from '../contracts';
+import type {
+  BroadcastConnection,
+  BroadcastTag,
+  MessageTemplate,
+} from '../contracts';
 import type { AudienceConfig } from './step2-select-audience';
 
 interface Step4Props {
@@ -22,6 +26,9 @@ interface Step4Props {
   audienceCount: number;
   scheduledAt: string;
   onScheduledAtChange: (scheduledAt: string) => void;
+  connections: BroadcastConnection[];
+  connectionId: string;
+  onConnectionChange: (connectionId: string) => void;
   onSend: () => void;
   onBack: () => void;
 }
@@ -35,12 +42,16 @@ export function Step4ScheduleSend({
   audienceCount,
   scheduledAt,
   onScheduledAtChange,
+  connections,
+  connectionId,
+  onConnectionChange,
   onSend,
   onBack,
 }: Step4Props) {
   const [showConfirm, setShowConfirm] = useState(false);
   const nameInputId = useId();
   const scheduledAtInputId = useId();
+  const connectionInputId = useId();
   const audienceLabel =
     audience.type === 'all'
       ? 'Todos los contactos'
@@ -101,6 +112,29 @@ export function Step4ScheduleSend({
 
       <div>
         <label
+          htmlFor={connectionInputId}
+          className="mb-1.5 block text-sm font-medium text-foreground"
+        >
+          Conexión de envío
+        </label>
+        <select
+          id={connectionInputId}
+          value={connectionId}
+          onChange={(event) => onConnectionChange(event.target.value)}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+        >
+          <option value="">Selecciona una conexión activa</option>
+          {connections.map((connection) => (
+            <option key={connection.id} value={connection.id}>
+              {connection.phone_number_id}
+              {connection.is_default ? ' (predeterminada)' : ''}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label
           htmlFor={scheduledAtInputId}
           className="mb-1.5 block text-sm font-medium text-foreground"
         >
@@ -123,7 +157,7 @@ export function Step4ScheduleSend({
 
         <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
           <Button
-            disabled={!name.trim() || audienceCount === 0}
+            disabled={!name.trim() || audienceCount === 0 || !connectionId}
             onClick={() => setShowConfirm(true)}
           >
             <Save className="h-4 w-4" />

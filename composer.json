@@ -71,6 +71,8 @@
       "pnpm format:check",
       "pnpm types:check",
       "pnpm test",
+      "pnpm check:quality-exceptions",
+      "pnpm check:duplication",
       "@test"
     ],
     "types:check": ["phpstan analyse --memory-limit=1G"],

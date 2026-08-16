@@ -1,7 +1,8 @@
 # Reason: Pest static analysis starts with the diagnostics already present in
 # tests/; new diagnostics still fail the quality gate.
-# Tracking: #127 will move these entries to the central quality allowlist.
-# Expires: when #127 is merged.
+# Policy: quality-exceptions.json is the central allowlist (ADR 0006).
+# This neon file remains PHPStan's ignore mechanism until those diagnostics
+# are fixed; do not add entries here without a matching allowlist exception.
 parameters:
 	ignoreErrors:
 		-

@@ -10,6 +10,7 @@
 | `biome` | `*.{ts,tsx,js,jsx,mjs,mts,css,json}` | **fixes and re-stages** |
 | `no-inline-fqcn` | `*.php` | blocks |
 | `adr-layers` | `*.php` | blocks |
+| `quality-exceptions` | `quality-exceptions.json` | blocks |
 | `test-layout` | `*.php` | blocks |
 | `phpstan` | `*.php` | blocks |
 | `tsc --noEmit` | `*.{ts,tsx}` | blocks |
@@ -17,11 +18,15 @@
 
 `commit-msg` runs **commitlint** (`commitlint.config.mjs`): Conventional Commits, subject ≤72 chars, English imperative. Merge and revert subjects pass through.
 
-Formatting never costs a round trip — Pint and Biome repair the staged content in place. The other six report and block; fix the cause and re-commit.
+Formatting never costs a round trip — Pint and Biome repair the staged content in place. The other seven report and block; fix the cause and re-commit.
 
 **Do not use `--no-verify` or `LEFTHOOK=0`.** Bypassing only moves the failure to CI, which runs the full suite anyway.
 
-Four jobs read the working tree rather than the index, because none has a per-file mode that still resolves the project as a whole: `adr-layers`, `test-layout`, `phpstan` and `tsc`. A commit built with `git add -p` is therefore checked against unstaged changes too.
+Five jobs read the working tree rather than the index, because none has a per-file mode that still resolves the project as a whole: `adr-layers`, `quality-exceptions`, `test-layout`, `phpstan` and `tsc`. A commit built with `git add -p` is therefore checked against unstaged changes too.
+
+## `quality-exceptions`
+
+`scripts/check-quality-exceptions.mjs`, also `pnpm check:quality-exceptions`. ADR 0006: every coverage, mutation, CRAP, duplication and architecture exception lives in `quality-exceptions.json` with a reason, tracking issue and expiry. An expired row fails the gate. Duplication itself (`pnpm check:duplication`) stays in `composer ci:check`, not in `pre-commit` (ADR 0004).
 
 ## `no-inline-fqcn`
 

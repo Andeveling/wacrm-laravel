@@ -1,7 +1,8 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { inbox } from '@/routes';
+import { store as storeInboxMessage } from '@/routes/inbox/messages';
 import type { Conversation, InboxPageProps, Message } from '../contracts';
 import { ContactSidebar } from './contact-sidebar';
 import { ConversationList } from './conversation-list';
@@ -26,9 +27,7 @@ export default function InboxPage({
   const [activeId, setActiveId] = useState<string | null>(
     () => initialConversations[0]?.id ?? null,
   );
-  const [messagesByConversation, setMessagesByConversation] = useState<
-    Record<string, Message[]>
-  >(() => groupMessages(initialMessages));
+  const messagesByConversation = groupMessages(initialMessages);
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? null;
@@ -45,29 +44,10 @@ export default function InboxPage({
 
   function sendMessage(text: string) {
     if (!activeId) return;
-    const message: Message = {
-      id: `${activeId}-msg-${Date.now()}`,
-      conversation_id: activeId,
-      sender_type: 'agent',
+
+    router.post(storeInboxMessage.url(activeId), {
       content_text: text,
-      status: 'sent',
-      created_at: new Date().toISOString(),
-    };
-    setMessagesByConversation((prev) => ({
-      ...prev,
-      [activeId]: [...(prev[activeId] ?? []), message],
-    }));
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === activeId
-          ? {
-              ...c,
-              last_message_text: text,
-              last_message_at: message.created_at,
-            }
-          : c,
-      ),
-    );
+    });
   }
 
   return (
@@ -88,9 +68,9 @@ export default function InboxPage({
               messages={messages}
               onSend={sendMessage}
             />
-            {activeConversation.contact && (
+            {activeConversation.contact ? (
               <ContactSidebar contact={activeConversation.contact} />
-            )}
+            ) : null}
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground">

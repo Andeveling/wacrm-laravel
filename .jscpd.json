@@ -1,0 +1,19 @@
+{
+  "path": ["app", "resources/js"],
+  "format": ["php", "typescript", "tsx"],
+  "minLines": 5,
+  "minTokens": 50,
+  "reporters": ["console", "json"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/vendor/**",
+    "**/original-wacrm/**",
+    "resources/js/actions/**",
+    "resources/js/routes/**",
+    "resources/js/wayfinder/**",
+    "resources/js/components/ui/**",
+    "resources/js/components/tremor/**",
+    "**/*.snap"
+  ],
+  "gitignore": true
+}

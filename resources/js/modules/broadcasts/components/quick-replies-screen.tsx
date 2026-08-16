@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { overview as settingsOverview } from '@/routes/settings';
-import type { QuickReply } from '../quick-reply-contracts';
+import type { QuickReply } from '../types';
 
 function mockQuickReplies(): QuickReply[] {
   return [

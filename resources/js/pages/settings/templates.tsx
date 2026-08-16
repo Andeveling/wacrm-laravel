@@ -1,1 +1,1 @@
-export { default } from '@/modules/broadcasts/ui/templates-screen';
+export { default } from '@/modules/broadcasts/components/templates-screen';

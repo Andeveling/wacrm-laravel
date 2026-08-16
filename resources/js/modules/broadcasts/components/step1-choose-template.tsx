@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { templates as messageTemplates } from '@/routes/settings';
-import type { MessageTemplate } from '../contracts';
+import type { MessageTemplate } from '../types';
 
 const CATEGORY_COLORS: Record<string, string> = {
   Marketing: 'bg-purple-500/10 text-purple-400 border-purple-500/20',

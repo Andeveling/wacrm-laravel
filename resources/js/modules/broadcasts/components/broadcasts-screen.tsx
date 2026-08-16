@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/table';
 import { broadcasts } from '@/routes';
 import { newMethod, show } from '@/routes/broadcasts';
-import type { Broadcast } from '../contracts';
-import { getBroadcastStatus } from '../status';
+import { getBroadcastStatus } from '../constants/status';
+import type { Broadcast } from '../types';
 
 function percent(numerator: number, denominator: number): number {
   if (!denominator) return 0;

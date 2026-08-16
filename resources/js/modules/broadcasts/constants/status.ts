@@ -1,4 +1,4 @@
-import type { BroadcastStatus, RecipientStatus } from './contracts';
+import type { BroadcastStatus, RecipientStatus } from '../types';
 
 export interface StatusDisplay {
   label: string;

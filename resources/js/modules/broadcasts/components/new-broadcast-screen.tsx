@@ -10,7 +10,7 @@ import type {
   BroadcastConnection,
   BroadcastTag,
   MessageTemplate,
-} from '../contracts';
+} from '../types';
 import { Step1ChooseTemplate } from './step1-choose-template';
 import type { AudienceConfig } from './step2-select-audience';
 import { Step2SelectAudience } from './step2-select-audience';

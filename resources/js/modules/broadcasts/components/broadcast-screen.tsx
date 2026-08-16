@@ -19,12 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { broadcasts } from '@/routes';
-import type {
-  Broadcast,
-  BroadcastRecipient,
-  RecipientStatus,
-} from '../contracts';
-import { getBroadcastStatus, getRecipientStatus } from '../status';
+import { getBroadcastStatus, getRecipientStatus } from '../constants/status';
+import type { Broadcast, BroadcastRecipient, RecipientStatus } from '../types';
 
 const RECIPIENT_STATUSES: readonly RecipientStatus[] = [
   'pending',

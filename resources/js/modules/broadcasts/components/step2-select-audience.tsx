@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Tags, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { BroadcastTag } from '../contracts';
+import type { BroadcastTag } from '../types';
 
 export type AudienceType = 'all' | 'tags';
 

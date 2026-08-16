@@ -14,7 +14,7 @@ import type {
   BroadcastConnection,
   BroadcastTag,
   MessageTemplate,
-} from '../contracts';
+} from '../types';
 import type { AudienceConfig } from './step2-select-audience';
 
 interface Step4Props {

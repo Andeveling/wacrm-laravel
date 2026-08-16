@@ -1,4 +1,4 @@
-import type { MessageTemplateStatus } from './contracts';
+import type { MessageTemplateStatus } from '../types';
 
 export interface TemplateStatusDisplay {
   label: string;

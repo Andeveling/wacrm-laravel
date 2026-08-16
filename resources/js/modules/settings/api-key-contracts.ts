@@ -17,3 +17,9 @@ export interface ApiKey {
   revoked_at: string | null;
   created_at: string | null;
 }
+
+export type ApiKeysPageProps = {
+  keys: ApiKey[];
+  canManage: boolean;
+  newKeyPlaintext: string | null;
+};

@@ -1,4 +1,4 @@
-import type { ApiKey } from './api-key-contracts';
+import type { ApiKey } from '../types';
 
 /** Effective runtime status derived from `revoked_at` / `expires_at`. */
 export type ApiKeyStatus = 'active' | 'revoked' | 'expired';

@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { ApiKey } from '../api-key-contracts';
+import type { ApiKey } from '../types';
 
 export function RevokeApiKeyDialog({
   apiKey,

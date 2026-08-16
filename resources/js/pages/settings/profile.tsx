@@ -1,1 +1,1 @@
-export { default } from '@/modules/settings/ui/profile-screen';
+export { default } from '@/modules/settings/components/profile-screen';

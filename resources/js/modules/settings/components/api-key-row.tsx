@@ -1,8 +1,11 @@
 import { Loader2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { ApiKey } from '../api-key-contracts';
-import { computeApiKeyStatus, getApiKeyStatus } from '../api-key-status';
+import {
+  computeApiKeyStatus,
+  getApiKeyStatus,
+} from '../constants/api-key-status';
+import type { ApiKey } from '../types';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-CO', {

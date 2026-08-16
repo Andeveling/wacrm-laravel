@@ -7,7 +7,7 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { overview as settingsOverview } from '@/routes/settings';
-import type { ApiKey, ApiKeysPageProps } from '../api-key-contracts';
+import type { ApiKey, ApiKeysPageProps } from '../types';
 import { ApiKeyRow } from './api-key-row';
 import { CreateApiKeyDialog } from './create-api-key-dialog';
 import { RevokeApiKeyDialog } from './revoke-api-key-dialog';

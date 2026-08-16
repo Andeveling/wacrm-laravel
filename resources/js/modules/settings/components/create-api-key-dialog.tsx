@@ -16,8 +16,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useClipboard } from '@/hooks/use-clipboard';
-import type { ApiScope } from '../api-key-contracts';
-import { API_SCOPES, SCOPE_DESCRIPTIONS } from '../api-key-scopes';
+import { API_SCOPES, SCOPE_DESCRIPTIONS } from '../constants/api-key-scopes';
+import type { ApiScope } from '../types';
 
 export function CreateApiKeyDialog({
   open,

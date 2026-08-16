@@ -1,1 +1,1 @@
-export { default } from '@/modules/settings/ui/api-keys-screen';
+export { default } from '@/modules/settings/components/api-keys-screen';

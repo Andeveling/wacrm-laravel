@@ -1,4 +1,4 @@
-import type { ApiScope } from './api-key-contracts';
+import type { ApiScope } from '../types';
 
 export const API_SCOPES: ApiScope[] = [
   'messages:send',

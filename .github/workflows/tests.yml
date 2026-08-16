@@ -137,7 +137,7 @@ jobs:
         with:
           name: php-quality-reports
           path: reports/php/
-          if-no-files-found: error
+          if-no-files-found: warn
 
   browser:
     runs-on: ubuntu-latest

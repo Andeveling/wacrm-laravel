@@ -33,6 +33,7 @@ if ($argc === 2 && $argv[1] === '--self-test') {
 
     $run = static function (string $coverage, string $crap, array $env) use ($directory): int {
         $command = 'PHP_COVERAGE_BASELINE_PATH='.escapeshellarg($directory.'/baseline.txt');
+        $command .= ' PHP_COVERAGE_BASELINE_REF='.escapeshellarg('refs/heads/quality-self-test');
         foreach ($env as $name => $value) {
             $command .= ' '.$name.'='.escapeshellarg($value);
         }

@@ -13,6 +13,23 @@ export function cloneFingerprint(clone) {
     .digest('hex');
 }
 
+export function mergeDuplicationReports(metricReport, ...thresholdReports) {
+  const byFingerprint = new Map(
+    metricReport.duplicates.map((clone) => [cloneFingerprint(clone), clone]),
+  );
+
+  for (const report of thresholdReports) {
+    for (const clone of report.duplicates) {
+      byFingerprint.set(cloneFingerprint(clone), clone);
+    }
+  }
+
+  return {
+    statistics: metricReport.statistics,
+    duplicates: [...byFingerprint.values()],
+  };
+}
+
 export function duplicationRegressions(report, baseline) {
   const metricRegressions = ['clones', 'duplicatedLines', 'duplicatedTokens']
     .filter((metric) => report.statistics.total[metric] > baseline[metric])
@@ -31,20 +48,41 @@ export function duplicationRegressions(report, baseline) {
   ];
 }
 
+function loadReport(output) {
+  return JSON.parse(readFileSync(join(output, 'jscpd-report.json'), 'utf8'));
+}
+
+function runJscpd(output, minLines, minTokens) {
+  execFileSync(
+    'node_modules/.bin/jscpd',
+    [
+      '--output',
+      output,
+      '--min-lines',
+      String(minLines),
+      '--min-tokens',
+      String(minTokens),
+    ],
+    { stdio: 'inherit' },
+  );
+
+  return loadReport(output);
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const exceptions = JSON.parse(
     readFileSync(resolve('quality-exceptions.json'), 'utf8'),
   );
   const baseline = exceptions.duplication[0].baseline;
-  const output = mkdtempSync(join(tmpdir(), 'wacrm-jscpd-'));
+  const metricOutput = mkdtempSync(join(tmpdir(), 'wacrm-jscpd-metrics-'));
+  const lineOutput = mkdtempSync(join(tmpdir(), 'wacrm-jscpd-lines-'));
+  const tokenOutput = mkdtempSync(join(tmpdir(), 'wacrm-jscpd-tokens-'));
 
   try {
-    execFileSync('node_modules/.bin/jscpd', ['--output', output], {
-      stdio: 'inherit',
-    });
-
-    const report = JSON.parse(
-      readFileSync(join(output, 'jscpd-report.json'), 'utf8'),
+    const report = mergeDuplicationReports(
+      runJscpd(metricOutput, 5, 50),
+      runJscpd(lineOutput, 5, 1),
+      runJscpd(tokenOutput, 1, 50),
     );
     const regressions = duplicationRegressions(report, baseline);
 
@@ -57,6 +95,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       console.log('Duplication check passed: the baseline did not increase.');
     }
   } finally {
-    rmSync(output, { recursive: true, force: true });
+    rmSync(metricOutput, { recursive: true, force: true });
+    rmSync(lineOutput, { recursive: true, force: true });
+    rmSync(tokenOutput, { recursive: true, force: true });
   }
 }

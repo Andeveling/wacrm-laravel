@@ -29,10 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { AccountMember, MemberRole } from '../contracts';
 import type { RoleOption } from '../model';
+import type { AccountMember, MemberRole } from '../types';
 
-export type { AccountMember, MemberRole } from '../contracts';
+export type { AccountMember, MemberRole } from '../types';
 
 type InviteForm = {
   email: string;

@@ -1,5 +1,5 @@
-import type { MemberRole } from './contracts';
-import { ROLE_LABEL } from './roles';
+import { ROLE_LABEL } from './constants/roles';
+import type { MemberRole } from './types';
 
 /** Shared toast for connection failures across every membership mutation. */
 export const NETWORK_ERROR_MESSAGE = 'No se pudo conectar con el servidor.';

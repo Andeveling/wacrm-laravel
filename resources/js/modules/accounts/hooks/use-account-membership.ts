@@ -3,14 +3,14 @@ import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { destroy, store, update } from '@/routes/accounts/members';
 import { regenerate } from '@/routes/invitations';
-import type { AccountMember, MemberRole } from './contracts';
 import {
   roleOptions as buildRoleOptions,
   errorMessageFor,
   isSoleOwner,
   type MembershipMutation,
   type RoleOption,
-} from './model';
+} from '../model';
+import type { AccountMember, MemberRole } from '../types';
 
 /** `AccountMember` enriched with the sole-Owner flag (ADR 0002). */
 export type EnrichedMember = AccountMember & {

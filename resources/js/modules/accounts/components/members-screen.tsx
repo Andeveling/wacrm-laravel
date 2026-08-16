@@ -1,3 +1,4 @@
+// biome-ignore lint/style/noExcessiveLinesPerFile: JSX is split into focused internal components.
 import { Head, router, usePage } from '@inertiajs/react';
 import {
   AlertCircle,
@@ -26,8 +27,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useClipboard } from '@/hooks/use-clipboard';
-import { ROLE_BADGE, ROLE_LABEL } from '../roles';
-import { useAccountMembership } from '../use-account-membership';
+import { ROLE_BADGE, ROLE_LABEL } from '../constants/roles';
+import { useAccountMembership } from '../hooks/use-account-membership';
 import {
   type AccountMember,
   ConfirmRemoveMemberDialog,
@@ -83,6 +84,190 @@ function formatJoinedAt(iso: string | null): string {
 
 function formatDate(iso: string | null): string {
   return iso ? new Date(iso).toLocaleDateString() : 'Sin fecha';
+}
+
+type MemberRosterProps = {
+  members: Array<AccountMember & { isSoleOwner: boolean }>;
+  busyMemberId: number | null;
+  isAdmin: boolean;
+  isOwner: boolean;
+  roleOptions: (isOwner: boolean) => { value: MemberRole; label: string }[];
+  onRoleChange: (member: AccountMember, role: MemberRole) => void;
+  onRemove: (member: AccountMember) => void;
+};
+
+function MemberRoster(props: MemberRosterProps) {
+  const {
+    members,
+    busyMemberId,
+    isAdmin,
+    isOwner,
+    roleOptions,
+    onRoleChange,
+    onRemove,
+  } = props;
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <ul className="divide-y divide-border" data-testid="members-roster">
+          {members.length === 0 && (
+            <li className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
+              <Users className="size-6 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Todavía no hay miembros.
+              </p>
+            </li>
+          )}
+          {members.map((member) => {
+            const busy = busyMemberId === member.id;
+
+            return (
+              <li
+                key={member.id}
+                className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
+                data-testid={`member-row-${member.id}`}
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-4">
+                  <Avatar className="size-9 shrink-0">
+                    <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">
+                      {initials(member.name, member.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {member.name || member.email}
+                      </span>
+                      {member.is_you && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] tracking-wide uppercase"
+                        >
+                          Tú
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {member.email}
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden text-right text-xs text-muted-foreground sm:block">
+                  {member.joined_at
+                    ? `Se unió ${formatJoinedAt(member.joined_at)}`
+                    : ''}
+                </div>
+                {isAdmin ? (
+                  <MemberActionsCell
+                    member={member}
+                    isOwner={isOwner}
+                    soleOwnerSelf={member.isSoleOwner && member.is_you}
+                    busy={busy}
+                    roleOptions={roleOptions}
+                    onRoleChange={onRoleChange}
+                    onRemove={onRemove}
+                  />
+                ) : (
+                  <Badge variant={ROLE_BADGE[member.role]}>
+                    {ROLE_LABEL[member.role]}
+                  </Badge>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+type PendingInvitationsProps = {
+  invitations?: PendingInvitation[];
+  busyInvitationId: string | null;
+  revokingInvitationId: string | null;
+  onRevoke: (invitation: PendingInvitation) => void;
+  onRegenerate: (invitation: PendingInvitation) => void;
+};
+
+function PendingInvitations(props: PendingInvitationsProps) {
+  const {
+    invitations,
+    busyInvitationId,
+    revokingInvitationId,
+    onRevoke,
+    onRegenerate,
+  } = props;
+
+  return (
+    <Card data-testid="pending-invitations">
+      <CardContent className="p-0">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          <Clock3 className="size-4 text-muted-foreground" />
+          <h2 className="text-sm font-medium">Invitaciones pendientes</h2>
+        </div>
+        <ul className="divide-y divide-border">
+          {invitations?.length === 0 && (
+            <li className="px-4 py-6 text-sm text-muted-foreground">
+              No hay invitaciones pendientes.
+            </li>
+          )}
+          {invitations?.map((invitation) => (
+            <li
+              key={invitation.id}
+              className="flex flex-col gap-3 px-4 py-3 text-sm sm:flex-row sm:items-center"
+              data-testid={`invitation-row-${invitation.id}`}
+            >
+              <div className="grid min-w-0 flex-1 gap-1 sm:grid-cols-3">
+                <span className="truncate font-medium">
+                  {invitation.email ?? 'Sin email'}
+                </span>
+                <span className="text-muted-foreground">
+                  {ROLE_LABEL[invitation.role]} por {invitation.inviter}
+                </span>
+                <span className="text-muted-foreground sm:text-right">
+                  Creada {formatDate(invitation.created_at)} · Expira{' '}
+                  {formatDate(invitation.expires_at)} ·{' '}
+                  {invitation.status === 'Active' ? 'Activa' : 'Expirada'}
+                </span>
+              </div>
+              {invitation.status === 'Active' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onRevoke(invitation)}
+                  disabled={revokingInvitationId === invitation.id}
+                  className="self-start border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:self-auto"
+                  data-testid={`revoke-invitation-${invitation.id}`}
+                >
+                  {revokingInvitationId === invitation.id ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Trash2 />
+                  )}
+                  Revocar
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onRegenerate(invitation)}
+                disabled={busyInvitationId === invitation.id}
+                data-testid={`regenerate-invitation-${invitation.id}`}
+              >
+                <RefreshCw />
+                {busyInvitationId === invitation.id
+                  ? 'Regenerando…'
+                  : 'Regenerar'}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function Members({
@@ -184,150 +369,24 @@ export default function Members({
           />
         )}
 
-        <Card>
-          <CardContent className="p-0">
-            <ul className="divide-y divide-border" data-testid="members-roster">
-              {enrichedMembers.length === 0 && (
-                <li className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
-                  <Users className="size-6 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Todavía no hay miembros.
-                  </p>
-                </li>
-              )}
-
-              {enrichedMembers.map((member) => {
-                const busy = busyMemberId === member.id;
-
-                return (
-                  <li
-                    key={member.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
-                    data-testid={`member-row-${member.id}`}
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-4">
-                      <Avatar className="size-9 shrink-0">
-                        <AvatarFallback className="bg-primary/10 text-sm font-medium text-primary">
-                          {initials(member.name, member.email)}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="truncate text-sm font-medium text-foreground">
-                            {member.name || member.email}
-                          </span>
-                          {member.is_you && (
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] tracking-wide uppercase"
-                            >
-                              Tú
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {member.email}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="hidden text-right text-xs text-muted-foreground sm:block">
-                      {member.joined_at
-                        ? `Se unió ${formatJoinedAt(member.joined_at)}`
-                        : ''}
-                    </div>
-
-                    {is_admin ? (
-                      <MemberActionsCell
-                        member={member}
-                        isOwner={is_owner}
-                        soleOwnerSelf={member.isSoleOwner && member.is_you}
-                        busy={busy}
-                        roleOptions={roleOptions}
-                        onRoleChange={changeRole}
-                        onRemove={setMemberToRemove}
-                      />
-                    ) : (
-                      <Badge variant={ROLE_BADGE[member.role]}>
-                        {ROLE_LABEL[member.role]}
-                      </Badge>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </CardContent>
-        </Card>
+        <MemberRoster
+          members={enrichedMembers}
+          busyMemberId={busyMemberId}
+          isAdmin={is_admin}
+          isOwner={is_owner}
+          roleOptions={roleOptions}
+          onRoleChange={changeRole}
+          onRemove={setMemberToRemove}
+        />
 
         {is_admin && (
-          <Card data-testid="pending-invitations">
-            <CardContent className="p-0">
-              <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-                <Clock3 className="size-4 text-muted-foreground" />
-                <h2 className="text-sm font-medium">Invitaciones pendientes</h2>
-              </div>
-              <ul className="divide-y divide-border">
-                {invitations?.length === 0 && (
-                  <li className="px-4 py-6 text-sm text-muted-foreground">
-                    No hay invitaciones pendientes.
-                  </li>
-                )}
-                {invitations?.map((invitation) => (
-                  <li
-                    key={invitation.id}
-                    className="flex flex-col gap-3 px-4 py-3 text-sm sm:flex-row sm:items-center"
-                    data-testid={`invitation-row-${invitation.id}`}
-                  >
-                    <div className="grid min-w-0 flex-1 gap-1 sm:grid-cols-3">
-                      <span className="truncate font-medium">
-                        {invitation.email ?? 'Sin email'}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {ROLE_LABEL[invitation.role]} por {invitation.inviter}
-                      </span>
-                      <span className="text-muted-foreground sm:text-right">
-                        Creada {formatDate(invitation.created_at)} · Expira{' '}
-                        {formatDate(invitation.expires_at)} ·{' '}
-                        {invitation.status === 'Active' ? 'Activa' : 'Expirada'}
-                      </span>
-                    </div>
-                    {invitation.status === 'Active' && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setInvitationToRevoke(invitation)}
-                        disabled={revokingInvitationId === invitation.id}
-                        className="self-start border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive sm:self-auto"
-                        data-testid={`revoke-invitation-${invitation.id}`}
-                      >
-                        {revokingInvitationId === invitation.id ? (
-                          <Loader2 className="animate-spin" />
-                        ) : (
-                          <Trash2 />
-                        )}
-                        Revocar
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setInvitationToRegenerate(invitation)}
-                      disabled={busyInvitationId === invitation.id}
-                      data-testid={`regenerate-invitation-${invitation.id}`}
-                    >
-                      <RefreshCw />
-                      {busyInvitationId === invitation.id
-                        ? 'Regenerando…'
-                        : 'Regenerar'}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <PendingInvitations
+            invitations={invitations}
+            busyInvitationId={busyInvitationId}
+            revokingInvitationId={revokingInvitationId}
+            onRevoke={setInvitationToRevoke}
+            onRegenerate={setInvitationToRegenerate}
+          />
         )}
 
         <p className="text-xs text-muted-foreground" data-testid="viewer-flags">

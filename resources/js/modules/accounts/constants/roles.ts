@@ -1,4 +1,4 @@
-import type { MemberRole } from './contracts';
+import type { MemberRole } from '../types';
 
 /** Role label shown in badges, picker, and the "Tu rol actual es X" footer. */
 export const ROLE_LABEL: Record<MemberRole, string> = {

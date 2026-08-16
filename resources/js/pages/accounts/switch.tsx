@@ -1,1 +1,1 @@
-export { default } from '@/modules/accounts/ui/account-switch-screen';
+export { default } from '@/modules/accounts/components/account-switch-screen';

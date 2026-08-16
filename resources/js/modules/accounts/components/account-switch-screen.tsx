@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { update } from '@/routes/accounts/switch';
-import type { Account } from '../contracts';
+import type { Account } from '../types';
 
 export default function SwitchAccount({ accounts }: { accounts: Account[] }) {
   return (

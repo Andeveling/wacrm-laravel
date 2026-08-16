@@ -6,14 +6,21 @@ namespace App\Domain\Meta\Responders;
 
 use App\Domain\Meta\Results\WhatsappConnectionResult;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 final class WhatsappConnectionResponder
 {
-    public function respond(WhatsappConnectionResult $result): RedirectResponse
+    public function respond(WhatsappConnectionResult $result, Request $request): RedirectResponse
     {
-        return to_route('settings.whatsapp')->with(
-            $result->succeeded() ? 'whatsapp_status' : 'whatsapp_error',
+        $redirect = to_route('settings.whatsapp')->with(
+            $result->flashKey(),
             $result->message,
         );
+
+        if (! $result->keepsDraft()) {
+            return $redirect;
+        }
+
+        return $redirect->withInput($request->except('access_token'));
     }
 }

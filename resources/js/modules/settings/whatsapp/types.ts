@@ -34,11 +34,18 @@ export type WhatsappConnectFormData = {
   confirm_default: boolean;
 };
 
+export type WhatsappConnectDraft = {
+  phone_number_id: string;
+  waba_id: string;
+};
+
 export type WhatsappSettingsPageProps = {
   canManage: boolean;
   connections: WhatsappConnection[];
   webhookUrl: string;
   verifyToken?: string | null;
+  draft?: WhatsappConnectDraft;
   status?: string | null;
+  notice?: string | null;
   error?: string | null;
 };

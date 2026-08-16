@@ -8,6 +8,7 @@ use App\Domain\Meta\Responders\WhatsappConnectionResponder;
 use App\Domain\Meta\Services\SetDefaultWhatsappConnectionService;
 use App\Support\CurrentAccount;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 /**
  * Designate at most one Active connection as the Account default.
@@ -17,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 final class SetDefaultWhatsappConnection
 {
     public function __invoke(
+        Request $request,
         CurrentAccount $account,
         string $connection,
         SetDefaultWhatsappConnectionService $service,
@@ -24,6 +26,6 @@ final class SetDefaultWhatsappConnection
     ): RedirectResponse {
         abort_unless($account->isAdmin(), 403);
 
-        return $responder->respond($service->setDefault($connection));
+        return $responder->respond($service->setDefault($connection), $request);
     }
 }

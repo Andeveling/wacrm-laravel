@@ -66,9 +66,21 @@ final class ShowWhatsappSettings
             'connections' => $connectionPayload,
             'webhookUrl' => route('meta.webhook.verify'),
             'verifyToken' => $verifyToken !== '' ? $verifyToken : null,
+            'draft' => [
+                'phone_number_id' => $this->oldString('phone_number_id'),
+                'waba_id' => $this->oldString('waba_id'),
+            ],
             'status' => session('whatsapp_status'),
+            'notice' => session('whatsapp_notice'),
             'error' => session('whatsapp_error'),
         ]);
+    }
+
+    private function oldString(string $key): string
+    {
+        $value = old($key, '');
+
+        return is_string($value) ? $value : '';
     }
 
     private function healthLabel(WhatsappConnectionReadiness $readiness, ?string $lastFailure): string

@@ -18,7 +18,9 @@ export default function WhatsappScreen({
   connections,
   webhookUrl,
   verifyToken = null,
+  draft,
   status,
+  notice,
   error,
 }: WhatsappSettingsPageProps) {
   const connectForm = useRef<ConnectFormHandle>(null);
@@ -30,10 +32,13 @@ export default function WhatsappScreen({
     if (status) {
       toast.success(status);
     }
+    if (notice) {
+      toast.message(notice, { duration: 10000 });
+    }
     if (error) {
       toast.error(error, { duration: 10000 });
     }
-  }, [status, error]);
+  }, [status, notice, error]);
 
   return (
     <>
@@ -49,6 +54,14 @@ export default function WhatsappScreen({
             <CircleAlert className="size-4" />
             <AlertTitle>El último paso necesita atención</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {notice ? (
+          <Alert>
+            <CircleAlert className="size-4" />
+            <AlertTitle>Número guardado</AlertTitle>
+            <AlertDescription>{notice}</AlertDescription>
           </Alert>
         ) : null}
 
@@ -83,6 +96,7 @@ export default function WhatsappScreen({
         {canManage ? (
           <ConnectForm
             ref={connectForm}
+            draft={draft}
             hasConnections={hasConnections}
             hasActiveDefault={activeDefault}
           />

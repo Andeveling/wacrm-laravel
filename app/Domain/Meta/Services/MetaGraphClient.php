@@ -60,6 +60,10 @@ final class MetaGraphClient implements MetaGraphClientContract
      */
     private function assertRequiredPermissionFamilies(string $token): void
     {
+        if (! $this->canInspectTokenPermissions()) {
+            return;
+        }
+
         $response = $this->debugToken($token);
 
         if (! $response->successful()) {
@@ -99,20 +103,23 @@ final class MetaGraphClient implements MetaGraphClientContract
         }
     }
 
+    private function canInspectTokenPermissions(): bool
+    {
+        $appId = config('services.meta.app_id');
+        $appSecret = config('services.meta.app_secret');
+
+        return is_string($appId) && $appId !== '' && is_string($appSecret) && $appSecret !== '';
+    }
+
     /**
      * @return array<string, string>
      */
     private function debugTokenQuery(string $token): array
     {
-        $query = ['input_token' => $token];
-        $appId = config('services.meta.app_id');
-        $appSecret = config('services.meta.app_secret');
-
-        if (is_string($appId) && $appId !== '' && is_string($appSecret) && $appSecret !== '') {
-            $query['access_token'] = $appId.'|'.$appSecret;
-        }
-
-        return $query;
+        return [
+            'input_token' => $token,
+            'access_token' => (string) config('services.meta.app_id').'|'.(string) config('services.meta.app_secret'),
+        ];
     }
 
     /**

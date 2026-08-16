@@ -11,7 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { WhatsappConnectFormData, WhatsappConnection } from '../types';
+import type {
+  WhatsappConnectDraft,
+  WhatsappConnectFormData,
+  WhatsappConnection,
+} from '../types';
 import {
   AccessTokenField,
   ConfirmDefaultField,
@@ -26,16 +30,18 @@ export type ConnectFormHandle = {
 
 export function ConnectForm({
   ref,
+  draft,
   hasConnections,
   hasActiveDefault,
 }: {
   ref?: Ref<ConnectFormHandle>;
+  draft?: WhatsappConnectDraft;
   hasConnections: boolean;
   hasActiveDefault: boolean;
 }) {
   const form = useForm<WhatsappConnectFormData>({
-    phone_number_id: '',
-    waba_id: '',
+    phone_number_id: draft?.phone_number_id ?? '',
+    waba_id: draft?.waba_id ?? '',
     access_token: '',
     pin: '',
     confirm_default: !hasActiveDefault,

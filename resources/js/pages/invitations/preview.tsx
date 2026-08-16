@@ -1,1 +1,1 @@
-export { default } from '@/modules/invitations/ui/invitation-preview-screen';
+export { default } from '@/modules/invitations/components/invitation-preview-screen';

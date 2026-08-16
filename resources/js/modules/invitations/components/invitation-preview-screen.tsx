@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { register } from '@/routes';
-import { getInvitationStatus } from '../status';
+import { getInvitationStatus } from '../constants/status';
 
 type PreviewProps = {
   status: 'valid' | 'used' | 'expired' | 'invalid';

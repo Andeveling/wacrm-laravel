@@ -1,5 +1,11 @@
 import { Clock } from 'lucide-react';
-import { BarChart } from '@/components/tremor/bar-chart';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
 import { DOW_SHORT_MON_FIRST } from '../helpers/date-utils';
 import type { ResponseTimeSummary } from '../types';
 import { EmptyState } from './empty-state';
@@ -12,7 +18,14 @@ interface ResponseTimeChartProps {
   thresholdMinutes?: number;
 }
 
-const CATEGORY = 'Minutos prom.';
+const MINUTES_KEY = 'minutes';
+
+const CHART_CONFIG = {
+  [MINUTES_KEY]: {
+    label: 'Minutos prom.',
+    color: 'var(--chart-1)',
+  },
+} satisfies ChartConfig;
 
 export function ResponseTimeChart({
   data,
@@ -24,8 +37,7 @@ export function ResponseTimeChart({
   const chartData =
     data?.buckets.map((b, i) => ({
       day: DOW_SHORT_MON_FIRST[i],
-      [CATEGORY]: b.avgMinutes ?? 0,
-      samples: b.samples,
+      [MINUTES_KEY]: b.avgMinutes ?? 0,
     })) ?? [];
 
   return (
@@ -64,7 +76,7 @@ export function ResponseTimeChart({
 
       <div className="p-5">
         {loading || !data ? (
-          <Skeleton className="h-[260px] w-full" />
+          <Skeleton className="h-65 w-full" />
         ) : !hasData ? (
           <EmptyState
             icon={Clock}
@@ -72,20 +84,46 @@ export function ResponseTimeChart({
             hint="No hay datos de tiempo de respuesta todavía."
           />
         ) : (
-          <BarChart
-            data={chartData}
-            index="day"
-            categories={[CATEGORY]}
-            colors={['violet']}
-            valueFormatter={(value) => `${value.toFixed(1)}m`}
-            showLegend={false}
-            yAxisWidth={48}
-            className="h-[260px]"
-          />
+          <ResponseTimeBars data={chartData} />
         )}
       </div>
     </section>
   );
+}
+
+function ResponseTimeBars({
+  data,
+}: {
+  data: Array<{ day: string; minutes: number }>;
+}) {
+  return (
+    <ChartContainer
+      config={CHART_CONFIG}
+      className="h-65 w-full [&_.recharts-cartesian-axis-tick-value]:fill-muted-foreground"
+    >
+      <BarChart accessibilityLayer data={data}>
+        <CartesianGrid vertical={false} />
+        <XAxis
+          dataKey="day"
+          tickLine={false}
+          tickMargin={10}
+          axisLine={false}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          width={48}
+          tickFormatter={formatMinutes}
+        />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        <Bar dataKey={MINUTES_KEY} fill="var(--color-minutes)" radius={4} />
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
+function formatMinutes(value: number): string {
+  return `${value.toFixed(1)}m`;
 }
 
 function fmt(mins: number | null): string {

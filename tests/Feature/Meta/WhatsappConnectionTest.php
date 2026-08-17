@@ -700,6 +700,9 @@ test('a disconnected number can be reclaimed by another account without leaking 
                 'whatsapp_business_account' => ['id' => 'waba-reclaim'],
             ]);
         }
+        if (str_contains($url, '/waba-reclaim/phone_numbers')) {
+            return Http::response(['data' => [['id' => 'phone-reclaim']]]);
+        }
         if (str_contains($url, '/waba-reclaim/subscribed_apps')) {
             return Http::response(['success' => true]);
         }

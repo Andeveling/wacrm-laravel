@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   canDesignateDefault,
   hasActiveDefault,
+  isAwaitingWebhook,
   needsAttention,
   STEP_LABELS,
   STEP_ORDER,
+  shouldPollWhatsappSettings,
 } from './model';
 import type { WhatsappConnection, WhatsappReadiness } from './types';
 
@@ -87,5 +89,23 @@ describe('connection actions', () => {
 
     expect(needsAttention('active')).toBe(false);
     expect(needsAttention('webhook_waiting')).toBe(false);
+  });
+});
+
+describe('webhook waiting poll', () => {
+  it('polls only while a connection is waiting for the first webhook', () => {
+    expect(
+      isAwaitingWebhook(connection({ readiness: 'webhook_waiting' })),
+    ).toBe(true);
+    expect(isAwaitingWebhook(connection({ readiness: 'active' }))).toBe(false);
+    expect(
+      shouldPollWhatsappSettings([
+        connection({ readiness: 'active' }),
+        connection({ id: 'connection-2', readiness: 'webhook_waiting' }),
+      ]),
+    ).toBe(true);
+    expect(
+      shouldPollWhatsappSettings([connection({ readiness: 'active' })]),
+    ).toBe(false);
   });
 });

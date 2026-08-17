@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { overview as settingsOverview } from '@/routes/settings';
+import { useWhatsappReadinessPoll } from '../hooks/use-whatsapp-readiness-poll';
 import { useWhatsappSettings } from '../hooks/use-whatsapp-settings';
 import { hasActiveDefault } from '../model';
 import type { WhatsappSettingsPageProps } from '../types';
@@ -25,6 +26,7 @@ export default function WhatsappScreen({
 }: WhatsappSettingsPageProps) {
   const connectForm = useRef<ConnectFormHandle>(null);
   const settings = useWhatsappSettings();
+  const waitingForWebhook = useWhatsappReadinessPoll(connections);
   const hasConnections = connections.length > 0;
   const activeDefault = hasActiveDefault(connections);
 
@@ -62,6 +64,17 @@ export default function WhatsappScreen({
             <CircleAlert className="size-4" />
             <AlertTitle>Número guardado</AlertTitle>
             <AlertDescription>{notice}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {waitingForWebhook ? (
+          <Alert>
+            <Radio className="size-4" />
+            <AlertTitle>Esperando la primera entrega de Meta</AlertTitle>
+            <AlertDescription>
+              Esta pantalla se actualiza sola cuando llega un mensaje o un
+              webhook de prueba a este número.
+            </AlertDescription>
           </Alert>
         ) : null}
 

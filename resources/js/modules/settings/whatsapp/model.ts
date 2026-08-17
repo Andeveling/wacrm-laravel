@@ -31,3 +31,13 @@ export function canDesignateDefault(connection: WhatsappConnection): boolean {
 export function needsAttention(readiness: WhatsappReadiness): boolean {
   return readiness === 'attention_required' || readiness === 'disconnected';
 }
+
+export function isAwaitingWebhook(connection: WhatsappConnection): boolean {
+  return connection.readiness === 'webhook_waiting';
+}
+
+export function shouldPollWhatsappSettings(
+  connections: readonly WhatsappConnection[],
+): boolean {
+  return connections.some(isAwaitingWebhook);
+}

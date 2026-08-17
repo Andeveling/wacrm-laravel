@@ -29,19 +29,11 @@ final class MetaGraphClient implements MetaGraphClientContract
         $phone = $this->get(
             $phoneNumberId,
             $token,
-            ['fields' => 'id,display_phone_number,verified_name,whatsapp_business_account'],
+            ['fields' => 'id,display_phone_number,verified_name'],
             'credentials',
         );
 
-        $claimedWabaId = data_get($phone, 'whatsapp_business_account.id');
-
-        if (! is_string($claimedWabaId) || ! hash_equals($wabaId, $claimedWabaId)) {
-            throw new MetaGraphException(
-                'membership',
-                'El número no pertenece al WABA indicado.',
-            );
-        }
-
+        $this->assertPhoneBelongsToWaba($phoneNumberId, $wabaId, $token);
         $this->get($wabaId, $token, ['fields' => 'id'], 'permissions');
 
         return [
@@ -53,6 +45,36 @@ final class MetaGraphClient implements MetaGraphClientContract
                 ? $phone['verified_name']
                 : null,
         ];
+    }
+
+    /**
+     * Graph v21+ no longer exposes `whatsapp_business_account` on a phone node.
+     * Membership is the phone id appearing under the WABA's phone_numbers edge.
+     */
+    private function assertPhoneBelongsToWaba(string $phoneNumberId, string $wabaId, string $token): void
+    {
+        $listing = $this->get(
+            $wabaId.'/phone_numbers',
+            $token,
+            ['fields' => 'id'],
+            'membership',
+        );
+
+        $rows = $listing['data'] ?? [];
+        $rows = is_array($rows) ? $rows : [];
+
+        $ids = collect($rows)
+            ->map(fn (mixed $row): ?string => is_array($row) && is_string($row['id'] ?? null) ? $row['id'] : null)
+            ->filter()
+            ->values()
+            ->all();
+
+        if (! in_array($phoneNumberId, $ids, true)) {
+            throw new MetaGraphException(
+                'membership',
+                'El número no pertenece al WABA indicado.',
+            );
+        }
     }
 
     /**

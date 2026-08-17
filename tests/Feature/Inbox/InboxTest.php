@@ -323,3 +323,66 @@ test('disconnecting the default requires an explicit connection for new conversa
     expect(Conversation::query()->count())->toBe(0)
         ->and($sales->fresh()?->is_default)->toBeFalse();
 });
+
+test('marking a conversation seen persists unread count to zero', function (string $role) {
+    $this->withoutVite();
+
+    [$user, $account] = memberWithRole($role);
+    $contact = Contact::factory()->for($account)->create(['name' => 'Ana Pérez']);
+    $conversation = Conversation::factory()->for($account)->create([
+        'contact_id' => $contact->id,
+        'user_id' => $user->id,
+        'unread_count' => 3,
+    ]);
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('inbox.conversations.seen', $conversation))
+        ->assertNoContent();
+
+    $this->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('conversations.0.id', $conversation->id)
+            ->where('conversations.0.unread_count', 0));
+})->with(['member', 'admin', 'owner']);
+
+test('a viewer cannot mark a conversation seen', function () {
+    $this->withoutVite();
+
+    [$viewer, $account] = memberWithRole('viewer');
+    $contact = Contact::factory()->for($account)->create(['name' => 'Luis Gómez']);
+    $conversation = Conversation::factory()->for($account)->create([
+        'contact_id' => $contact->id,
+        'user_id' => $viewer->id,
+        'unread_count' => 2,
+    ]);
+
+    $this->actingAs($viewer)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('inbox.conversations.seen', $conversation))
+        ->assertForbidden();
+
+    $this->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('conversations.0.id', $conversation->id)
+            ->where('conversations.0.unread_count', 2));
+});
+
+test('a conversation from another account cannot be marked seen', function () {
+    [$member, $account] = memberWithRole('member');
+    $foreignAccount = Account::factory()->create();
+    $foreignContact = Contact::factory()->for($foreignAccount)->create();
+    $foreignConversation = Conversation::factory()->for($foreignAccount)->create([
+        'contact_id' => $foreignContact->id,
+        'unread_count' => 4,
+    ]);
+
+    $this->actingAs($member)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('inbox.conversations.seen', $foreignConversation))
+        ->assertNotFound();
+
+    expect(Conversation::withoutGlobalScopes()->find($foreignConversation->id)?->unread_count)->toBe(4);
+});

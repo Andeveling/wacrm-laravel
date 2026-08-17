@@ -1,7 +1,8 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useHttp } from '@inertiajs/react';
 import { MessageSquare } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { inbox } from '@/routes';
+import { seen } from '@/routes/inbox/conversations';
 import { store as storeInboxMessage } from '@/routes/inbox/messages';
 import type { Conversation, InboxPageProps, Message } from '../types';
 import { ContactSidebar } from './contact-sidebar';
@@ -23,7 +24,9 @@ export default function InboxPage({
   messages: initialMessages,
   contacts,
   connections,
+  can_mark_seen: canMarkSeen,
 }: InboxPageProps) {
+  const { submit } = useHttp();
   const [conversations, setConversations] = useState<Conversation[]>(
     () => initialConversations,
   );
@@ -37,13 +40,24 @@ export default function InboxPage({
     conversations.find((c) => c.id === activeId) ?? null;
   const messages = activeId ? (messagesByConversation[activeId] ?? []) : [];
 
-  function selectConversation(conversation: Conversation) {
-    setActiveId(conversation.id);
+  useEffect(() => {
+    if (!activeId || !canMarkSeen) {
+      return;
+    }
+
     setConversations((prev) =>
-      prev.map((c) =>
-        c.id === conversation.id ? { ...c, unread_count: 0 } : c,
+      prev.map((conversation) =>
+        conversation.id === activeId
+          ? { ...conversation, unread_count: 0 }
+          : conversation,
       ),
     );
+
+    void submit(seen(activeId)).catch(() => undefined);
+  }, [activeId, canMarkSeen, submit]);
+
+  function selectConversation(conversation: Conversation) {
+    setActiveId(conversation.id);
   }
 
   function sendMessage(text: string) {

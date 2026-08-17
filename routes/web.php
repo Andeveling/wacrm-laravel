@@ -33,6 +33,7 @@ use App\Domain\Dashboard\Actions\ShowDashboard;
 use App\Domain\Flows\Actions\ShowFlowEditor;
 use App\Domain\Flows\Actions\ShowFlowRuns;
 use App\Domain\Flows\Actions\ShowFlows;
+use App\Domain\Inbox\Actions\MarkInboxConversationSeen;
 use App\Domain\Inbox\Actions\ShowInbox;
 use App\Domain\Inbox\Actions\StoreInboxConversation;
 use App\Domain\Inbox\Actions\StoreInboxMessage;
@@ -111,6 +112,7 @@ Route::middleware(['auth', 'verified', 'ensure.current-account'])->group(functio
 
     Route::get('inbox', ShowInbox::class)->name('inbox');
     Route::post('inbox/conversations', StoreInboxConversation::class)->name('inbox.conversations.store');
+    Route::post('inbox/{conversation}/seen', MarkInboxConversationSeen::class)->name('inbox.conversations.seen');
     Route::post('inbox/{conversation}/messages', StoreInboxMessage::class)->name('inbox.messages.store');
 
     Route::post('invitations', StoreInvitation::class)

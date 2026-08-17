@@ -8,6 +8,7 @@ use App\Domain\Meta\Services\ActiveWhatsappConnectionResolver;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Support\CurrentAccount;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,7 +16,7 @@ final class ShowInbox
 {
     public function __construct(private ActiveWhatsappConnectionResolver $connections) {}
 
-    public function __invoke(): Response
+    public function __invoke(CurrentAccount $account): Response
     {
         $conversations = Conversation::query()
             ->with([
@@ -78,6 +79,7 @@ final class ShowInbox
                 ->get(['id', 'name', 'phone'])
                 ->all(),
             'connections' => $this->connections->list()->all(),
+            'can_mark_seen' => $account->isMember(),
         ]);
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Account;
+use App\Models\Enums\AccountType;
 use App\Models\User;
 use App\Support\CurrentAccount;
 use App\Support\CurrentAccountResolver;
@@ -96,9 +98,14 @@ class HandleInertiaRequests extends Middleware
             return [];
         }
 
+        $ordered = $user->accounts()
+            ->orderBy('name')
+            ->get(['id', 'name', 'type'])
+            ->sortBy(fn (Account $account): int => $account->type === AccountType::Personal ? 1 : 0);
+
         $memberships = [];
 
-        foreach ($user->accounts()->orderBy('name')->get(['id', 'name', 'type']) as $account) {
+        foreach ($ordered as $account) {
             $memberships[] = [
                 'id' => $account->id,
                 'name' => $account->name,

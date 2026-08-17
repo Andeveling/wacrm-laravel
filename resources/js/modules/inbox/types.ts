@@ -57,3 +57,10 @@ export interface Message {
   status: MessageStatus;
   created_at: string;
 }
+
+export type ThreadMessage = Message & {
+  timeout_failed?: boolean;
+};
+
+export const INBOX_TIMEOUT_COPY =
+  'El contacto puede haber recibido el WhatsApp. Reintentar puede duplicarlo.';

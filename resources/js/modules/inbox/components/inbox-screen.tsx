@@ -1,21 +1,25 @@
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { inbox } from '@/routes';
-import { store as storeInboxMessage } from '@/routes/inbox/messages';
+import { useInboxSend } from '../hooks/use-inbox-send';
 import type { Conversation, InboxPageProps, Message } from '../types';
 import { ContactSidebar } from './contact-sidebar';
 import { ConversationList } from './conversation-list';
 import { MessageThread } from './message-thread';
 import { NewConversationDialog } from './new-conversation-dialog';
 
-function groupMessages(messages: Message[]): Record<string, Message[]> {
-  return messages.reduce<Record<string, Message[]>>((groups, message) => {
-    groups[message.conversation_id] ??= [];
-    groups[message.conversation_id].push(message);
+function messagesForConversation(
+  messages: Message[],
+  conversationId: string | null,
+): Message[] {
+  if (conversationId === null) {
+    return [];
+  }
 
-    return groups;
-  }, {});
+  return messages.filter(
+    (message) => message.conversation_id === conversationId,
+  );
 }
 
 export default function InboxPage({
@@ -31,11 +35,14 @@ export default function InboxPage({
     () => initialConversations[0]?.id ?? null,
   );
   const [newConversationOpen, setNewConversationOpen] = useState(false);
-  const messagesByConversation = groupMessages(initialMessages);
+  const { messages, sending, send, retry } = useInboxSend(
+    activeId,
+    initialMessages,
+  );
+  const threadMessages = messagesForConversation(messages, activeId);
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? null;
-  const messages = activeId ? (messagesByConversation[activeId] ?? []) : [];
 
   function selectConversation(conversation: Conversation) {
     setActiveId(conversation.id);
@@ -44,14 +51,6 @@ export default function InboxPage({
         c.id === conversation.id ? { ...c, unread_count: 0 } : c,
       ),
     );
-  }
-
-  function sendMessage(text: string) {
-    if (!activeId) return;
-
-    router.post(storeInboxMessage.url(activeId), {
-      content_text: text,
-    });
   }
 
   return (
@@ -70,8 +69,10 @@ export default function InboxPage({
           <>
             <MessageThread
               conversation={activeConversation}
-              messages={messages}
-              onSend={sendMessage}
+              messages={threadMessages}
+              sending={sending}
+              onSend={send}
+              onRetry={retry}
             />
             {activeConversation.contact ? (
               <ContactSidebar contact={activeConversation.contact} />

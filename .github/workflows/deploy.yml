@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Cambiar cuando la app tenga dominio propio (p.ej. https://wacrm.example.com)
-  APP_URL: http://167.172.150.205
+  # Solo siembra el primer .env. Después el .env del VPS manda.
+  APP_URL: https://wacrm.andeveling.com
 
 jobs:
   deploy:

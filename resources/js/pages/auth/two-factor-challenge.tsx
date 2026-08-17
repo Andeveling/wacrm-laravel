@@ -1,1 +1,1 @@
-export { default } from '@/modules/auth/ui/two-factor-challenge-screen';
+export { default } from '@/modules/auth/components/two-factor-challenge-screen';

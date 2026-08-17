@@ -21,11 +21,16 @@ test('guests are redirected to the login page', function () {
     $this->get(route('dashboard'))->assertRedirect(route('login'));
 });
 
-test('authenticated users without a current account are redirected to the switcher', function () {
+test('authenticated users without a membership see the empty chrome', function () {
     $user = User::factory()->create();
     $this->actingAs($user)
         ->get(route('dashboard'))
-        ->assertRedirect(route('accounts.switch'));
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('accounts/no-account')
+            ->where('currentAccount', null)
+            ->where('accounts', [])
+        );
 });
 
 // ---------------------------------------------------------------------------

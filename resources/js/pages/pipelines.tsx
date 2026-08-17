@@ -1,1 +1,1 @@
-export { default } from '@/modules/pipelines/ui/pipelines-screen';
+export { default } from '@/modules/pipelines/components/pipelines-screen';

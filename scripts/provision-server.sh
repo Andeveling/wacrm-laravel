@@ -68,9 +68,9 @@ grep -qF "$CI_PUBKEY" /home/deploy/.ssh/authorized_keys 2>/dev/null || echo "$CI
 chown deploy:deploy /home/deploy/.ssh/authorized_keys
 chmod 600 /home/deploy/.ssh/authorized_keys
 
-# sudo limitado para supervisorctl (deploy.sh hace restart de workers/reverb)
+# sudo limitado a los procesos que deploy.sh necesita recargar o reiniciar.
 cat > /etc/sudoers.d/wacrm-deploy <<'EOF'
-deploy ALL=(root) NOPASSWD: /usr/bin/supervisorctl
+deploy ALL=(root) NOPASSWD: /usr/bin/supervisorctl, /usr/bin/systemctl reload php8.4-fpm
 EOF
 chmod 440 /etc/sudoers.d/wacrm-deploy
 

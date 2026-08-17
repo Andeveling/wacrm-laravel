@@ -1,1 +1,1 @@
-export { default } from '@/modules/auth/ui/security-screen';
+export { default } from '@/modules/auth/components/security-screen';

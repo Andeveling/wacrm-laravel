@@ -199,14 +199,23 @@ test('replies inherit the conversation connection and do not switch sender', fun
         '*' => Http::response(['error' => ['message' => 'Unexpected request']], 500),
     ]);
 
-    $this->actingAs($user)
+    $response = $this->actingAs($user)
         ->withSession(['current_account_id' => $account->id])
-        ->post(route('inbox.messages.store', $conversation), [
+        ->postJson(route('inbox.messages.store', $conversation), [
             'content_text' => 'Te confirmo el pedido.',
-        ])
-        ->assertRedirect(route('inbox'));
+        ]);
 
     $message = Message::query()->sole();
+
+    $response
+        ->assertSuccessful()
+        ->assertJson([
+            'id' => $message->id,
+            'conversation_id' => $conversation->id,
+            'sender_type' => 'agent',
+            'content_text' => 'Te confirmo el pedido.',
+            'status' => 'sent',
+        ]);
 
     expect($message->conversation_id)->toBe($conversation->id)
         ->and($message->content_text)->toBe('Te confirmo el pedido.')
@@ -242,16 +251,42 @@ test('a disconnected conversation connection pauses the reply instead of falling
 
     $this->actingAs($user)
         ->withSession(['current_account_id' => $account->id])
-        ->from(route('inbox'))
-        ->post(route('inbox.messages.store', $conversation), [
+        ->postJson(route('inbox.messages.store', $conversation), [
             'content_text' => 'No debe salir por soporte.',
         ])
-        ->assertRedirect(route('inbox'))
-        ->assertSessionHasErrors('connection_id');
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('connection_id');
 
     expect(Message::query()->count())->toBe(0)
         ->and($conversation->fresh()->connection_id)->toBe($sales->id);
     Http::assertNothingSent();
+});
+
+test('a graph rejection leaves no message and returns a validation error', function () {
+    [$user, $account] = memberWithRole('member');
+    WhatsappIntegration::factory()->for($account)->create(['access_token' => 'secret-meta-token']);
+    $sales = WhatsappPhoneNumberConnection::factory()->for($account)->active()->create([
+        'phone_number_id' => 'phone-sales',
+    ]);
+    $contact = Contact::factory()->for($account)->create(['phone' => '+573001112233']);
+    $conversation = Conversation::factory()->for($account)->create([
+        'user_id' => $user->id,
+        'contact_id' => $contact->id,
+        'connection_id' => $sales->id,
+    ]);
+    Http::fake([
+        '*phone-sales/messages' => Http::response(['error' => ['message' => 'Graph refused', 'code' => 131047]], 400),
+    ]);
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->postJson(route('inbox.messages.store', $conversation), [
+            'content_text' => 'Este texto no se pierde en el cliente.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('content_text');
+
+    expect(Message::query()->count())->toBe(0);
 });
 
 test('a new conversation requires an explicit connection when no active default exists', function () {
@@ -322,4 +357,67 @@ test('disconnecting the default requires an explicit connection for new conversa
 
     expect(Conversation::query()->count())->toBe(0)
         ->and($sales->fresh()?->is_default)->toBeFalse();
+});
+
+test('marking a conversation seen persists unread count to zero', function (string $role) {
+    $this->withoutVite();
+
+    [$user, $account] = memberWithRole($role);
+    $contact = Contact::factory()->for($account)->create(['name' => 'Ana Pérez']);
+    $conversation = Conversation::factory()->for($account)->create([
+        'contact_id' => $contact->id,
+        'user_id' => $user->id,
+        'unread_count' => 3,
+    ]);
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('inbox.conversations.seen', $conversation))
+        ->assertNoContent();
+
+    $this->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('conversations.0.id', $conversation->id)
+            ->where('conversations.0.unread_count', 0));
+})->with(['member', 'admin', 'owner']);
+
+test('a viewer cannot mark a conversation seen', function () {
+    $this->withoutVite();
+
+    [$viewer, $account] = memberWithRole('viewer');
+    $contact = Contact::factory()->for($account)->create(['name' => 'Luis Gómez']);
+    $conversation = Conversation::factory()->for($account)->create([
+        'contact_id' => $contact->id,
+        'user_id' => $viewer->id,
+        'unread_count' => 2,
+    ]);
+
+    $this->actingAs($viewer)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('inbox.conversations.seen', $conversation))
+        ->assertForbidden();
+
+    $this->get(route('inbox'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('conversations.0.id', $conversation->id)
+            ->where('conversations.0.unread_count', 2));
+});
+
+test('a conversation from another account cannot be marked seen', function () {
+    [$member, $account] = memberWithRole('member');
+    $foreignAccount = Account::factory()->create();
+    $foreignContact = Contact::factory()->for($foreignAccount)->create();
+    $foreignConversation = Conversation::factory()->for($foreignAccount)->create([
+        'contact_id' => $foreignContact->id,
+        'unread_count' => 4,
+    ]);
+
+    $this->actingAs($member)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('inbox.conversations.seen', $foreignConversation))
+        ->assertNotFound();
+
+    expect(Conversation::withoutGlobalScopes()->find($foreignConversation->id)?->unread_count)->toBe(4);
 });

@@ -98,6 +98,6 @@ final readonly class RedeemInvitation
 
         return DB::table('contacts')->where('account_id', $personalAccountId)->exists()
             || DB::table('conversations')->where('account_id', $personalAccountId)->exists()
-            || DB::table('whatsapp_configs')->where('account_id', $personalAccountId)->exists();
+            || DB::table('whatsapp_phone_number_connections')->where('account_id', $personalAccountId)->exists();
     }
 }

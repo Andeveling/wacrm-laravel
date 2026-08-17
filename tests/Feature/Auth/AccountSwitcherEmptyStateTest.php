@@ -6,14 +6,15 @@ use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
 
-test('switcher renders with empty accounts when user belongs to none', function () {
+test('chrome empty renders when user belongs to no account', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->get(route('accounts.switch'))
+        ->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('accounts/switch')
+            ->component('accounts/no-account')
+            ->where('currentAccount', null)
             ->where('accounts', [])
         );
 });

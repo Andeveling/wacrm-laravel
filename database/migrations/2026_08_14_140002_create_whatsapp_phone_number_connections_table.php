@@ -16,7 +16,6 @@ return new class extends Migration
             $table->text('phone_number_id')->nullable()->unique();
             $table->text('readiness')->default('credentials_verified');
             $table->boolean('is_default')->default(false);
-            $table->uuid('legacy_config_id')->nullable()->unique();
             $table->timestampTz('connected_at')->nullable();
             $table->timestampTz('registered_at')->nullable();
             $table->text('last_registration_error')->nullable();

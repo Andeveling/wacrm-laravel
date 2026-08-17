@@ -1,1 +1,1 @@
-export { default } from '@/modules/inbox/ui/inbox-screen';
+export { default } from '@/modules/inbox/components/inbox-screen';

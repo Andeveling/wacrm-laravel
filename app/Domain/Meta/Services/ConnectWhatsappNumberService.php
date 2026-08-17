@@ -31,7 +31,12 @@ final class ConnectWhatsappNumberService
         try {
             $this->meta->verifyPhoneAndWaba($attempt->phoneNumberId, $attempt->wabaId, $attempt->token);
         } catch (MetaGraphException $exception) {
-            return $this->failedResult($exception, $attempt);
+            [, $connection] = $this->persistVerifiedCredentials($attempt, $integration, $createdBy);
+            $connection->readiness = WhatsappConnectionReadiness::AttentionRequired;
+            $connection->last_registration_error = $exception->getMessage();
+            $connection->save();
+
+            return $this->incompleteResult($exception, $attempt);
         }
 
         [$waba, $connection] = $this->persistVerifiedCredentials($attempt, $integration, $createdBy);
@@ -178,7 +183,7 @@ final class ConnectWhatsappNumberService
                 $connection->readiness = WhatsappConnectionReadiness::CredentialsVerified;
                 $connection->save();
 
-                return $this->failedResult($exception, $attempt);
+                return $this->incompleteResult($exception, $attempt);
             }
 
             $waba->subscribed_apps_at = Carbon::now();
@@ -208,7 +213,7 @@ final class ConnectWhatsappNumberService
             $connection->readiness = WhatsappConnectionReadiness::AttentionRequired;
             $connection->save();
 
-            return $this->failedResult($exception, $attempt);
+            return $this->incompleteResult($exception, $attempt);
         }
 
         $connection->registered_at = Carbon::now();
@@ -246,7 +251,7 @@ final class ConnectWhatsappNumberService
         $connection->save();
     }
 
-    private function failedResult(
+    private function incompleteResult(
         MetaGraphException $exception,
         WhatsappConnectionAttempt $attempt,
     ): WhatsappConnectionResult {
@@ -258,6 +263,8 @@ final class ConnectWhatsappNumberService
             'waba_id' => $attempt->wabaId,
         ]);
 
-        return WhatsappConnectionResult::failure($exception->getMessage());
+        return WhatsappConnectionResult::incomplete(
+            'Guardamos el número. Meta todavía no lo activó: '.$exception->getMessage(),
+        );
     }
 }

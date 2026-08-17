@@ -1,1 +1,1 @@
-export { default } from '@/modules/automations/ui/automation-logs-screen';
+export { default } from '@/modules/automations/components/automation-logs-screen';

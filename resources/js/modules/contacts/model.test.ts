@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { Contact } from './contracts';
 import {
   buildContactsFilterQuery,
   toggleContactSelection,
   togglePageSelection,
 } from './model';
+import type { Contact } from './types';
 
 const contacts: Contact[] = [
   {

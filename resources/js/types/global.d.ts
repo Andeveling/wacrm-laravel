@@ -1,4 +1,4 @@
-import type { Auth } from '@/types/auth';
+import type { AccountMembership, Auth, CurrentAccount } from '@/types/auth';
 
 declare module 'react' {
   interface InputHTMLAttributes<T> {
@@ -11,6 +11,9 @@ declare module '@inertiajs/core' {
     sharedPageProps: {
       name: string;
       auth: Auth;
+      currentAccount: CurrentAccount | null;
+      accounts: AccountMembership[];
+      hasWhatsappConnection: boolean;
       sidebarOpen: boolean;
       [key: string]: unknown;
     };

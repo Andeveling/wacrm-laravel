@@ -1,1 +1,1 @@
-export { default } from '@/modules/contacts/ui/contact-fields-screen';
+export { default } from '@/modules/contacts/components/contact-fields-screen';

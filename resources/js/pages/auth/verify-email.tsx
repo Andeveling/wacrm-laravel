@@ -1,1 +1,1 @@
-export { default } from '@/modules/auth/ui/verify-email-screen';
+export { default } from '@/modules/auth/components/verify-email-screen';

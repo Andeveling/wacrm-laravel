@@ -8,6 +8,7 @@ use App\Models\Enums\AccountRole;
 use App\Models\Enums\AccountType;
 use App\Models\Tag;
 use App\Models\User;
+use App\Models\WhatsappPhoneNumberConnection;
 
 const CONTACTS_SEARCH_INPUT = 'input[placeholder="Buscar por nombre, teléfono o correo…"]';
 
@@ -21,6 +22,7 @@ beforeEach(function () {
         'user_id' => $this->owner->id,
         'role' => AccountRole::Owner,
     ]);
+    WhatsappPhoneNumberConnection::factory()->for($this->account)->create();
     $vip = Tag::factory()->create([
         'account_id' => $this->account->id,
         'user_id' => $this->owner->id,

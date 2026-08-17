@@ -1,1 +1,1 @@
-export { default } from '@/modules/accounts/ui/members-screen';
+export { default } from '@/modules/accounts/components/members-screen';

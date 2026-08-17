@@ -11,3 +11,7 @@
 ### Domain docs
 
 [one-line summary of layout — "single-context" or "multi-context"]. See `docs/agents/domain.md`.
+
+### Frontend screens
+
+Screen modules live under a product-named `resources/js/modules/<product>/` (contracts, model, hook, ui). See `docs/agents/frontend-screens.md`.

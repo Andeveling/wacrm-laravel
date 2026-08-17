@@ -1,1 +1,1 @@
-export { default } from '@/modules/flows/ui/flow-runs-screen';
+export { default } from '@/modules/flows/components/flow-runs-screen';

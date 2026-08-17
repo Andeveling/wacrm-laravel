@@ -11,6 +11,7 @@ import {
   Workflow,
   Zap,
 } from 'lucide-react';
+import { AccountSwitcher } from '@/components/account-switcher';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -93,6 +94,7 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <AccountSwitcher />
       </SidebarHeader>
 
       <SidebarContent>

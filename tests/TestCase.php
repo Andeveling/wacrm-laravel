@@ -12,6 +12,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        $this->withoutVite();
         Inertia::disableSsr(app()->runningUnitTests());
     }
 

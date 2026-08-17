@@ -1,1 +1,1 @@
-export { default } from '@/modules/dashboard/ui/dashboard-screen';
+export { default } from '@/modules/dashboard/components/dashboard-screen';

@@ -95,12 +95,6 @@ parameters:
 			path: tests/Feature/Auth/AuthenticateApiKeyMiddlewareTest.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\Account\:\:\$pivot\.$#'
-			identifier: property.notFound
-			count: 1
-			path: tests/Feature/Auth/MultiAccountTest.php
-
-		-
 			message: '#^Access to an undefined property Tests\\Fixtures\\TenantScopedFixture\:\:\$account_id\.$#'
 			identifier: property.notFound
 			count: 2

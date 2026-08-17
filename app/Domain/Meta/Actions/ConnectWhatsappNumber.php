@@ -48,6 +48,6 @@ final class ConnectWhatsappNumber
             (bool) ($data['confirm_default'] ?? false),
         );
 
-        return $responder->respond($result);
+        return $responder->respond($result, $request);
     }
 }

@@ -39,7 +39,7 @@ For `create`, derive these values from the issue:
 - branch: `issue-<number>-<kebab-case-name>`
 - path: `<repository-parent>/<repository-name>-issue-<number>`
 - label: `Issue #<number> <Short Name>`
-- base: `main`
+- base: `develop` (integration branch; `main` is the release cut)
 
 Run the installed creation script, replacing only derived values:
 
@@ -122,4 +122,4 @@ For `remove`, require an explicit user request. List first, resolve the exact wo
 test "${HERDR_ENV:-}" = 1 && herdr worktree remove --workspace <workspace-id>
 ```
 
-Stop its Sail instance before removal. Never remove `main`, a worktree belonging to another task, or a worktree with uncommitted changes without asking for confirmation.
+Stop its Sail instance before removal. Never remove the source checkout (`develop`), a worktree belonging to another task, or a worktree with uncommitted changes without asking for confirmation.

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { AccountMember } from './contracts';
 import {
   errorMessageFor,
   isSoleOwner,
   NETWORK_ERROR_MESSAGE,
   roleOptions,
 } from './model';
+import type { AccountMember } from './types';
 
 const member = (id: number, role: AccountMember['role']): AccountMember => ({
   id,

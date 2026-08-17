@@ -10,6 +10,7 @@ use App\Models\Enums\MessageStatus;
 use App\Models\Message;
 use App\Models\MessageReaction;
 use App\Models\User;
+use App\Models\WhatsappPhoneNumberConnection;
 use Illuminate\Database\Seeder;
 
 /**
@@ -60,6 +61,11 @@ class DemoConversationsSeeder extends Seeder
             return;
         }
 
+        $connection = WhatsappPhoneNumberConnection::query()
+            ->where('account_id', $team->id)
+            ->where('is_default', true)
+            ->firstOrFail();
+
         $contacts = Contact::where('account_id', $team->id)
             ->limit(count(self::STATUSES))
             ->get();
@@ -71,6 +77,7 @@ class DemoConversationsSeeder extends Seeder
                 'account_id' => $team->id,
                 'user_id' => $owner->id,
                 'contact_id' => $contact->id,
+                'connection_id' => $connection->id,
                 'status' => $status,
                 'last_message_at' => now()->subHours($index + 1),
                 'unread_count' => $status === ConversationStatus::Open ? fake()->numberBetween(0, 3) : 0,

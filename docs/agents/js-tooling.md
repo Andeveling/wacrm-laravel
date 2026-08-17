@@ -5,7 +5,7 @@ Linter + formatter: **Biome 2.5** (`@biomejs/biome`). Single config at `biome.js
 Ignored paths (consistent with the old ESLint config):
 `vendor`, `node_modules`, `public`, `bootstrap/ssr`, `public/favicon.svg`, `tailwind.config.js`, `vite.config.ts`, `resources/js/actions/**`, `resources/js/components/ui/*`, `resources/js/routes/**`, `resources/js/wayfinder/**`.
 
-Excluded from formatter but linted: `resources/js/components/ui/*` (shadcn-style scaffold) and `resources/views/mail/*` (blade templates).
+Excluded from formatter, linter, and assist: `resources/js/components/ui/*` (shadcn primitives stay as the CLI wrote them). `resources/views/mail/*` is excluded from the formatter.
 
 Rules disabled in `biome.json` match the baseline the previous ESLint config enforced, so the Laravel starter scaffold does not produce false positives: `noExplicitAny`, `noArrayIndexKey`, `noSvgWithoutTitle`, `useSemanticElements`, `useButtonType`, `useAriaPropsSupportedByRole`, `noDangerouslySetInnerHtml`, `noBlankTarget`. Re-enable per-file when the underlying pattern is fixed.
 

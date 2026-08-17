@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
         DemoCustomFieldsSeeder::class,
         DemoTagsSeeder::class,
         DemoContactsSeeder::class,
+        DemoWhatsappSeeder::class,
         DemoConversationsSeeder::class,
         DemoPipelineSeeder::class,
         DemoBroadcastsSeeder::class,

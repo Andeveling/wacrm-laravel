@@ -2,11 +2,19 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Account;
+use App\Models\Enums\AccountType;
+use App\Models\User;
+use App\Models\WhatsappPhoneNumberConnection;
+use App\Support\CurrentAccount;
+use App\Support\CurrentAccountResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    public function __construct(private CurrentAccountResolver $resolver) {}
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -35,13 +43,111 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
+            'currentAccount' => fn (): ?array => $this->sharedCurrentAccount($request, $user),
+            'accounts' => fn (): array => $this->sharedMemberships($user),
+            'hasWhatsappConnection' => fn (): bool => $this->sharedHasWhatsappConnection($request, $user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * @return array{id: string, name: string, type: string, role: string}|null
+     */
+    private function sharedCurrentAccount(Request $request, ?User $user): ?array
+    {
+        if ($request->attributes->has('inertia.sharedCurrentAccount')) {
+            /** @var array{id: string, name: string, type: string, role: string}|null $cached */
+            $cached = $request->attributes->get('inertia.sharedCurrentAccount');
+
+            return $cached;
+        }
+
+        if ($user === null) {
+            $request->attributes->set('inertia.sharedCurrentAccount', null);
+
+            return null;
+        }
+
+        if (app()->bound(CurrentAccount::class)) {
+            $account = $user->accounts()->whereKey(app(CurrentAccount::class)->id())->first();
+        } else {
+            $account = $this->resolver->membership($request);
+
+            if ($account !== null) {
+                $this->resolver->remember($request, $account);
+            }
+        }
+
+        $role = $account?->pivot?->role;
+
+        if ($account === null || $role === null) {
+            $request->attributes->set('inertia.sharedCurrentAccount', null);
+
+            return null;
+        }
+
+        $shared = [
+            'id' => $account->id,
+            'name' => $account->name,
+            'type' => $account->type->value,
+            'role' => $role->value,
+        ];
+
+        $request->attributes->set('inertia.sharedCurrentAccount', $shared);
+
+        return $shared;
+    }
+
+    /**
+     * @return list<array{id: string, name: string, type: string}>
+     */
+    private function sharedMemberships(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        $ordered = $user->accounts()
+            ->orderBy('name')
+            ->get(['id', 'name', 'type'])
+            ->sortBy(fn (Account $account): int => $account->type === AccountType::Personal ? 1 : 0);
+
+        $memberships = [];
+
+        foreach ($ordered as $account) {
+            $memberships[] = [
+                'id' => $account->id,
+                'name' => $account->name,
+                'type' => $account->type->value,
+            ];
+        }
+
+        return $memberships;
+    }
+
+    private function sharedHasWhatsappConnection(Request $request, ?User $user): bool
+    {
+        if (app()->bound(CurrentAccount::class)) {
+            return WhatsappPhoneNumberConnection::query()->exists();
+        }
+
+        $current = $this->sharedCurrentAccount($request, $user);
+
+        if ($current === null) {
+            return false;
+        }
+
+        return WhatsappPhoneNumberConnection::query()
+            ->withoutGlobalScopes()
+            ->where('account_id', $current['id'])
+            ->exists();
     }
 }

@@ -181,8 +181,11 @@ test('a subscription failure preserves verified credentials for a retry', functi
     expect(WhatsappIntegration::withoutGlobalScopes()->count())->toBe(1)
         ->and(WhatsappPhoneNumberConnection::withoutGlobalScopes()->sole()->readiness)
         ->toBe(WhatsappConnectionReadiness::CredentialsVerified)
-        ->and(session('whatsapp_error'))->toContain('permisos')
-        ->and(session('whatsapp_error'))->not->toContain('secret-meta-token');
+        ->and(session('whatsapp_notice'))->toContain('Guardamos el número')
+        ->and(session('whatsapp_notice'))->toContain('permisos')
+        ->and(session('whatsapp_notice'))->not->toContain('secret-meta-token')
+        ->and(session('whatsapp_error'))->toBeNull()
+        ->and(session('whatsapp_status'))->toBeNull();
 });
 
 test('a registration failure preserves the subscribed step', function () {
@@ -202,7 +205,9 @@ test('a registration failure preserves the subscribed step', function () {
     expect(WabaSubscription::withoutGlobalScopes()->sole()->subscribed_apps_at)->not->toBeNull()
         ->and(WhatsappPhoneNumberConnection::withoutGlobalScopes()->sole()->readiness)
         ->toBe(WhatsappConnectionReadiness::AttentionRequired)
-        ->and(session('whatsapp_error'))->toContain('registrar');
+        ->and(session('whatsapp_notice'))->toContain('Guardamos el número')
+        ->and(session('whatsapp_notice'))->toContain('registrar')
+        ->and(session('whatsapp_error'))->toBeNull();
 });
 
 test('admin can rotate a token without repeating completed Meta steps', function () {
@@ -695,6 +700,9 @@ test('a disconnected number can be reclaimed by another account without leaking 
                 'whatsapp_business_account' => ['id' => 'waba-reclaim'],
             ]);
         }
+        if (str_contains($url, '/waba-reclaim/phone_numbers')) {
+            return Http::response(['data' => [['id' => 'phone-reclaim']]]);
+        }
         if (str_contains($url, '/waba-reclaim/subscribed_apps')) {
             return Http::response(['success' => true]);
         }
@@ -734,7 +742,9 @@ test('a disconnected number can be reclaimed by another account without leaking 
         ->and($response->getContent())->not->toContain($foreignAccount->name);
 });
 
-test('a token missing a required permission family is rejected before persisting', function () {
+test('a token missing a required permission family still saves the number for retry', function () {
+    config()->set('services.meta.app_id', 'meta-app-id');
+    config()->set('services.meta.app_secret', 'meta-app-secret');
     [$admin, $account] = memberWithRole('admin');
     Http::fake(function (HttpRequest $request) {
         if (str_contains($request->url(), '/debug_token')) {
@@ -759,9 +769,51 @@ test('a token missing a required permission family is rejected before persisting
         ])
         ->assertRedirect(route('settings.whatsapp'));
 
-    expect(session('whatsapp_error'))->toContain('familias de permisos')
-        ->and(WhatsappIntegration::withoutGlobalScopes()->count())->toBe(0)
-        ->and(WhatsappPhoneNumberConnection::withoutGlobalScopes()->count())->toBe(0);
+    expect(session('whatsapp_notice'))->toContain('Guardamos el número')
+        ->and(session('whatsapp_notice'))->toContain('familias de permisos')
+        ->and(session('whatsapp_error'))->toBeNull()
+        ->and(session()->getOldInput('phone_number_id'))->toBe('phone-123')
+        ->and(session()->getOldInput('waba_id'))->toBe('waba-123')
+        ->and(session()->getOldInput('access_token'))->toBeNull()
+        ->and(WhatsappIntegration::withoutGlobalScopes()->count())->toBe(1)
+        ->and(WhatsappPhoneNumberConnection::withoutGlobalScopes()->sole()->readiness)
+        ->toBe(WhatsappConnectionReadiness::AttentionRequired);
+
+    $this->get(route('settings.whatsapp'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/whatsapp')
+            ->where('draft.phone_number_id', 'phone-123')
+            ->where('draft.waba_id', 'waba-123')
+            ->where('connections.0.health', 'attention')
+            ->where('notice', fn (string $notice) => str_contains($notice, 'Guardamos el número'))
+            ->where('error', null)
+            ->where('status', null)
+        );
+});
+
+test('connecting proceeds without inspecting the token when app credentials are missing', function () {
+    config()->set('services.meta.app_id', null);
+    config()->set('services.meta.app_secret', null);
+    [$admin, $account] = memberWithRole('admin');
+    fakeMetaConnectionRequests();
+
+    $this->actingAs($admin)
+        ->withSession(['current_account_id' => $account->id])
+        ->post(route('settings.whatsapp.connect'), [
+            'phone_number_id' => 'phone-123',
+            'waba_id' => 'waba-123',
+            'access_token' => 'secret-meta-token',
+            'pin' => '123456',
+        ])
+        ->assertRedirect(route('settings.whatsapp'));
+
+    expect(session('whatsapp_status'))->not->toBeNull()
+        ->and(session('whatsapp_error'))->toBeNull()
+        ->and(WhatsappPhoneNumberConnection::withoutGlobalScopes()->sole()->readiness)
+        ->toBe(WhatsappConnectionReadiness::WebhookWaiting);
+
+    Http::assertNotSent(fn (HttpRequest $request) => str_contains($request->url(), 'debug_token'));
 });
 
 test('deleting the sole owner disables whatsapp routing and strips encrypted tokens', function () {

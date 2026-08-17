@@ -1,1 +1,1 @@
-export { default } from '@/modules/broadcasts/ui/quick-replies-screen';
+export { default } from '@/modules/broadcasts/components/quick-replies-screen';

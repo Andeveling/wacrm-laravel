@@ -29,11 +29,27 @@
     },
     "rules": {
       "preset": "recommended",
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 15
+          }
+        },
+        "noExcessiveLinesPerFunction": {
+          "level": "error",
+          "options": {
+            "maxLines": 120,
+            "skipBlankLines": true
+          }
+        }
+      },
       "suspicious": {
         "noExplicitAny": "off",
         "noArrayIndexKey": "off",
         "noReactForwardRef": "error",
-        "noLeakedRender": "warn"
+        "noLeakedRender": "warn",
+        "noImportCycles": "error"
       },
       "correctness": {
         "useExhaustiveDependencies": "warn",
@@ -42,7 +58,14 @@
         "useUniqueElementIds": "warn"
       },
       "style": {
-        "useComponentExportOnlyModules": "error"
+        "useComponentExportOnlyModules": "error",
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 300,
+            "skipBlankLines": true
+          }
+        }
       },
       "a11y": {
         "noSvgWithoutTitle": "off",
@@ -51,7 +74,7 @@
         "useAriaPropsSupportedByRole": "off"
       },
       "security": {
-        "noDangerouslySetInnerHtml": "off",
+        "noDangerouslySetInnerHtml": "warn",
         "noBlankTarget": "off"
       },
       "performance": {
@@ -69,7 +92,6 @@
       "!vite.config.mts",
       "!resources/js/actions/**",
       "!resources/js/components/ui/*",
-      "!resources/js/components/tremor/*",
       "!resources/js/routes/**",
       "!resources/js/wayfinder/**"
     ]
@@ -108,7 +130,9 @@
     {
       "includes": [
         "resources/js/modules/contacts/**",
-        "resources/js/pages/contacts.tsx"
+        "resources/js/pages/contacts.tsx",
+        "resources/js/modules/whatsapp/**",
+        "resources/js/pages/settings/whatsapp.tsx"
       ],
       "linter": {
         "rules": {
@@ -132,6 +156,7 @@
   ],
   "assist": {
     "enabled": true,
+    "includes": ["**", "!resources/js/components/ui/*"],
     "actions": {
       "source": {
         "organizeImports": "on"

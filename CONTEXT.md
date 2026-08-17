@@ -24,6 +24,12 @@ Persona con la que el Account conversa por WhatsApp. Su identidad WhatsApp canó
 ### Conversation
 Hilo entre un **Contact** y una **WhatsApp Phone Number Connection** concreta dentro de un Account. El mismo Contact puede mantener una conversación con ventas y otra con soporte cuando escribe a números distintos. Toda respuesta usa la conexión de la conversación; iniciar un hilo nuevo requiere seleccionar una conexión o usar una predeterminada explícita.
 
+### Message
+Unidad de un hilo. Pertenece a una **Conversation** y no tiene `account_id` propio. Su identidad ante Meta es `message_id`. El estado de entrega (`sending`, `sent`, `delivered`, `read`, `failed`) son ticks de Meta, no el **Unread Count** de la bandeja.
+
+### Unread Count
+Número de **Messages** inbound de una **Conversation** que el **Account** todavía no marcó como vistos. Es uno por Conversation, compartido entre los miembros del tenant. Cada inbound nuevo lo incrementa; un **Viewer** no lo pone a cero. No son los ticks `read` de Meta ni un campo de Graph.
+
 ### WhatsApp Phone Number
 Número de WhatsApp Business conectado a un **Account** e identificado de forma única por el `phone_number_id` de Meta. Un Account puede conectar varios números; un `phone_number_id` pertenece a exactamente un Account. El webhook usa este identificador para asignar cada entrega entrante al Account correcto.
 
@@ -41,6 +47,9 @@ Configuración operativa de WhatsApp perteneciente a un **Account**. Mantiene el
 
 ### Default WhatsApp Phone Number Connection
 Única conexión activa que un Account puede designar como opción predeterminada para iniciar interacciones. Nunca sustituye la conexión fijada por una conversación, broadcast o automatización, y Wacrm no elige silenciosamente otra si deja de estar disponible.
+
+### WhatsApp Remediation Issue
+Trabajo explícito que el migrador legado no mapearía en silencio: una conversación sin conexión única, varias conexiones candidatas, un WABA o número ya reclamado por otro Account, o una configuración incompleta. El operador lo ve como remediación; el front TypeScript dice Remediation. El modelo PHP `WhatsappLegacyMigrationIssue`, las Actions `AssignLegacy*` / `DismissLegacy*` y el prop Inertia `legacyIssues` conservan esos nombres de cable.
 
 ### WABA Subscription
 Vínculo entre la Meta App de la instalación y un WABA para recibir sus webhooks. Se comparte entre todos los números conectados de ese WABA y solo se retira cuando la integración deja de utilizarlo por completo.
@@ -117,7 +126,7 @@ Cada tool es una clase que extiende `Laravel\Mcp\Server\Tool` y declara un schem
 - **CurrentAccount** — value object readonly con `id` (UUID) y `role`, bindeado por request.
 - **AccountScope** — global scope de Eloquent que filtra `account_id`. Sin tenant bindeado, falla cerrado (`WHERE 1=0`).
 - **BelongsToAccount** — trait que aplica `AccountScope` y autopopula `account_id` al crear.
-- **EnsureCurrentAccount** — middleware que resuelve el account actual desde sesión, redirige al switcher si no hay, y 403 si el User ya no es miembro.
+- **EnsureCurrentAccount** — middleware que resuelve el Current Account solo, en este orden: sesión si sigue siendo miembro; `last_account_id` si sigue siendo miembro; el único Team Account; el Personal Account; la primera membresía restante. Reescribe una sesión inválida cuando queda otra membresía. 403 solo si la sesión apunta a un Account ajeno y no hay nada que resolver. Sin membresías, el chrome muestra un Empty mínimo.
 
 ## Patrón arquitectónico
 
@@ -179,6 +188,7 @@ Las sondas `pest --agent` son temporales: verifican backend o navegador dentro d
 - **BelongsToAccount** — marcador de que un modelo está escopeado por tenant.
 - **Datos operativos** — contactos, negocios, conversaciones (CRM).
 - **WhatsApp Phone Number** — número de WhatsApp Business de un Account, identificado por su `phone_number_id` de Meta.
+- **WhatsApp Remediation Issue** — caso que el migrador legado no mapearía en silencio; el operador lo remedia de forma explícita.
 
 ## Reglas de membresía
 

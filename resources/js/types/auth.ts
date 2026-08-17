@@ -15,3 +15,20 @@ export type User = {
 export type Auth = {
   user: User;
 };
+
+export type AccountType = 'personal' | 'team';
+
+export type AccountRole = 'owner' | 'admin' | 'member' | 'viewer';
+
+export type CurrentAccount = {
+  id: string;
+  name: string;
+  type: AccountType;
+  role: AccountRole;
+};
+
+export type AccountMembership = {
+  id: string;
+  name: string;
+  type: AccountType;
+};

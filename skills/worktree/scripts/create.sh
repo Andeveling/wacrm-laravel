@@ -25,7 +25,7 @@ branch="issue-${issue_number}-${issue_slug}"
 herdr worktree create \
     --cwd "$repository_root" \
     --branch "$branch" \
-    --base main \
+    --base develop \
     --path "$worktree_path" \
     --label "Issue #${issue_number} ${short_name}" \
     --no-focus

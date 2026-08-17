@@ -1,6 +1,6 @@
 # workflow
 - Worktree/workspace naming must replicate the repo's established convention exactly: workspace label "Issue #{N} {Title}" (e.g. "Issue #98 Contact Tabs", "Issue #87 Inbox"), not an arbitrary label. Before creating, inspect existing worktrees/workspaces (`herdr worktree list`, `herdr workspace list`) and match the pattern. Confidence: 0.9
-- Manage issue worktrees through the Herdr CLI: one linked worktree per issue at `{repo}-issue-{N}`, branch `issue-{N}-{slug}` branched from `main`, opened in its own focused workspace (`herdr worktree create --branch ... --base main --path ... --focus`). Confidence: 0.75
+- Manage issue worktrees through the Herdr CLI: one linked worktree per issue at `{repo}-issue-{N}`, branch `issue-{N}-{slug}` branched from `develop`, opened in its own focused workspace (`herdr worktree create --branch ... --base develop --path ... --focus`). Confidence: 0.75
 - Assistant's primary role is orchestrating pending tasks from the migration map and grilling sessions — implementation is delegated to other agents. Confidence: 0.75
 - When checking for pending tasks, grilling sessions, or issues, consult GitHub issues (gh CLI) as the source of truth — not local .scratch/ directories or git branch scanning alone. Confidence: 0.60
 - Make atomic commits — one commit per discrete change or issue. Confidence: 0.65

@@ -1,6 +1,6 @@
 import { BarChart3, Bot, PencilLine } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { BarChart } from '@/components/tremor/bar-chart';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   Card,
   CardContent,
@@ -8,6 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
 import {
   Select,
   SelectContent,
@@ -18,6 +24,13 @@ import {
 import { formatCompactNumber } from '@/lib/currency';
 
 const WINDOWS = [7, 30, 90] as const;
+
+const CHART_CONFIG = {
+  tokens: {
+    label: 'Tokens',
+    color: 'var(--chart-1)',
+  },
+} satisfies ChartConfig;
 
 function mockUsage(windowDays: number) {
   const daily = Array.from({ length: windowDays }, (_, i) => {
@@ -65,7 +78,7 @@ export function AiUsageCard() {
       month: 'short',
       day: 'numeric',
     }),
-    Tokens: d.tokens,
+    tokens: d.tokens,
   }));
 
   return (
@@ -74,7 +87,7 @@ export function AiUsageCard() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="h-4 w-4 text-primary" /> Consumo de tokens
+              <BarChart3 className="size-4 text-primary" /> Consumo de tokens
             </CardTitle>
             <CardDescription>
               Tokens consumidos en tu llave de proveedor por borradores y el bot
@@ -85,7 +98,7 @@ export function AiUsageCard() {
             value={String(days)}
             onValueChange={(v) => setDays(Number(v))}
           >
-            <SelectTrigger className="w-32 flex-shrink-0">
+            <SelectTrigger className="w-32 shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -98,7 +111,7 @@ export function AiUsageCard() {
           </Select>
         </div>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="flex flex-col gap-5">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat
             label="Tokens totales"
@@ -121,16 +134,7 @@ export function AiUsageCard() {
           <p className="mb-2 text-xs font-medium text-muted-foreground">
             Tokens por día
           </p>
-          <BarChart
-            data={chartData}
-            index="day"
-            categories={['Tokens']}
-            colors={['violet']}
-            valueFormatter={(v) => formatCompactNumber(v)}
-            showLegend={false}
-            yAxisWidth={48}
-            className="h-[200px]"
-          />
+          <TokenUsageBars data={chartData} />
         </div>
 
         <div>
@@ -149,7 +153,7 @@ export function AiUsageCard() {
                     ({m.provider})
                   </span>
                 </span>
-                <span className="flex-shrink-0 tabular-nums text-muted-foreground">
+                <span className="shrink-0 tabular-nums text-muted-foreground">
                   {formatCompactNumber(m.tokens)} tok · {m.calls}{' '}
                   {m.calls === 1 ? 'llamada' : 'llamadas'}
                 </span>
@@ -159,6 +163,37 @@ export function AiUsageCard() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function TokenUsageBars({
+  data,
+}: {
+  data: Array<{ day: string; tokens: number }>;
+}) {
+  return (
+    <ChartContainer
+      config={CHART_CONFIG}
+      className="h-[200px] w-full [&_.recharts-cartesian-axis-tick-value]:fill-muted-foreground"
+    >
+      <BarChart accessibilityLayer data={data}>
+        <CartesianGrid vertical={false} />
+        <XAxis
+          dataKey="day"
+          tickLine={false}
+          tickMargin={10}
+          axisLine={false}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          width={48}
+          tickFormatter={formatCompactNumber}
+        />
+        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        <Bar dataKey="tokens" fill="var(--color-tokens)" radius={4} />
+      </BarChart>
+    </ChartContainer>
   );
 }
 
@@ -174,7 +209,7 @@ function Stat({
   return (
     <div className="rounded-md border border-border p-3">
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
-        {Icon && <Icon className="h-3 w-3" />}
+        {Icon ? <Icon className="size-3" /> : null}
         {label}
       </p>
       <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">

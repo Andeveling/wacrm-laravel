@@ -12,7 +12,6 @@
     "resources/js/routes/**",
     "resources/js/wayfinder/**",
     "resources/js/components/ui/**",
-    "resources/js/components/tremor/**",
     "**/*.snap"
   ],
   "gitignore": true

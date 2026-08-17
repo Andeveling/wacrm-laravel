@@ -92,7 +92,6 @@
       "!vite.config.mts",
       "!resources/js/actions/**",
       "!resources/js/components/ui/*",
-      "!resources/js/components/tremor/*",
       "!resources/js/routes/**",
       "!resources/js/wayfinder/**"
     ]

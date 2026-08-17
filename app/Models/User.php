@@ -8,6 +8,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -26,6 +27,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
  * @property string|null $remember_token
+ * @property string|null $last_account_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read AccountUser|null $pivot
@@ -63,6 +65,14 @@ class User extends Authenticatable implements PasskeyUser
         return $this->belongsToMany(Account::class, 'account_user')
             ->using(AccountUser::class)
             ->withPivot('role', 'joined_at');
+    }
+
+    /**
+     * @return BelongsTo<Account, $this>
+     */
+    public function lastAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'last_account_id');
     }
 
     /**

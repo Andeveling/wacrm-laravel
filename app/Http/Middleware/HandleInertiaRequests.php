@@ -2,11 +2,16 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
+use App\Support\CurrentAccount;
+use App\Support\CurrentAccountResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    public function __construct(private CurrentAccountResolver $resolver) {}
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -35,13 +40,72 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
+            'currentAccount' => fn (): ?array => $this->sharedCurrentAccount($request, $user),
+            'accounts' => fn (): array => $this->sharedMemberships($user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * @return array{id: string, name: string, type: string, role: string}|null
+     */
+    private function sharedCurrentAccount(Request $request, ?User $user): ?array
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        if (app()->bound(CurrentAccount::class)) {
+            $account = $user->accounts()->whereKey(app(CurrentAccount::class)->id())->first();
+        } else {
+            $account = $this->resolver->membership($request);
+
+            if ($account !== null) {
+                $this->resolver->remember($request, $account);
+            }
+        }
+
+        $role = $account?->pivot?->role;
+
+        if ($account === null || $role === null) {
+            return null;
+        }
+
+        return [
+            'id' => $account->id,
+            'name' => $account->name,
+            'type' => $account->type->value,
+            'role' => $role->value,
+        ];
+    }
+
+    /**
+     * @return list<array{id: string, name: string, type: string}>
+     */
+    private function sharedMemberships(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        $memberships = [];
+
+        foreach ($user->accounts()->orderBy('name')->get(['id', 'name', 'type']) as $account) {
+            $memberships[] = [
+                'id' => $account->id,
+                'name' => $account->name,
+                'type' => $account->type->value,
+            ];
+        }
+
+        return $memberships;
     }
 }

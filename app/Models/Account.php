@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property AccountType $type
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read AccountUser|null $pivot
  */
 #[Fillable(['name', 'type'])]
 class Account extends Model

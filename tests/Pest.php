@@ -26,22 +26,14 @@ function signIn(User $user, string $password = 'password'): void
 }
 
 /**
- * Signs the user in and puts `current_account_id` in the session by picking
- * their account in the switcher.
- *
- * Every route behind `ensure.current-account` redirects to the switcher until
- * that session key exists. A Browser test that logs in and jumps straight to
- * such a route therefore renders the switcher, so every selector it looks for
- * misses — and a browser action against a selector that never matches was
- * measured waiting over 400s without returning (see #97).
+ * Signs the user in. The middleware resolves their Current Account, so a
+ * Browser test that logs in lands on the Dashboard without a switch page.
  */
 function signInAndSelectAccount(User $user, string $password = 'password'): void
 {
     signIn($user, $password);
 
-    test()->visit('/accounts/switch')
-        ->click('[data-testid="accounts-switcher"] button')
-        ->assertPathIs('/dashboard');
+    test()->visit('/dashboard')->assertPathIs('/dashboard');
 }
 
 /**

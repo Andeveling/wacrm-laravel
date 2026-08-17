@@ -126,7 +126,7 @@ Cada tool es una clase que extiende `Laravel\Mcp\Server\Tool` y declara un schem
 - **CurrentAccount** — value object readonly con `id` (UUID) y `role`, bindeado por request.
 - **AccountScope** — global scope de Eloquent que filtra `account_id`. Sin tenant bindeado, falla cerrado (`WHERE 1=0`).
 - **BelongsToAccount** — trait que aplica `AccountScope` y autopopula `account_id` al crear.
-- **EnsureCurrentAccount** — middleware que resuelve el account actual desde sesión, redirige al switcher si no hay, y 403 si el User ya no es miembro.
+- **EnsureCurrentAccount** — middleware que resuelve el Current Account solo, en este orden: sesión si sigue siendo miembro; `last_account_id` si sigue siendo miembro; el único Team Account; el Personal Account; la primera membresía restante. Reescribe una sesión inválida cuando queda otra membresía. 403 solo si la sesión apunta a un Account ajeno y no hay nada que resolver. Sin membresías, el chrome muestra un Empty mínimo.
 
 ## Patrón arquitectónico
 

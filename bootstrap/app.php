@@ -59,6 +59,11 @@ return Application::configure(basePath: dirname(__DIR__))
             before: SubstituteBindings::class,
             prepend: EnsureCurrentAccount::class,
         );
+
+        $middleware->prependToPriorityList(
+            before: EnsureCurrentAccount::class,
+            prepend: HandleInertiaRequests::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

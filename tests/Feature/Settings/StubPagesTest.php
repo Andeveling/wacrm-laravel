@@ -54,7 +54,10 @@ test('whatsapp settings page is displayed for the current account', function () 
         ->get(route('settings.whatsapp'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/whatsapp'),
+            ->component('settings/whatsapp')
+            ->where('hasWhatsappConnection', false)
+            ->has('connections', 0)
+            ->where('canManage', true),
         );
 });
 

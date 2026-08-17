@@ -13,6 +13,7 @@ declare module '@inertiajs/core' {
       auth: Auth;
       currentAccount: CurrentAccount | null;
       accounts: AccountMembership[];
+      hasWhatsappConnection: boolean;
       sidebarOpen: boolean;
       [key: string]: unknown;
     };

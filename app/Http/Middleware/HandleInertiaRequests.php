@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Models\WhatsappPhoneNumberConnection;
 use App\Support\CurrentAccount;
 use App\Support\CurrentAccountResolver;
 use Illuminate\Http\Request;
@@ -50,6 +51,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'currentAccount' => fn (): ?array => $this->sharedCurrentAccount($request, $user),
             'accounts' => fn (): array => $this->sharedMemberships($user),
+            'hasWhatsappConnection' => fn (): bool => $this->sharedHasWhatsappConnection($request, $user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
@@ -59,7 +61,16 @@ class HandleInertiaRequests extends Middleware
      */
     private function sharedCurrentAccount(Request $request, ?User $user): ?array
     {
+        if ($request->attributes->has('inertia.sharedCurrentAccount')) {
+            /** @var array{id: string, name: string, type: string, role: string}|null $cached */
+            $cached = $request->attributes->get('inertia.sharedCurrentAccount');
+
+            return $cached;
+        }
+
         if ($user === null) {
+            $request->attributes->set('inertia.sharedCurrentAccount', null);
+
             return null;
         }
 
@@ -76,15 +87,21 @@ class HandleInertiaRequests extends Middleware
         $role = $account?->pivot?->role;
 
         if ($account === null || $role === null) {
+            $request->attributes->set('inertia.sharedCurrentAccount', null);
+
             return null;
         }
 
-        return [
+        $shared = [
             'id' => $account->id,
             'name' => $account->name,
             'type' => $account->type->value,
             'role' => $role->value,
         ];
+
+        $request->attributes->set('inertia.sharedCurrentAccount', $shared);
+
+        return $shared;
     }
 
     /**
@@ -107,5 +124,23 @@ class HandleInertiaRequests extends Middleware
         }
 
         return $memberships;
+    }
+
+    private function sharedHasWhatsappConnection(Request $request, ?User $user): bool
+    {
+        if (app()->bound(CurrentAccount::class)) {
+            return WhatsappPhoneNumberConnection::query()->exists();
+        }
+
+        $current = $this->sharedCurrentAccount($request, $user);
+
+        if ($current === null) {
+            return false;
+        }
+
+        return WhatsappPhoneNumberConnection::query()
+            ->withoutGlobalScopes()
+            ->where('account_id', $current['id'])
+            ->exists();
     }
 }

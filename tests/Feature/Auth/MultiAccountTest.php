@@ -3,7 +3,9 @@
 use App\Models\Account;
 use App\Models\Enums\AccountRole;
 use App\Models\Enums\AccountType;
+use App\Models\Enums\WhatsappConnectionReadiness;
 use App\Models\User;
+use App\Models\WhatsappPhoneNumberConnection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use Laravel\Fortify\Features;
@@ -78,6 +80,40 @@ test('authenticated pages share the current account and memberships', function (
             ->where('currentAccount.role', 'owner')
             ->has('accounts', 1)
             ->where('accounts.0.name', 'Mine')
+            ->where('hasWhatsappConnection', false)
+        );
+});
+
+test('authenticated pages share when the current account has a whatsapp connection of any readiness', function () {
+    $user = User::factory()->create();
+    $mine = Account::factory()->create(['name' => 'Mine']);
+    $mine->users()->attach($user->id, ['role' => 'owner', 'joined_at' => now()]);
+    WhatsappPhoneNumberConnection::factory()->for($mine)->create([
+        'readiness' => WhatsappConnectionReadiness::Disconnected,
+    ]);
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $mine->id])
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('hasWhatsappConnection', true)
+        );
+});
+
+test('a whatsapp connection on another account does not flip the shared flag', function () {
+    $user = User::factory()->create();
+    $mine = Account::factory()->create(['name' => 'Mine']);
+    $mine->users()->attach($user->id, ['role' => 'owner', 'joined_at' => now()]);
+    $foreign = Account::factory()->create(['name' => 'Not mine']);
+    WhatsappPhoneNumberConnection::factory()->for($foreign)->create();
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $mine->id])
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('hasWhatsappConnection', false)
         );
 });
 

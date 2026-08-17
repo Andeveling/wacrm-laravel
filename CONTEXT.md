@@ -24,6 +24,12 @@ Persona con la que el Account conversa por WhatsApp. Su identidad WhatsApp canó
 ### Conversation
 Hilo entre un **Contact** y una **WhatsApp Phone Number Connection** concreta dentro de un Account. El mismo Contact puede mantener una conversación con ventas y otra con soporte cuando escribe a números distintos. Toda respuesta usa la conexión de la conversación; iniciar un hilo nuevo requiere seleccionar una conexión o usar una predeterminada explícita.
 
+### Message
+Unidad de un hilo. Pertenece a una **Conversation** y no tiene `account_id` propio. Su identidad ante Meta es `message_id`. El estado de entrega (`sending`, `sent`, `delivered`, `read`, `failed`) son ticks de Meta, no el **Unread Count** de la bandeja.
+
+### Unread Count
+Número de **Messages** inbound de una **Conversation** que el **Account** todavía no marcó como vistos. Es uno por Conversation, compartido entre los miembros del tenant. Cada inbound nuevo lo incrementa; un **Viewer** no lo pone a cero. No son los ticks `read` de Meta ni un campo de Graph.
+
 ### WhatsApp Phone Number
 Número de WhatsApp Business conectado a un **Account** e identificado de forma única por el `phone_number_id` de Meta. Un Account puede conectar varios números; un `phone_number_id` pertenece a exactamente un Account. El webhook usa este identificador para asignar cada entrega entrante al Account correcto.
 

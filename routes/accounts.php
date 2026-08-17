@@ -4,12 +4,10 @@ use App\Domain\Accounts\Actions\ChangeMemberRole;
 use App\Domain\Accounts\Actions\InviteMember;
 use App\Domain\Accounts\Actions\ListMembers;
 use App\Domain\Accounts\Actions\RemoveMember;
-use App\Domain\Accounts\Actions\ShowSwitcher;
 use App\Domain\Accounts\Actions\SwitchAccount;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('accounts/switch', ShowSwitcher::class)->name('accounts.switch');
     Route::post('accounts/{account}/switch', SwitchAccount::class)->name('accounts.switch.update');
 });
 

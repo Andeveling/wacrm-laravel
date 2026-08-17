@@ -14,40 +14,19 @@ beforeEach(function () {
 });
 
 test('dashboard loads without JS errors', function () {
-    $this->visit('/login')
-        ->type('input#email', $this->owner->email)
-        ->type('input#password', $this->password)
-        ->press('button[type="submit"]');
-
-    $this->visit('/accounts/switch')
-        ->click('[data-testid="accounts-switcher"] button')
-        ->assertPathIs('/dashboard');
+    signInAndSelectAccount($this->owner);
 
     $this->visit('/dashboard')->assertNoSmoke();
 });
 
 test('settings profile loads without JS errors', function () {
-    $this->visit('/login')
-        ->type('input#email', $this->owner->email)
-        ->type('input#password', $this->password)
-        ->press('button[type="submit"]');
-
-    $this->visit('/accounts/switch')
-        ->click('[data-testid="accounts-switcher"] button')
-        ->assertPathIs('/dashboard');
+    signInAndSelectAccount($this->owner);
 
     $this->visit('/settings/profile')->assertNoSmoke();
 });
 
 test('settings security loads without JS errors', function () {
-    $this->visit('/login')
-        ->type('input#email', $this->owner->email)
-        ->type('input#password', $this->password)
-        ->press('button[type="submit"]');
-
-    $this->visit('/accounts/switch')
-        ->click('[data-testid="accounts-switcher"] button')
-        ->assertPathIs('/dashboard');
+    signInAndSelectAccount($this->owner);
 
     $this->visit('/settings/security')->assertNoSmoke();
 });

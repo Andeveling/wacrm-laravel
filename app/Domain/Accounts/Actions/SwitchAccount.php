@@ -18,6 +18,7 @@ final class SwitchAccount
     {
         Gate::authorize('switchTo', $account);
 
+        $request->user()->forceFill(['last_account_id' => $account->id])->save();
         $request->session()->put('current_account_id', $account->id);
 
         return to_route('dashboard');

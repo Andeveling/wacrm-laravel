@@ -30,6 +30,8 @@ class CreateNewUserWithInvitation implements CreatesNewUsers
 
             $this->redeemInviteFor($user, $input['invite'] ?? null);
 
+            $user->forceFill(['last_account_id' => $personal->id])->save();
+
             session(['current_account_id' => $personal->id]);
 
             return $user;

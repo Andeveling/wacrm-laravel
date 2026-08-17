@@ -152,7 +152,10 @@ export function ConversationList({
                         {c.last_message_text}
                       </span>
                       {c.unread_count > 0 && (
-                        <span className="flex size-4.5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                        <span
+                          data-testid={`unread-count-${c.id}`}
+                          className="flex size-4.5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground"
+                        >
                           {c.unread_count}
                         </span>
                       )}

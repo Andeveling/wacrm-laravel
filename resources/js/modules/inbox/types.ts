@@ -27,6 +27,7 @@ export interface InboxPageProps {
   messages: Message[];
   contacts: InboxContact[];
   connections: InboxConnection[];
+  can_mark_seen: boolean;
 }
 
 export interface InboxContact {

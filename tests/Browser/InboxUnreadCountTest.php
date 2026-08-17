@@ -2,9 +2,11 @@
 
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\WhatsappPhoneNumberConnection;
 
 test('a member opening a thread keeps the unread badge at zero after reload', function () {
     [$member, $account] = memberWithRole('member');
+    WhatsappPhoneNumberConnection::factory()->for($account)->create();
     $first = Contact::factory()->for($account)->create(['name' => 'Ana Pérez']);
     $second = Contact::factory()->for($account)->create(['name' => 'Luis Gómez']);
     $ana = Conversation::factory()->for($account)->create([
@@ -46,6 +48,7 @@ test('a member opening a thread keeps the unread badge at zero after reload', fu
 
 test('a viewer opening a thread keeps the unread badge after reload', function () {
     [$viewer, $account] = memberWithRole('viewer');
+    WhatsappPhoneNumberConnection::factory()->for($account)->create();
     $contact = Contact::factory()->for($account)->create(['name' => 'Ana Pérez']);
     $conversation = Conversation::factory()->for($account)->create([
         'contact_id' => $contact->id,

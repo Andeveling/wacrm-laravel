@@ -156,6 +156,7 @@
   ],
   "assist": {
     "enabled": true,
+    "includes": ["**", "!resources/js/components/ui/*"],
     "actions": {
       "source": {
         "organizeImports": "on"

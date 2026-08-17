@@ -5,13 +5,14 @@ set -euo pipefail
 
 cd /var/www/wacrm
 
-APP_URL="${APP_URL:?APP_URL required}"
+APP_URL="${APP_URL:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
-APP_URL_HOST="${APP_URL#*://}"
 
 FIRST_DEPLOY=0
 if [[ ! -f .env ]]; then
   FIRST_DEPLOY=1
+  APP_URL="${APP_URL:?APP_URL required for first deploy}"
+  APP_URL_HOST="${APP_URL#*://}"
   log(){ echo "[deploy] $*"; }
   log "Creando .env por primera vez"
 
@@ -62,6 +63,10 @@ if [[ ! -f .env ]]; then
   append "META_GRAPH_API_URL=https://graph.facebook.com"
   append "META_GRAPH_API_VERSION=v21.0"
 fi
+
+# El proceso de Actions inyecta APP_URL/DB_PASSWORD para el primer .env.
+# Si quedan exportadas, config:cache las antepone al .env del servidor.
+unset APP_URL DB_PASSWORD
 
 echo "[deploy] APP_ENV=$(grep '^APP_ENV=' .env | cut -d= -f2)"
 echo "[deploy] APP_URL=$(grep '^APP_URL=' .env | cut -d= -f2)"

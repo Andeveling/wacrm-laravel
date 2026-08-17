@@ -29,7 +29,7 @@ El job de deploy:
    - primer deploy: genera `.env` (APP_KEY, REVERB keys, DB_PASSWORD desde secret), migra y siembra el escenario demo;
    - siempre: `migrate --force`, `config:cache` + `event:cache` (no `route:cache`: hay rutas con closures), `storage:link`, recarga PHP-FPM para activar el código nuevo y vaciar OPcache, y reinicia workers con supervisor.
 
-Secrets de Actions: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DB_PASSWORD`. El `.env` del servidor es la fuente de verdad; `.env.production` local (gitignored) es el respaldo.
+Secrets de Actions: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DB_PASSWORD`. El `.env` del servidor es la fuente de verdad; el `APP_URL` del workflow solo siembra el primer `.env`. `.env.production` local (gitignored) es el respaldo.
 
 Acceso demo (siembra del primer deploy): `test@example.com` / `password`.
 
@@ -54,14 +54,11 @@ sudo supervisorctl status            # wacrm-queue / wacrm-reverb
 sudo supervisorctl restart wacrm-queue wacrm-reverb
 ```
 
-## Dominio + TLS (pendiente)
+## Dominio + TLS
 
-Hoy la app responde en `http://167.172.150.205`. Cuando haya dominio (registrar en Cloudflare, Porkbun o Namecheap):
+La app responde en `https://wacrm.andeveling.com`. El `.env` del VPS tiene ese `APP_URL`; no lo pises desde el workflow.
 
-1. Registrar un A record → `167.172.150.205`.
-2. Cambiar `APP_URL` en `.env` del servidor (y en el `env:` de `deploy.yml`) a `https://<dominio>`.
-3. Configurar TLS: `sudo apt install certbot python3-certbot-nginx && sudo certbot --nginx -d <dominio>`.
-4. Reverb: mover `REVERB_SCHEME=https` y `REVERB_PORT=443`, o proxear `/app` desde nginx (mismo origen).
+Para cambiar de dominio: actualizar `APP_URL` (y Reverb) en el `.env` del servidor, `php artisan config:cache`, y el A record. El `APP_URL` de `deploy.yml` solo importa si se regenera el `.env`.
 
 ## Cambiar credenciales
 

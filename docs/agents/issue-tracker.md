@@ -4,7 +4,7 @@ Issues live in **GitHub Issues** on `github.com/Andeveling/wacrm-laravel`.
 
 Skills (`to-tickets`, `triage`, `to-spec`, `qa`) use the `gh` CLI to read and write issues.
 
-`develop` is the default branch. A PR merged into `develop` closes the linked issue when the body or a commit says `Closes #N`. `main` is the release cut: merge `develop` into it weekly or monthly. That merge deploys; it does not auto-close issues.
+`develop` is the default branch. A PR merged into `develop` closes the linked issue when the body or a commit says `Closes #N`. That merge deploys the test VPS. `main` is unused for deploy.
 
 ## Pull requests as a request surface
 

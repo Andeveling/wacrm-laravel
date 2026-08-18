@@ -16,10 +16,10 @@ El aprovisionamiento del VPS está versionado en `scripts/provision-server.sh` (
 
 ## Cómo se despliega
 
-`develop` es la rama de integración (issues y PRs diarios). `main` es el
-corte que se despliega. Cada push a `main` dispara `.github/workflows/deploy.yml`.
-Los tests corren en push a `develop`/`main` y en todo pull request. El deploy
-no se dispara al mergear a `develop`.
+El VPS de pruebas se actualiza **solo** desde `develop`. Cada push a
+`develop` dispara `.github/workflows/deploy.yml`. `main` no despliega.
+Los tests corren en push a `develop`/`main` y en todo pull request.
+
 
 El job de deploy:
 

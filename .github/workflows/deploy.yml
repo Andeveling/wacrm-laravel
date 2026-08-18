@@ -1,9 +1,10 @@
 name: deploy
 
+# El VPS de pruebas se actualiza solo desde develop. main no dispara deploy.
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -35,6 +36,8 @@ jobs:
           php-version: '8.4'
           extensions: pdo_pgsql, pgsql, redis, intl, bcmath, gd, sockets, pcntl, mbstring, xml, zip
           tools: composer:v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -48,6 +51,8 @@ jobs:
           cache: pnpm
 
       - name: Install PHP dependencies (production)
+        env:
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
 
       - name: Install JS dependencies

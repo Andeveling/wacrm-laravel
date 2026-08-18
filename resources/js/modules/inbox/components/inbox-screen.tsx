@@ -1,9 +1,11 @@
 import { Head, useHttp } from '@inertiajs/react';
 import { MessageSquare } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { inbox } from '@/routes';
 import { seen } from '@/routes/inbox/conversations';
+import { useInboxLive } from '../hooks/use-inbox-live';
 import { useInboxSend } from '../hooks/use-inbox-send';
+import { applyInboxMessage, type InboxMessagePayload } from '../model';
 import type { Conversation, InboxPageProps, Message } from '../types';
 import { ContactSidebar } from './contact-sidebar';
 import { ConversationList } from './conversation-list';
@@ -38,30 +40,80 @@ export default function InboxPage({
     () => initialConversations[0]?.id ?? null,
   );
   const [newConversationOpen, setNewConversationOpen] = useState(false);
-  const { messages, sending, send, retry } = useInboxSend(
+  const { messages, sending, send, retry, receive } = useInboxSend(
     activeId,
     initialMessages,
   );
+  const conversationsRef = useRef(conversations);
+  const knownMessageIds = useRef(
+    new Set(initialMessages.map((message) => message.id)),
+  );
+  conversationsRef.current = conversations;
+
+  useEffect(() => {
+    for (const message of messages) {
+      knownMessageIds.current.add(message.id);
+    }
+  }, [messages]);
+
   const threadMessages = messagesForConversation(messages, activeId);
 
   const activeConversation =
     conversations.find((c) => c.id === activeId) ?? null;
 
+  const persistSeen = useCallback(
+    (conversationId: string) => {
+      if (!canMarkSeen) {
+        return;
+      }
+
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === conversationId
+            ? { ...conversation, unread_count: 0 }
+            : conversation,
+        ),
+      );
+
+      void submit(seen(conversationId)).catch(() => undefined);
+    },
+    [canMarkSeen, submit],
+  );
+
   useEffect(() => {
-    if (!activeId || !canMarkSeen) {
+    if (!activeId) {
       return;
     }
 
-    setConversations((prev) =>
-      prev.map((conversation) =>
-        conversation.id === activeId
-          ? { ...conversation, unread_count: 0 }
-          : conversation,
-      ),
-    );
+    persistSeen(activeId);
+  }, [activeId, persistSeen]);
 
-    void submit(seen(activeId)).catch(() => undefined);
-  }, [activeId, canMarkSeen, submit]);
+  const onLiveMessage = useCallback(
+    (payload: InboxMessagePayload) => {
+      if (knownMessageIds.current.has(payload.message.id)) {
+        return;
+      }
+
+      knownMessageIds.current.add(payload.message.id);
+      setConversations(
+        applyInboxMessage(
+          { conversations: conversationsRef.current, messages: [] },
+          payload,
+        ).conversations,
+      );
+      receive(payload.message);
+
+      if (
+        payload.message.sender_type === 'customer' &&
+        payload.conversation.id === activeId
+      ) {
+        persistSeen(payload.conversation.id);
+      }
+    },
+    [activeId, persistSeen, receive],
+  );
+
+  useInboxLive(onLiveMessage);
 
   function selectConversation(conversation: Conversation) {
     setActiveId(conversation.id);

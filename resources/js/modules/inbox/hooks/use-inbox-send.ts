@@ -1,5 +1,6 @@
 import { useHttp } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { echoClient } from '@/lib/echo';
 import { store as storeInboxMessage } from '@/routes/inbox/messages';
 import type {
   Message,
@@ -115,7 +116,10 @@ export function useInboxSend(
         cancel();
       }, SEND_TIMEOUT_MS);
 
+      const socketId = echoClient()?.socketId();
+
       void post(storeInboxMessage.url(conversationId), {
+        headers: socketId === undefined ? {} : { 'X-Socket-ID': socketId },
         onSuccess: (response) => {
           const persisted = persistedMessage(response);
 
@@ -125,11 +129,12 @@ export function useInboxSend(
             return;
           }
 
-          setMessages((current) =>
-            current.map((message) =>
-              message.id === tempId ? persisted : message,
+          setMessages((current) => [
+            ...current.filter(
+              (row) => row.id !== tempId && row.id !== persisted.id,
             ),
-          );
+            persisted,
+          ]);
         },
         onError: () => {
           markFailed(tempId, false);
@@ -172,10 +177,19 @@ export function useInboxSend(
     [processing, send],
   );
 
+  const receive = useCallback((incoming: ThreadMessage) => {
+    setMessages((current) =>
+      current.some((row) => row.id === incoming.id)
+        ? current
+        : [...current, incoming],
+    );
+  }, []);
+
   return {
     messages,
     sending: processing,
     send,
     retry,
+    receive,
   };
 }

@@ -28,7 +28,7 @@ function isIsoDate(value) {
   );
 }
 
-export function validateQualityExceptions(exceptions, today = new Date()) {
+function validateCategoryKeys(exceptions) {
   const errors = [];
 
   for (const key of Object.keys(exceptions)) {
@@ -37,6 +37,32 @@ export function validateQualityExceptions(exceptions, today = new Date()) {
     }
   }
 
+  return errors;
+}
+
+function validateException(exception, label, today) {
+  const errors = [];
+
+  if (typeof exception.reason !== 'string' || exception.reason === '') {
+    errors.push(`${label} needs a reason.`);
+  }
+
+  if (!Number.isInteger(exception.issue) || exception.issue < 1) {
+    errors.push(`${label} needs a tracking issue.`);
+  }
+
+  if (!isIsoDate(exception.expires)) {
+    errors.push(`${label} needs an ISO expiry date.`);
+  } else if (new Date(`${exception.expires}T00:00:00Z`) < today) {
+    errors.push(`${label} expired on ${exception.expires}.`);
+  }
+
+  return errors;
+}
+
+function validateCategoryExceptions(exceptions, today) {
+  const errors = [];
+
   for (const category of categories) {
     if (!Array.isArray(exceptions[category])) {
       errors.push(`${category} must be an array.`);
@@ -44,39 +70,42 @@ export function validateQualityExceptions(exceptions, today = new Date()) {
     }
 
     for (const [index, exception] of exceptions[category].entries()) {
-      const label = `${category}[${index}]`;
-
-      if (typeof exception.reason !== 'string' || exception.reason === '') {
-        errors.push(`${label} needs a reason.`);
-      }
-
-      if (!Number.isInteger(exception.issue) || exception.issue < 1) {
-        errors.push(`${label} needs a tracking issue.`);
-      }
-
-      if (!isIsoDate(exception.expires)) {
-        errors.push(`${label} needs an ISO expiry date.`);
-      } else if (new Date(`${exception.expires}T00:00:00Z`) < today) {
-        errors.push(`${label} expired on ${exception.expires}.`);
-      }
+      errors.push(
+        ...validateException(exception, `${category}[${index}]`, today),
+      );
     }
   }
 
+  return errors;
+}
+
+function validateDuplicationBaseline(exceptions) {
   const baseline = exceptions.duplication?.[0]?.baseline;
-  if (
-    !baseline ||
-    !['clones', 'duplicatedLines', 'duplicatedTokens'].every(
+
+  const hasValidCounters =
+    baseline &&
+    ['clones', 'duplicatedLines', 'duplicatedTokens'].every(
       (key) => Number.isInteger(baseline[key]) && baseline[key] >= 0,
-    ) ||
-    !Array.isArray(baseline.cloneFingerprints) ||
-    !baseline.cloneFingerprints.every((fingerprint) =>
+    );
+  const hasValidFingerprints =
+    Array.isArray(baseline?.cloneFingerprints) &&
+    baseline.cloneFingerprints.every((fingerprint) =>
       /^[a-f0-9]{64}$/.test(fingerprint),
-    )
-  ) {
-    errors.push('duplication[0] needs a non-negative baseline.');
+    );
+
+  if (!hasValidCounters || !hasValidFingerprints) {
+    return ['duplication[0] needs a non-negative baseline.'];
   }
 
-  return errors;
+  return [];
+}
+
+export function validateQualityExceptions(exceptions, today = new Date()) {
+  return [
+    ...validateCategoryKeys(exceptions),
+    ...validateCategoryExceptions(exceptions, today),
+    ...validateDuplicationBaseline(exceptions),
+  ];
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

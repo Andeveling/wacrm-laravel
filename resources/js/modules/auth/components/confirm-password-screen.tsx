@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useId } from 'react';
 /* @chisel-passkeys */
 import {
   index as confirmOptions,
@@ -14,6 +15,7 @@ import PasskeyVerify from './passkey-verify';
 /* @end-chisel-passkeys */
 
 export default function ConfirmPassword() {
+  const passwordId = useId();
   return (
     <>
       <Head title="Confirma tu contraseña" />
@@ -34,9 +36,9 @@ export default function ConfirmPassword() {
         {({ processing, errors }) => (
           <div className="space-y-6">
             <div className="grid gap-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor={passwordId}>Contraseña</Label>
               <PasswordInput
-                id="password"
+                id={passwordId}
                 name="password"
                 placeholder="Contraseña"
                 autoComplete="current-password"
@@ -52,7 +54,7 @@ export default function ConfirmPassword() {
                 disabled={processing}
                 data-test="confirm-password-button"
               >
-                {processing && <Spinner />}
+                {processing ? <Spinner /> : null}
                 Confirmar
               </Button>
             </div>

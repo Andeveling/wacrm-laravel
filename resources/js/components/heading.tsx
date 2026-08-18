@@ -18,9 +18,9 @@ export default function Heading({
       >
         {title}
       </h2>
-      {description && (
+      {description ? (
         <p className="text-sm text-muted-foreground">{description}</p>
-      )}
+      ) : null}
     </header>
   );
 }

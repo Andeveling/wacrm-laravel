@@ -139,14 +139,14 @@ function MemberRoster(props: MemberRosterProps) {
                       <span className="truncate text-sm font-medium text-foreground">
                         {member.name || member.email}
                       </span>
-                      {member.is_you && (
+                      {member.is_you ? (
                         <Badge
                           variant="outline"
                           className="text-[10px] tracking-wide uppercase"
                         >
                           Tú
                         </Badge>
-                      )}
+                      ) : null}
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
                       {member.email}
@@ -352,22 +352,22 @@ export default function Members({
           description="Todos los miembros de esta cuenta. Owners y Admins pueden invitar, cambiar roles y remover miembros."
         />
 
-        {lastOwnerError && (
+        {lastOwnerError ? (
           <Alert variant="destructive" data-testid="last-owner-error">
             <AlertCircle />
             <AlertTitle>No puedes dejar la cuenta sin Owner</AlertTitle>
             <AlertDescription>{lastOwnerError}</AlertDescription>
           </Alert>
-        )}
+        ) : null}
 
-        {is_admin && (
+        {is_admin ? (
           <InviteMemberForm
             inviteState={inviteState}
             inviteMember={inviteMember}
             isOwner={is_owner}
             roleOptions={roleOptions}
           />
-        )}
+        ) : null}
 
         <MemberRoster
           members={enrichedMembers}
@@ -379,7 +379,7 @@ export default function Members({
           onRemove={setMemberToRemove}
         />
 
-        {is_admin && (
+        {is_admin ? (
           <PendingInvitations
             invitations={invitations}
             busyInvitationId={busyInvitationId}
@@ -387,7 +387,7 @@ export default function Members({
             onRevoke={setInvitationToRevoke}
             onRegenerate={setInvitationToRegenerate}
           />
-        )}
+        ) : null}
 
         <p className="text-xs text-muted-foreground" data-testid="viewer-flags">
           Tu rol actual es {ROLE_LABEL[account.role]}.

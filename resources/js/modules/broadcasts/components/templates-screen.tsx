@@ -1,7 +1,7 @@
 // biome-ignore lint/style/noExcessiveLinesPerFile: JSX is split into focused internal components.
 import { Head } from '@inertiajs/react';
 import { AlertCircle, Plus, RefreshCw, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -132,26 +132,26 @@ function TemplateList({ templates, onEdit, onDelete }: TemplateListProps) {
                   <Badge className={`border text-xs ${status.classes}`}>
                     {status.label}
                   </Badge>
-                  {template.language && (
+                  {template.language ? (
                     <span className="text-xs text-muted-foreground uppercase">
                       {template.language}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <p className="line-clamp-2 text-sm text-muted-foreground">
                   {template.body_text}
                 </p>
-                {template.footer_text && (
+                {template.footer_text ? (
                   <p className="text-xs text-muted-foreground italic">
                     {template.footer_text}
                   </p>
-                )}
-                {template.rejection_reason && (
+                ) : null}
+                {template.rejection_reason ? (
                   <div className="flex items-start gap-1.5 rounded border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
                     <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
                     <span>{template.rejection_reason}</span>
                   </div>
-                )}
+                ) : null}
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <Button
@@ -190,12 +190,16 @@ function TemplateFormFields({
   editingId,
   onFormChange,
 }: TemplateFormFieldsProps) {
+  const tplNameId = useId();
+  const tplBodyId = useId();
+  const tplFooterId = useId();
+
   return (
     <div className="space-y-4 py-2">
       <div className="space-y-2">
-        <Label htmlFor="tpl-name">Nombre de la plantilla</Label>
+        <Label htmlFor={tplNameId}>Nombre de la plantilla</Label>
         <Input
-          id="tpl-name"
+          id={tplNameId}
           placeholder="ej. promo_agosto"
           value={form.name}
           onChange={(e) => onFormChange({ ...form, name: e.target.value })}
@@ -250,9 +254,9 @@ function TemplateFormFields({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="tpl-body">Cuerpo del mensaje</Label>
+        <Label htmlFor={tplBodyId}>Cuerpo del mensaje</Label>
         <Textarea
-          id="tpl-body"
+          id={tplBodyId}
           placeholder="Hola {{1}}, …"
           value={form.body_text}
           onChange={(e) => onFormChange({ ...form, body_text: e.target.value })}
@@ -266,9 +270,9 @@ function TemplateFormFields({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="tpl-footer">Pie de página (opcional)</Label>
+        <Label htmlFor={tplFooterId}>Pie de página (opcional)</Label>
         <Input
-          id="tpl-footer"
+          id={tplFooterId}
           placeholder="Texto pequeño al final del mensaje"
           value={form.footer_text}
           onChange={(e) =>

@@ -82,11 +82,11 @@ export default function Overview({ panels }: PageProps) {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      {Icon && (
+                      {Icon ? (
                         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                           <Icon className="size-4" />
                         </span>
-                      )}
+                      ) : null}
                       <CardTitle>{panel.title}</CardTitle>
                     </div>
                     <Badge className={statusBadgeClass[panel.status]}>

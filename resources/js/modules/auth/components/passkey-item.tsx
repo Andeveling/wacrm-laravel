@@ -34,20 +34,20 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <p className="font-medium tracking-tight">{passkey.name}</p>
-            {passkey.authenticator && (
+            {passkey.authenticator ? (
               <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase ring-1 ring-border ring-inset">
                 {passkey.authenticator}
               </span>
-            )}
+            ) : null}
           </div>
           <p className="text-sm text-muted-foreground">
             Agregada {passkey.created_at_diff}
-            {passkey.last_used_at_diff && (
+            {passkey.last_used_at_diff ? (
               <>
                 <span className="mx-1 text-muted-foreground/50">/</span>
                 Último uso {passkey.last_used_at_diff}
               </>
-            )}
+            ) : null}
           </p>
         </div>
       </div>

@@ -72,7 +72,7 @@ function SettingsNavLink({ item, active }: { item: NavItem; active: boolean }) {
         active && 'bg-muted font-medium text-foreground',
       )}
     >
-      {Icon && <Icon className="h-4 w-4 shrink-0" />}
+      {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
       {item.title}
     </Link>
   );

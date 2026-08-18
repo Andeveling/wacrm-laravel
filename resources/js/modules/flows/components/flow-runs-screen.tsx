@@ -105,7 +105,7 @@ function RunCard({
           </div>
         </div>
       </button>
-      {expanded && (
+      {expanded ? (
         <div className="border-t border-border px-4 py-3">
           <div className="flex flex-col gap-1">
             {events.length === 0 ? (
@@ -122,17 +122,17 @@ function RunCard({
                   <span className="w-32 shrink-0 font-mono text-[10px] text-muted-foreground">
                     {ev.event_type}
                   </span>
-                  {ev.node_key && (
+                  {ev.node_key ? (
                     <code className="shrink-0 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
                       {ev.node_key}
                     </code>
-                  )}
+                  ) : null}
                 </div>
               ))
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

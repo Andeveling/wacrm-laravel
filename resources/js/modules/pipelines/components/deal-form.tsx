@@ -1,6 +1,6 @@
 import { type InertiaForm, router, useForm } from '@inertiajs/react';
 import { Check, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
 import destroyDeal from '@/actions/App/Domain/Pipelines/Actions/DestroyDeal';
 import storeDeal from '@/actions/App/Domain/Pipelines/Actions/StoreDeal';
@@ -67,6 +67,13 @@ function DealFormView({
   const field = (name: DealFormField) => (value: string) =>
     form.setData(name, value);
 
+  const dealTitleId = useId();
+  const dealContactId = useId();
+  const dealValueId = useId();
+  const dealStageId = useId();
+  const dealCloseDateId = useId();
+  const dealNotesId = useId();
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full p-0 sm:max-w-lg">
@@ -76,18 +83,18 @@ function DealFormView({
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-y-auto p-4">
             <div className="grid gap-2">
-              <Label htmlFor="deal-title">Título</Label>
+              <Label htmlFor={dealTitleId}>Título</Label>
               <Input
-                id="deal-title"
+                id={dealTitleId}
                 value={form.data.title}
                 onChange={(event) => field('title')(event.target.value)}
                 placeholder="Nombre del negocio"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="deal-contact">Contacto</Label>
+              <Label htmlFor={dealContactId}>Contacto</Label>
               <select
-                id="deal-contact"
+                id={dealContactId}
                 value={form.data.contact_id}
                 onChange={(event) => field('contact_id')(event.target.value)}
                 className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -102,9 +109,9 @@ function DealFormView({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="deal-value">Valor</Label>
+                <Label htmlFor={dealValueId}>Valor</Label>
                 <Input
-                  id="deal-value"
+                  id={dealValueId}
                   type="number"
                   min="0"
                   value={form.data.value}
@@ -113,9 +120,9 @@ function DealFormView({
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="deal-stage">Etapa</Label>
+                <Label htmlFor={dealStageId}>Etapa</Label>
                 <select
-                  id="deal-stage"
+                  id={dealStageId}
                   value={form.data.stage_id}
                   onChange={(event) => field('stage_id')(event.target.value)}
                   className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -129,9 +136,9 @@ function DealFormView({
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="deal-close-date">Fecha estimada de cierre</Label>
+              <Label htmlFor={dealCloseDateId}>Fecha estimada de cierre</Label>
               <Input
-                id="deal-close-date"
+                id={dealCloseDateId}
                 type="date"
                 value={form.data.expected_close_date}
                 onChange={(event) =>
@@ -140,16 +147,16 @@ function DealFormView({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="deal-notes">Notas</Label>
+              <Label htmlFor={dealNotesId}>Notas</Label>
               <Textarea
-                id="deal-notes"
+                id={dealNotesId}
                 value={form.data.notes}
                 onChange={(event) => field('notes')(event.target.value)}
                 rows={4}
                 placeholder="Notas internas…"
               />
             </div>
-            {deal && (
+            {deal ? (
               <div className="flex flex-wrap gap-2 border-t pt-4">
                 <Button
                   variant="outline"
@@ -188,7 +195,7 @@ function DealFormView({
                   </Button>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
           <div className="flex justify-end gap-2 border-t p-4">
             <Button variant="outline" onClick={() => onOpenChange(false)}>

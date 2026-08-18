@@ -11,7 +11,6 @@ import type { NavItem } from '@/types/navigation';
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
   const { isCurrentUrl } = useCurrentUrl();
-
   return (
     <SidebarGroup className="px-2 py-0">
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -24,7 +23,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
               tooltip={{ children: item.title }}
             >
               <Link href={item.href} prefetch>
-                {item.icon && <item.icon />}
+                {item.icon ? <item.icon /> : null}
                 <span>{item.title}</span>
               </Link>
             </SidebarMenuButton>

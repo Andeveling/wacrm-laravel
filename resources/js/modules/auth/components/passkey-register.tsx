@@ -1,5 +1,5 @@
 import { usePasskeyRegister } from '@laravel/passkeys/react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ type Props = {
 };
 
 export default function PasskeyRegistration({ onSuccess }: Props) {
+  const passkeyNameId = useId();
   const [name, setName] = useState(() => {
     const ua = navigator.userAgent;
 
@@ -78,9 +79,9 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
       className="space-y-4 rounded-lg border border-border bg-muted/50 p-4"
     >
       <div className="grid gap-2">
-        <Label htmlFor="passkey-name">Nombre de la llave de acceso</Label>
+        <Label htmlFor={passkeyNameId}>Nombre de la llave de acceso</Label>
         <Input
-          id="passkey-name"
+          id={passkeyNameId}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -93,7 +94,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
         </p>
       </div>
 
-      {error && <InputError message={error} />}
+      {error ? <InputError message={error} /> : null}
 
       <div className="flex gap-2">
         <Button type="submit" disabled={isLoading || !name.trim()}>

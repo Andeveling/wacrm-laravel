@@ -1,4 +1,3 @@
-import { Link } from '@inertiajs/react';
 import {
   Bell,
   Bot,
@@ -12,7 +11,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { AccountSwitcher } from '@/components/account-switcher';
-import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -20,9 +18,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import settings from '@/routes/settings';

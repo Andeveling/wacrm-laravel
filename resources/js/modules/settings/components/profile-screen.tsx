@@ -1,6 +1,7 @@
 /* @chisel-email-verification */
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 /* @end-chisel-email-verification */
+import { useId } from 'react';
 import UpdateProfile from '@/actions/App/Domain/Settings/Actions/UpdateProfile';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -26,6 +27,9 @@ export default function Profile(
 ) {
   const { auth } = usePage<PageProps>().props;
 
+  const nameId = useId();
+  const emailId = useId();
+
   return (
     <>
       <Head title="Profile settings" />
@@ -49,10 +53,10 @@ export default function Profile(
           {({ processing, errors }) => (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor={nameId}>Name</Label>
 
                 <Input
-                  id="name"
+                  id={nameId}
                   className="mt-1 block w-full"
                   defaultValue={auth.user.name}
                   name="name"
@@ -65,10 +69,10 @@ export default function Profile(
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="email">Email address</Label>
+                <Label htmlFor={emailId}>Email address</Label>
 
                 <Input
-                  id="email"
+                  id={emailId}
                   type="email"
                   className="mt-1 block w-full"
                   defaultValue={auth.user.email}

@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { Coins } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { CURRENCIES, DEFAULT_CURRENCY } from '@/lib/currency';
 import { overview as settingsOverview } from '@/routes/settings';
 
 export default function Deals() {
+  const defaultCurrencyId = useId();
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [saved, setSaved] = useState(DEFAULT_CURRENCY);
 
@@ -49,9 +50,9 @@ export default function Deals() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2 sm:max-w-xs">
-              <Label htmlFor="default-currency">Moneda</Label>
+              <Label htmlFor={defaultCurrencyId}>Moneda</Label>
               <select
-                id="default-currency"
+                id={defaultCurrencyId}
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"

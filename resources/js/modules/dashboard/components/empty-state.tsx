@@ -30,7 +30,9 @@ export function EmptyState({
       <p className="text-sm font-medium text-muted-foreground">
         {title || 'Sin datos suficientes'}
       </p>
-      {hint && <p className="max-w-xs text-xs text-muted-foreground">{hint}</p>}
+      {hint ? (
+        <p className="max-w-xs text-xs text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }

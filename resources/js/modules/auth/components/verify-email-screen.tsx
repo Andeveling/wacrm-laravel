@@ -22,7 +22,7 @@ export default function VerifyEmail({ status }: { status?: string }) {
         {({ processing }) => (
           <>
             <Button disabled={processing} variant="secondary">
-              {processing && <Spinner />}
+              {processing ? <Spinner /> : null}
               Reenviar correo de verificación
             </Button>
 

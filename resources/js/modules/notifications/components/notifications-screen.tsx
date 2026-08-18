@@ -32,6 +32,73 @@ function relativeTime(iso: string): string {
   return `hace ${Math.floor(diffSec / 86400)}d`;
 }
 
+function NotificationRow({
+  n,
+  onClick,
+}: {
+  n: Notification;
+  onClick: (n: Notification) => void;
+}) {
+  const Icon = TYPE_ICON[n.type] ?? Bell;
+  const isUnread = !n.read_at;
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onClick(n)}
+        className={cn(
+          'flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-colors',
+          isUnread
+            ? 'border-primary/30 bg-primary/5 hover:border-primary/50'
+            : 'border-border bg-card hover:border-border/70',
+        )}
+      >
+        <div
+          className={cn(
+            'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg',
+            isUnread ? 'bg-primary/15' : 'bg-muted',
+          )}
+          aria-hidden
+        >
+          <Icon
+            className={cn(
+              'h-5 w-5',
+              isUnread ? 'text-primary' : 'text-muted-foreground',
+            )}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                'truncate text-sm font-semibold',
+                isUnread ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {n.title}
+            </span>
+            {isUnread ? (
+              <span
+                aria-label="No leído"
+                className="h-2 w-2 flex-shrink-0 rounded-full bg-primary"
+              />
+            ) : null}
+          </div>
+          {n.body ? (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {n.body}
+            </p>
+          ) : null}
+          <p className="mt-1 text-[11px] text-muted-foreground/70">
+            {relativeTime(n.created_at)}
+          </p>
+        </div>
+      </button>
+    </li>
+  );
+}
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>(() =>
     mockNotifications(),
@@ -103,67 +170,9 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <ul className="space-y-2">
-            {notifications.map((n) => {
-              const Icon = TYPE_ICON[n.type] ?? Bell;
-              const isUnread = !n.read_at;
-              return (
-                <li key={n.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleClick(n)}
-                    className={cn(
-                      'flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-colors',
-                      isUnread
-                        ? 'border-primary/30 bg-primary/5 hover:border-primary/50'
-                        : 'border-border bg-card hover:border-border/70',
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg',
-                        isUnread ? 'bg-primary/15' : 'bg-muted',
-                      )}
-                      aria-hidden
-                    >
-                      <Icon
-                        className={cn(
-                          'h-5 w-5',
-                          isUnread ? 'text-primary' : 'text-muted-foreground',
-                        )}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            'truncate text-sm font-semibold',
-                            isUnread
-                              ? 'text-foreground'
-                              : 'text-muted-foreground',
-                          )}
-                        >
-                          {n.title}
-                        </span>
-                        {isUnread && (
-                          <span
-                            aria-label="No leído"
-                            className="h-2 w-2 flex-shrink-0 rounded-full bg-primary"
-                          />
-                        )}
-                      </div>
-                      {n.body && (
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {n.body}
-                        </p>
-                      )}
-                      <p className="mt-1 text-[11px] text-muted-foreground/70">
-                        {relativeTime(n.created_at)}
-                      </p>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
+            {notifications.map((n) => (
+              <NotificationRow key={n.id} n={n} onClick={handleClick} />
+            ))}
           </ul>
         )}
       </div>

@@ -94,7 +94,7 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
               Usa tu base de conocimiento y se comporta igual que el bot de
               respuesta automática, incluyendo el traspaso a un humano.
             </p>
-            {onGoToSetup && (
+            {onGoToSetup ? (
               <Button
                 variant="link"
                 size="sm"
@@ -104,7 +104,7 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
                 ¿Aún no está configurado? Ir a Configuración{' '}
                 <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -127,7 +127,9 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
                   : 'rounded-bl-sm bg-muted text-foreground',
               )}
             >
-              {t.content && <p className="whitespace-pre-wrap">{t.content}</p>}
+              {t.content ? (
+                <p className="whitespace-pre-wrap">{t.content}</p>
+              ) : null}
               {t.role === 'assistant' && t.handoff && (
                 <p
                   className={cn(
@@ -146,12 +148,12 @@ export function AiPlayground({ onGoToSetup }: { onGoToSetup?: () => void }) {
           </div>
         ))}
 
-        {sending && (
+        {sending ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Bot className="h-5 w-5 text-primary" />
             <Loader2 className="h-4 w-4 animate-spin" /> Pensando…
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="flex items-end gap-2 border-t border-border p-3">

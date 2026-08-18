@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useId } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,9 @@ type Props = {
 };
 
 export default function ResetPassword({ token, email, passwordRules }: Props) {
+  const emailId = useId();
+  const passwordId = useId();
+  const passwordConfirmationId = useId();
   return (
     <>
       <Head title="Restablecer contraseña" />
@@ -26,9 +30,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
         {({ processing, errors }) => (
           <div className="grid gap-6">
             <div className="grid gap-2">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor={emailId}>Correo electrónico</Label>
               <Input
-                id="email"
+                id={emailId}
                 type="email"
                 name="email"
                 autoComplete="email"
@@ -40,9 +44,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor={passwordId}>Contraseña</Label>
               <PasswordInput
-                id="password"
+                id={passwordId}
                 name="password"
                 autoComplete="new-password"
                 className="mt-1 block w-full"
@@ -54,11 +58,11 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="password_confirmation">
+              <Label htmlFor={passwordConfirmationId}>
                 Confirmar contraseña
               </Label>
               <PasswordInput
-                id="password_confirmation"
+                id={passwordConfirmationId}
                 name="password_confirmation"
                 autoComplete="new-password"
                 className="mt-1 block w-full"
@@ -77,7 +81,7 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
               disabled={processing}
               data-test="reset-password-button"
             >
-              {processing && <Spinner />}
+              {processing ? <Spinner /> : null}
               Restablecer contraseña
             </Button>
           </div>

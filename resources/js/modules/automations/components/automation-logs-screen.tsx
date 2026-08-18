@@ -45,11 +45,11 @@ function StepRow({ result }: { result: AutomationLogStepResult }) {
         {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
       </span>
       <span className="text-muted-foreground">{result.step_type}</span>
-      {result.detail && (
+      {result.detail ? (
         <span className="truncate text-muted-foreground">
           — {result.detail}
         </span>
-      )}
+      ) : null}
     </li>
   );
 }
@@ -129,11 +129,11 @@ export default function AutomationLogsPage({
                   </button>
                   {isOpen && (
                     <div className="border-t border-border px-4 py-3">
-                      {log.error_message && (
+                      {log.error_message ? (
                         <p className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
                           {log.error_message}
                         </p>
-                      )}
+                      ) : null}
                       <ul className="space-y-1.5">
                         {log.steps_executed.length === 0 ? (
                           <li className="text-xs text-muted-foreground">

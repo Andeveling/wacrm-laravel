@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import UpdatePassword from '@/actions/App/Domain/Settings/Actions/UpdatePassword';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -25,6 +25,10 @@ type Props = {
 export default function Security(props: Props) {
   const passwordInput = useRef<HTMLInputElement>(null);
   const currentPasswordInput = useRef<HTMLInputElement>(null);
+
+  const currentPasswordId = useId();
+  const passwordId = useId();
+  const passwordConfirmationId = useId();
 
   return (
     <>
@@ -64,10 +68,10 @@ export default function Security(props: Props) {
           {({ errors, processing }) => (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="current_password">Contraseña actual</Label>
+                <Label htmlFor={currentPasswordId}>Contraseña actual</Label>
 
                 <PasswordInput
-                  id="current_password"
+                  id={currentPasswordId}
                   ref={currentPasswordInput}
                   name="current_password"
                   className="mt-1 block w-full"
@@ -79,10 +83,10 @@ export default function Security(props: Props) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="password">Nueva contraseña</Label>
+                <Label htmlFor={passwordId}>Nueva contraseña</Label>
 
                 <PasswordInput
-                  id="password"
+                  id={passwordId}
                   ref={passwordInput}
                   name="password"
                   className="mt-1 block w-full"
@@ -95,12 +99,12 @@ export default function Security(props: Props) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="password_confirmation">
+                <Label htmlFor={passwordConfirmationId}>
                   Confirmar contraseña
                 </Label>
 
                 <PasswordInput
-                  id="password_confirmation"
+                  id={passwordConfirmationId}
                   name="password_confirmation"
                   className="mt-1 block w-full"
                   autoComplete="new-password"

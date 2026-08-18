@@ -1,7 +1,14 @@
 import { Form } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { Check, Copy, ScanLine } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import AlertError from '@/components/alert-error';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -84,6 +91,7 @@ function TwoFactorSetupStep({
                           ? 'invert(1) brightness(1.5)'
                           : undefined,
                     }}
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: server-generated QR SVG from the 2FA endpoint, never user input
                     dangerouslySetInnerHTML={{
                       __html: qrCodeSvg,
                     }}
@@ -144,6 +152,7 @@ function TwoFactorVerificationStep({
 }) {
   const [code, setCode] = useState<string>('');
   const pinInputContainerRef = useRef<HTMLDivElement>(null);
+  const otpId = useId();
 
   useEffect(() => {
     setTimeout(() => {
@@ -169,7 +178,7 @@ function TwoFactorVerificationStep({
           <div ref={pinInputContainerRef} className="relative w-full space-y-3">
             <div className="flex w-full flex-col items-center space-y-3 py-2">
               <InputOTP
-                id="otp"
+                id={otpId}
                 name="code"
                 maxLength={OTP_MAX_LENGTH}
                 onChange={setCode}

@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useId } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -15,6 +16,10 @@ type Props = {
 };
 
 export default function Register({ passwordRules, invite }: Props) {
+  const nameId = useId();
+  const emailId = useId();
+  const passwordId = useId();
+  const passwordConfirmationId = useId();
   return (
     <>
       <Head title="Registrarse" />
@@ -34,9 +39,9 @@ export default function Register({ passwordRules, invite }: Props) {
                 </>
               )}
               <div className="grid gap-2">
-                <Label htmlFor="name">Nombre</Label>
+                <Label htmlFor={nameId}>Nombre</Label>
                 <Input
-                  id="name"
+                  id={nameId}
                   type="text"
                   required
                   autoFocus
@@ -49,9 +54,9 @@ export default function Register({ passwordRules, invite }: Props) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="email">Correo electrónico</Label>
+                <Label htmlFor={emailId}>Correo electrónico</Label>
                 <Input
-                  id="email"
+                  id={emailId}
                   type="email"
                   required
                   tabIndex={0}
@@ -63,9 +68,9 @@ export default function Register({ passwordRules, invite }: Props) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="password">Contraseña</Label>
+                <Label htmlFor={passwordId}>Contraseña</Label>
                 <PasswordInput
-                  id="password"
+                  id={passwordId}
                   required
                   tabIndex={0}
                   autoComplete="new-password"
@@ -77,11 +82,11 @@ export default function Register({ passwordRules, invite }: Props) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="password_confirmation">
+                <Label htmlFor={passwordConfirmationId}>
                   Confirmar contraseña
                 </Label>
                 <PasswordInput
-                  id="password_confirmation"
+                  id={passwordConfirmationId}
                   required
                   tabIndex={0}
                   autoComplete="new-password"
@@ -98,7 +103,7 @@ export default function Register({ passwordRules, invite }: Props) {
                 tabIndex={0}
                 data-test="register-user-button"
               >
-                {processing && <Spinner />}
+                {processing ? <Spinner /> : null}
                 Crear cuenta
               </Button>
             </div>

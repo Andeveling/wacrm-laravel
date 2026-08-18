@@ -55,7 +55,7 @@ export default function PasskeyVerify({
             ? (loadingLabel ?? 'Autenticando…')
             : (label ?? 'Iniciar sesión con llave de acceso')}
         </Button>
-        {error && <InputError message={error} className="text-center" />}
+        {error ? <InputError message={error} className="text-center" /> : null}
       </div>
 
       <div className="relative my-6">

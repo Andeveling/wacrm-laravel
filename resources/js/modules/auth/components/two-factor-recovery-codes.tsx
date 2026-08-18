@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +26,9 @@ export default function TwoFactorRecoveryCodes({
   const [codesAreVisible, setCodesAreVisible] = useState<boolean>(false);
   const codesSectionRef = useRef<HTMLDivElement | null>(null);
   const canRegenerateCodes = recoveryCodesList.length > 0 && codesAreVisible;
+
+  const recoveryCodesSectionId = useId();
+  const regenerateWarningId = useId();
 
   const toggleCodesVisibility = useCallback(async () => {
     if (!codesAreVisible && !recoveryCodesList.length) {
@@ -70,13 +73,13 @@ export default function TwoFactorRecoveryCodes({
             onClick={toggleCodesVisibility}
             className="w-fit"
             aria-expanded={codesAreVisible}
-            aria-controls="recovery-codes-section"
+            aria-controls={recoveryCodesSectionId}
           >
             <RecoveryCodeIconComponent className="size-4" aria-hidden="true" />
             {codesAreVisible ? 'Ocultar' : 'Ver'} códigos de recuperación
           </Button>
 
-          {canRegenerateCodes && (
+          {canRegenerateCodes ? (
             <Form
               {...regenerateRecoveryCodes.form()}
               options={{ preserveScroll: true }}
@@ -87,16 +90,16 @@ export default function TwoFactorRecoveryCodes({
                   variant="secondary"
                   type="submit"
                   disabled={processing}
-                  aria-describedby="regenerate-warning"
+                  aria-describedby={regenerateWarningId}
                 >
                   <RefreshCw /> Regenerar códigos
                 </Button>
               )}
             </Form>
-          )}
+          ) : null}
         </div>
         <div
-          id="recovery-codes-section"
+          id={recoveryCodesSectionId}
           className={`relative overflow-hidden transition-all duration-300 ${codesAreVisible ? 'h-auto opacity-100' : 'h-0 opacity-0'}`}
           aria-hidden={!codesAreVisible}
         >
@@ -134,7 +137,7 @@ export default function TwoFactorRecoveryCodes({
                 </div>
 
                 <div className="text-xs text-muted-foreground select-none">
-                  <p id="regenerate-warning">
+                  <p id={regenerateWarningId}>
                     Cada código de recuperación se puede usar una vez para
                     acceder a tu cuenta y se eliminará después de usarlo. Si
                     necesitas más, haz clic en{' '}

@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 import DestroyProfile from '@/actions/App/Domain/Settings/Actions/DestroyProfile';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 
 export default function DeleteUser() {
   const passwordInput = useRef<HTMLInputElement>(null);
+  const passwordId = useId();
 
   return (
     <div className="space-y-6">
@@ -64,12 +65,12 @@ export default function DeleteUser() {
               {({ resetAndClearErrors, processing, errors }) => (
                 <>
                   <div className="grid gap-2">
-                    <Label htmlFor="password" className="sr-only">
+                    <Label htmlFor={passwordId} className="sr-only">
                       Password
                     </Label>
 
                     <PasswordInput
-                      id="password"
+                      id={passwordId}
                       name="password"
                       ref={passwordInput}
                       placeholder="Password"

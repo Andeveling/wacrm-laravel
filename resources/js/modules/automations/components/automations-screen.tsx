@@ -149,11 +149,11 @@ function AutomationCard({ automation }: { automation: Automation }) {
               {automation.is_active ? 'Activa' : 'Pausada'}
             </span>
           </div>
-          {automation.description && (
+          {automation.description ? (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
               {automation.description}
             </p>
-          )}
+          ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span
               className={cn(

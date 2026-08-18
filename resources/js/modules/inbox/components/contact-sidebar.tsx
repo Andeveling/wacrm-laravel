@@ -27,18 +27,18 @@ export function ContactSidebar({ contact }: { contact: ConversationContact }) {
           <Phone className="size-3.5" />
           {contact.phone}
         </div>
-        {contact.email && (
+        {contact.email ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Mail className="size-3.5" />
             {contact.email}
           </div>
-        )}
-        {contact.company && (
+        ) : null}
+        {contact.company ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Building2 className="size-3.5" />
             {contact.company}
           </div>
-        )}
+        ) : null}
       </div>
 
       {contact.tags && contact.tags.length > 0 && (

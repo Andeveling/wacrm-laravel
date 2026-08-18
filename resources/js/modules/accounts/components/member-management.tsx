@@ -1,6 +1,6 @@
 import type { InertiaFormProps } from '@inertiajs/react';
 import { Trash2, UserPlus } from 'lucide-react';
-import type { SubmitEvent } from 'react';
+import { type SubmitEvent, useId } from 'react';
 
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,11 @@ export function InviteMemberForm({
 
   const options = roleOptions(isOwner);
 
+  const inviteEmailId = useId();
+  const inviteEmailErrorId = useId();
+  const inviteRoleId = useId();
+  const inviteRoleErrorId = useId();
+
   return (
     <Card data-testid="invite-member-form">
       <CardHeader>
@@ -76,9 +81,9 @@ export function InviteMemberForm({
           className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem_auto] sm:items-end"
         >
           <div className="grid gap-2">
-            <Label htmlFor="invite-email">Email</Label>
+            <Label htmlFor={inviteEmailId}>Email</Label>
             <Input
-              id="invite-email"
+              id={inviteEmailId}
               name="email"
               type="email"
               value={inviteState.data.email}
@@ -90,17 +95,17 @@ export function InviteMemberForm({
               required
               aria-invalid={Boolean(inviteState.errors.email)}
               aria-describedby={
-                inviteState.errors.email ? 'invite-email-error' : undefined
+                inviteState.errors.email ? inviteEmailErrorId : undefined
               }
             />
             <InputError
-              id="invite-email-error"
+              id={inviteEmailErrorId}
               message={inviteState.errors.email}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="invite-role">Rol</Label>
+            <Label htmlFor={inviteRoleId}>Rol</Label>
             <Select
               name="role"
               value={inviteState.data.role}
@@ -109,10 +114,10 @@ export function InviteMemberForm({
               }
             >
               <SelectTrigger
-                id="invite-role"
+                id={inviteRoleId}
                 className="w-full"
                 aria-describedby={
-                  inviteState.errors.role ? 'invite-role-error' : undefined
+                  inviteState.errors.role ? inviteRoleErrorId : undefined
                 }
                 aria-invalid={Boolean(inviteState.errors.role)}
               >
@@ -127,7 +132,7 @@ export function InviteMemberForm({
               </SelectContent>
             </Select>
             <InputError
-              id="invite-role-error"
+              id={inviteRoleErrorId}
               message={inviteState.errors.role}
             />
           </div>
@@ -198,11 +203,11 @@ export function MemberActionsCell({
             ))}
           </SelectContent>
         </Select>
-        {soleOwnerSelf && (
+        {soleOwnerSelf ? (
           <p className="max-w-56 text-xs text-amber-700 dark:text-amber-300">
             Eres el único Owner — no puedes degradarte
           </p>
-        )}
+        ) : null}
       </div>
 
       <Button

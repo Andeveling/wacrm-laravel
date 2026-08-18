@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { MessageSquare, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,7 @@ interface Draft {
 }
 
 export default function QuickReplies() {
+  const qrTitleId = useId();
   const [items, setItems] = useState<QuickReply[]>(() => mockQuickReplies());
   const [draft, setDraft] = useState<Draft | null>(null);
 
@@ -162,17 +163,17 @@ export default function QuickReplies() {
               {draft?.id ? 'Editar respuesta rápida' : 'Nueva respuesta rápida'}
             </DialogTitle>
           </DialogHeader>
-          {draft && (
+          {draft ? (
             <div className="space-y-3">
               <div>
                 <label
-                  htmlFor="qr-title"
+                  htmlFor={qrTitleId}
                   className="mb-1 block text-xs text-muted-foreground"
                 >
                   Nombre
                 </label>
                 <Input
-                  id="qr-title"
+                  id={qrTitleId}
                   value={draft.title}
                   onChange={(e) =>
                     setDraft({ ...draft, title: e.target.value })
@@ -189,7 +190,7 @@ export default function QuickReplies() {
                 className="min-h-28"
               />
             </div>
-          )}
+          ) : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDraft(null)}>
               Cancelar

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Inbox\Support\InboxMessagePersisted;
 use App\Jobs\ProcessWhatsappWebhookDelivery;
 use App\Models\Account;
 use App\Models\Contact;
@@ -20,6 +21,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use RuntimeException;
@@ -625,6 +627,111 @@ test('a retried inbound message does not duplicate crm records and still activat
         ->and(Conversation::query()->count())->toBe(1)
         ->and(Conversation::query()->sole()->messages()->count())->toBe(1)
         ->and($connection->fresh()->readiness)->toBe(WhatsappConnectionReadiness::Active);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('a processed inbound increments unread and emits the account channel event', function () {
+    [$account] = waitingConnection('phone-sales');
+
+    Event::fake([InboxMessagePersisted::class]);
+
+    $body = inboundMessagesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'wa_id' => '573006660001',
+        'name' => 'Ana Pérez',
+        'message_id' => 'wamid.live-1',
+        'text' => 'Hola ahora',
+        'waba_id' => 'waba-123',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    $conversation = Conversation::query()->sole();
+    $message = Message::query()->sole();
+
+    expect($conversation->unread_count)->toBe(1)
+        ->and($conversation->last_message_text)->toBe('Hola ahora');
+
+    Event::assertDispatched(InboxMessagePersisted::class, function (InboxMessagePersisted $event) use ($account, $conversation, $message): bool {
+        return $event->accountId === $account->id
+            && $event->payload['message']['id'] === $message->id
+            && $event->payload['conversation']['id'] === $conversation->id
+            && $event->broadcastOn()[0]->name === 'private-accounts.'.$account->id;
+    });
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('the same inbound message id does not increment unread or emit again', function () {
+    [$account] = waitingConnection('phone-sales');
+
+    $body = inboundMessagesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'wa_id' => '573006660002',
+        'name' => 'Retry',
+        'message_id' => 'wamid.live-dup',
+        'text' => 'Primera',
+        'waba_id' => 'waba-123',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    Event::fake([InboxMessagePersisted::class]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect(Conversation::query()->sole()->unread_count)->toBe(1)
+        ->and(Message::query()->count())->toBe(1);
+
+    Event::assertNotDispatched(InboxMessagePersisted::class);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+});
+
+test('an uncorrelated status does not increment unread or emit an inbox event', function () {
+    [$account, $owner, $connection] = waitingConnection('phone-sales');
+    $connection->readiness = WhatsappConnectionReadiness::Active;
+    $connection->save();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    $contact = Contact::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'phone' => '+573001112233',
+    ]);
+    $conversation = Conversation::factory()->create([
+        'account_id' => $account->id,
+        'user_id' => $owner->id,
+        'contact_id' => $contact->id,
+        'connection_id' => $connection->id,
+        'unread_count' => 2,
+    ]);
+
+    app()->forgetInstance(AccountScope::CONTAINER_KEY);
+
+    Event::fake([InboxMessagePersisted::class]);
+
+    $body = inboundStatusesPayload([[
+        'phone_number_id' => 'phone-sales',
+        'message_id' => 'wamid.missing-live',
+        'status' => 'delivered',
+        'recipient_id' => '573001112233',
+    ]]);
+
+    $this->call('POST', '/api/whatsapp/webhook', [], [], [], signedWebhookServer($body), $body)->assertOk();
+
+    app()->instance(AccountScope::CONTAINER_KEY, $account->id);
+
+    expect($conversation->fresh()->unread_count)->toBe(2)
+        ->and(Message::query()->count())->toBe(0);
+
+    Event::assertNotDispatched(InboxMessagePersisted::class);
 
     app()->forgetInstance(AccountScope::CONTAINER_KEY);
 });

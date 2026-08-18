@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Meta\Services;
 
+use App\Domain\Inbox\Support\InboxMessagePersisted;
 use App\Models\AccountUser;
 use App\Models\Contact;
 use App\Models\Conversation;
@@ -532,7 +533,7 @@ final class WhatsappWebhookDeliveryProcessor
             return;
         }
 
-        Message::query()->create([
+        $message = Message::query()->create([
             'conversation_id' => $conversation->id,
             'sender_type' => 'customer',
             'content_type' => 'text',
@@ -545,6 +546,8 @@ final class WhatsappWebhookDeliveryProcessor
         $conversation->last_message_at = Carbon::now();
         $conversation->unread_count = $conversation->unread_count + 1;
         $conversation->save();
+
+        event(InboxMessagePersisted::fromPersisted($message, $conversation));
     }
 
     private function activateWaitingConnection(WhatsappPhoneNumberConnection $connection): void

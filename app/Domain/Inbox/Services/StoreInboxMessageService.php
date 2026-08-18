@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Inbox\Services;
 
+use App\Domain\Inbox\Support\InboxMessagePersisted;
 use App\Domain\Inbox\Support\InboxMessageSend;
 use App\Domain\Meta\Services\ActiveWhatsappConnectionResolver;
 use App\Domain\Meta\Services\MetaGraphClientContract;
@@ -61,6 +62,10 @@ final readonly class StoreInboxMessageService
             $send->conversation->last_message_text = $content;
             $send->conversation->last_message_at = Carbon::now();
             $send->conversation->save();
+
+            $event = InboxMessagePersisted::fromPersisted($message, $send->conversation);
+            $event->dontBroadcastToCurrentUser();
+            event($event);
 
             return $message;
         });

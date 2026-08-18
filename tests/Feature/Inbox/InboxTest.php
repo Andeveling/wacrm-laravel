@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Inbox\Support\InboxMessagePersisted;
 use App\Models\Account;
 use App\Models\Contact;
 use App\Models\Conversation;
@@ -11,6 +12,7 @@ use App\Models\WhatsappPhoneNumberConnection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -230,6 +232,45 @@ test('replies inherit the conversation connection and do not switch sender', fun
     Http::assertNotSent(fn (HttpRequest $request): bool => str_contains($request->url(), 'phone-support/messages'));
 });
 
+test('a persisted outbound emits the account channel event without incrementing unread', function () {
+    [$user, $account] = memberWithRole('member');
+    WhatsappIntegration::factory()->for($account)->create(['access_token' => 'secret-meta-token']);
+    $sales = WhatsappPhoneNumberConnection::factory()->for($account)->active()->create([
+        'phone_number_id' => 'phone-sales',
+    ]);
+    $contact = Contact::factory()->for($account)->create(['phone' => '+573001112233']);
+    $conversation = Conversation::factory()->for($account)->create([
+        'user_id' => $user->id,
+        'contact_id' => $contact->id,
+        'connection_id' => $sales->id,
+        'unread_count' => 2,
+    ]);
+    Http::fake([
+        '*phone-sales/messages' => Http::response(['messages' => [['id' => 'wamid.out-live']]]),
+    ]);
+
+    Event::fake([InboxMessagePersisted::class]);
+
+    $this->actingAs($user)
+        ->withSession(['current_account_id' => $account->id])
+        ->postJson(route('inbox.messages.store', $conversation), [
+            'content_text' => 'Respuesta del compañero.',
+        ])
+        ->assertSuccessful();
+
+    $message = Message::query()->sole();
+
+    expect($conversation->fresh()->unread_count)->toBe(2)
+        ->and($conversation->fresh()->last_message_text)->toBe('Respuesta del compañero.');
+
+    Event::assertDispatched(InboxMessagePersisted::class, function (InboxMessagePersisted $event) use ($account, $conversation, $message): bool {
+        return $event->accountId === $account->id
+            && $event->payload['message']['id'] === $message->id
+            && $event->payload['conversation']['id'] === $conversation->id
+            && $event->broadcastOn()[0]->name === 'private-accounts.'.$account->id;
+    });
+});
+
 test('a disconnected conversation connection pauses the reply instead of falling back', function () {
     [$user, $account] = memberWithRole('member');
     WhatsappIntegration::factory()->for($account)->create(['access_token' => 'secret-meta-token']);
@@ -277,6 +318,7 @@ test('a graph rejection leaves no message and returns a validation error', funct
     Http::fake([
         '*phone-sales/messages' => Http::response(['error' => ['message' => 'Graph refused', 'code' => 131047]], 400),
     ]);
+    Event::fake([InboxMessagePersisted::class]);
 
     $this->actingAs($user)
         ->withSession(['current_account_id' => $account->id])
@@ -287,6 +329,7 @@ test('a graph rejection leaves no message and returns a validation error', funct
         ->assertJsonValidationErrors('content_text');
 
     expect(Message::query()->count())->toBe(0);
+    Event::assertNotDispatched(InboxMessagePersisted::class);
 });
 
 test('a new conversation requires an explicit connection when no active default exists', function () {
@@ -403,6 +446,34 @@ test('a viewer cannot mark a conversation seen', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('conversations.0.id', $conversation->id)
             ->where('conversations.0.unread_count', 2));
+});
+
+test('a member can authorize the account private channel and a non-member cannot', function () {
+    config([
+        'broadcasting.default' => 'reverb',
+        'broadcasting.connections.reverb.key' => 'reverb-key',
+        'broadcasting.connections.reverb.secret' => 'reverb-secret',
+        'broadcasting.connections.reverb.app_id' => '1001',
+    ]);
+
+    [$member, $account] = memberWithRole('member');
+    [$outsider] = memberWithRole('member');
+
+    require base_path('routes/channels.php');
+
+    $this->actingAs($member)
+        ->postJson('/broadcasting/auth', [
+            'socket_id' => '1234.5678',
+            'channel_name' => 'private-accounts.'.$account->id,
+        ])
+        ->assertSuccessful();
+
+    $this->actingAs($outsider)
+        ->postJson('/broadcasting/auth', [
+            'socket_id' => '1234.5678',
+            'channel_name' => 'private-accounts.'.$account->id,
+        ])
+        ->assertForbidden();
 });
 
 test('a conversation from another account cannot be marked seen', function () {

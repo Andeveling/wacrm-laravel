@@ -23,13 +23,15 @@ Los tests corren en push a `develop`/`main` y en todo pull request.
 
 El job de deploy:
 
-1. En un runner de GitHub se instala PHP 8.4 + `composer install --no-dev` y `pnpm build`. La VPS **no compila nada** (no tiene node/pnpm).
+1. En un runner de GitHub se instala PHP 8.4 + `composer install --no-dev` y `pnpm build` con `VITE_REVERB_*` (host/puerto/scheme públicos + `secrets.REVERB_APP_KEY`). La VPS **no compila nada** (no tiene node/pnpm) y **no** lleva `VITE_*` en su `.env`.
 2. `rsync --delete` sube el repo (excluye `.git`, `.env*`, `node_modules`, `storage`, `bootstrap/cache`, docs) a `/var/www/wacrm/`.
 3. En el servidor corre `scripts/deploy.sh`:
    - primer deploy: genera `.env` (APP_KEY, REVERB keys, DB_PASSWORD desde secret), migra y siembra el escenario demo;
    - siempre: `migrate --force`, `config:cache` + `event:cache` (no `route:cache`: hay rutas con closures), `storage:link`, recarga PHP-FPM para activar el código nuevo y vaciar OPcache, y reinicia workers con supervisor.
 
-Secrets de Actions: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DB_PASSWORD`. El `.env` del servidor es la fuente de verdad; el `APP_URL` del workflow solo siembra el primer `.env`. `.env.production` local (gitignored) es el respaldo.
+Secrets de Actions: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DB_PASSWORD`, `REVERB_APP_KEY` (misma key que el `.env` del VPS; no regenerar sin rebuild del JS). El `.env` del servidor es la fuente de verdad; el `APP_URL` del workflow solo siembra el primer `.env`. `.env.production` local (gitignored) es el respaldo.
+
+nginx en el VPS termina TLS y hace proxy de `/app` (WebSocket de Reverb) a `127.0.0.1:8080`. No abrir el 8080 al mundo.
 
 Acceso demo (siembra del primer deploy): `test@example.com` / `password`.
 

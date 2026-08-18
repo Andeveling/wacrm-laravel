@@ -59,6 +59,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build assets
+        env:
+          VITE_REVERB_APP_KEY: ${{ secrets.REVERB_APP_KEY }}
+          VITE_REVERB_HOST: wacrm.andeveling.com
+          VITE_REVERB_PORT: "443"
+          VITE_REVERB_SCHEME: https
         run: pnpm build
 
       - name: Deploy over SSH

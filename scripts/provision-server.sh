@@ -92,6 +92,19 @@ server {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
+    # Reverb WebSocket. Keep the process on 127.0.0.1:8080 — do not open 8080.
+    location /app {
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 60s;
+        proxy_pass http://127.0.0.1:8080;
+    }
+
     # Meta documents a 3 MB webhook payload limit. Keep the proxy boundary
     # aligned with the byte-exact application check for this public endpoint.
     location = /api/whatsapp/webhook {
@@ -175,7 +188,7 @@ stdout_logfile=/var/log/wacrm-queue.log
 stdout_logfile_maxbytes=10MB
 
 [program:wacrm-reverb]
-command=/usr/bin/php /var/www/wacrm/artisan reverb:start --host=0.0.0.0 --port=8080
+command=/usr/bin/php /var/www/wacrm/artisan reverb:start --host=127.0.0.1 --port=8080
 directory=/var/www/wacrm
 user=deploy
 autostart=true
@@ -197,11 +210,10 @@ EOF
 chmod 644 /etc/cron.d/wacrm
 
 # ----- 11. firewall ---------------------------------------------------------------
-log "Configurando ufw (22, 80, 8080, 443)"
+log "Configurando ufw (22, 80, 443)"
 ufw --force reset >/dev/null
 ufw allow OpenSSH >/dev/null
 ufw allow 80/tcp >/dev/null
-ufw allow 8080/tcp >/dev/null
 ufw allow 443/tcp >/dev/null
 ufw --force enable >/dev/null
 
